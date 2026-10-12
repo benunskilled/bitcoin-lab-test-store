@@ -1,0 +1,2 @@
+id: "bltest" # only a-z and dashes - every app in this store must use this as its id prefix
+name: "Bitcoin Lab Test" # shown in the umbrelOS UI as "<name> App Store"
