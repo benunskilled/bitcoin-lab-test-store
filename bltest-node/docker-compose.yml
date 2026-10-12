@@ -87,8 +87,10 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
+      LAB_READ_ONLY: "1"   # test copy: never change Core's peers
       DASHBOARD_PORT: "8788"
       PEERMAP_HEALTH_URL: http://bltest-peermap_web_1:8789/api/health
+      PEERMAP_LINK_PORT: "8795"
     healthcheck:
       # Double-quoted deliberately: the JavaScript contains ": " (in the
       # ternary "? 0 : 1"), and an unquoted YAML plain scalar treats that as a
@@ -130,6 +132,7 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
+      LAB_READ_ONLY: "1"   # test copy: never change Core's peers
     healthcheck:
       test:
         - CMD
@@ -166,6 +169,7 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
+      LAB_READ_ONLY: "1"   # test copy: never change Core's peers
     healthcheck:
       test:
         - CMD
@@ -202,6 +206,7 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
+      LAB_READ_ONLY: "1"   # test copy: never change Core's peers
     healthcheck:
       test:
         - CMD

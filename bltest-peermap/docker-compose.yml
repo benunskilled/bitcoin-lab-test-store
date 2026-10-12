@@ -53,6 +53,7 @@ services:
       APP_BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
       PEERMAP_PORT: "8789"
       PEERMAP_SIBLING_HEALTH_URL: http://bltest-node_dashboard_1:8788/api/health
+      PEERMAP_SIBLING_LINK_PORT: "8794"
     healthcheck:
       # The image has no shell; the binary checks its own /api/health.
       test: ["CMD", "/peermap", "healthcheck"]
