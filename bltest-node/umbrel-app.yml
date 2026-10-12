@@ -1,8 +1,10 @@
 manifestVersion: 1
 id: bltest-node
+storage:
+  dataRoot: data
 category: bitcoin
 name: Bitcoin Lab (Test)
-version: "1.26.0-2"
+version: "1.26.0-3"
 tagline: Pre-release test build - not for general use
 description: >-
   Ever wondered which of your peers actually brings you new blocks first? Your peers decide how soon your node hears about a new block, and Bitcoin Core picks them at random. Bitcoin Lab notes for every block which peer delivered it first and ranks your peers by it.
@@ -17,10 +19,9 @@ description: >-
   Stratum Race is the other half: it times how quickly each mining pool turns a new block into fresh work, your own local pool included, with eight public solo pools racing as the baseline. It is off until you switch it on, so installing this does not start talking to anybody's pool on its own. Every second a miner spends on an already-solved block is a stale share, and that is the window curated peers close. Whether that is worth chasing is a fair question: half a second off a ten-minute job is 0.08% of your miner's time. Bitcoin Lab is for people who enjoy chasing it anyway.
 
 
-releaseNotes: >-
-  Pre-release test build from main.
+releaseNotes: ""
 developer: Ben
-website: https://github.com/benunskilled/bitcoin-lab-community-store
+website: https://github.com/benunskilled/bitcoin-lab
 dependencies:
   - bitcoin
 repo: https://github.com/benunskilled/bitcoin-lab
@@ -28,12 +29,7 @@ support: https://github.com/benunskilled/bitcoin-lab/issues
 
 icon: https://raw.githubusercontent.com/benunskilled/bitcoin-lab-community-store/main/bitcoinlab-node/icon.svg
 port: 8794
-gallery:
-  - https://raw.githubusercontent.com/benunskilled/bitcoin-lab-community-store/main/bitcoinlab-node/1.png
-  - https://raw.githubusercontent.com/benunskilled/bitcoin-lab-community-store/main/bitcoinlab-node/2.png
-  - https://raw.githubusercontent.com/benunskilled/bitcoin-lab-community-store/main/bitcoinlab-node/3.png
-  - https://raw.githubusercontent.com/benunskilled/bitcoin-lab-community-store/main/bitcoinlab-node/4.png
-  - https://raw.githubusercontent.com/benunskilled/bitcoin-lab-community-store/main/bitcoinlab-node/5.png
+gallery: []
 path: ""
 
 defaultUsername: ""
