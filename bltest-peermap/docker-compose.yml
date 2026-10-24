@@ -37,7 +37,7 @@ services:
       APP_PORT: 8789
 
   web:
-    image: ghcr.io/benunskilled/peer-map:2-test@sha256:71aea7a61ef657ff2c3c7805f38ac03957e72d1afb1ddf38b6cc8ee73eec3e68
+    image: ghcr.io/benunskilled/peer-map:2-test@sha256:ca39ff64c1f0979e0a9ea2cc7a7b5caeeaa2d7fecc1f5a87c949e10da841807d
     user: "1000:1000"
     restart: on-failure
     # See "Sandboxing" at the top of this file.
