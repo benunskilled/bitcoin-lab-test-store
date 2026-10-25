@@ -37,7 +37,7 @@ services:
       APP_PORT: 8789
 
   web:
-    image: ghcr.io/benunskilled/peer-map:2-test@sha256:94b15a1643a096b5df09b742f2deda638f178a81947902f60c03cf187997e276
+    image: ghcr.io/benunskilled/peer-map:2-test@sha256:6fd4c965623534573cdeab4bf33d99c5c8943e03ff2c1b6a7d26c43057889b34
     user: "1000:1000"
     restart: on-failure
     # See "Sandboxing" at the top of this file.
@@ -51,6 +51,8 @@ services:
       APP_BITCOIN_RPC_PORT: $APP_BITCOIN_RPC_PORT
       APP_BITCOIN_RPC_USER: $APP_BITCOIN_RPC_USER
       APP_BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
+      APP_BITCOIN_TOR_PROXY_IP: $APP_BITCOIN_TOR_PROXY_IP
+      APP_BITCOIN_I2P_DAEMON_IP: $APP_BITCOIN_I2P_DAEMON_IP
       PEERMAP_PORT: "8789"
       PEERMAP_SIBLING_HEALTH_URL: http://bltest-node_dashboard_1:8788/api/health
       PEERMAP_SIBLING_LINK_PORT: "8794"
