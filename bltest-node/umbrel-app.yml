@@ -20,7 +20,7 @@ description: >-
 
 
 releaseNotes: ""
-developer: Ben
+developer: benunskilled
 website: https://github.com/benunskilled/bitcoin-lab
 dependencies:
   - bitcoin
@@ -73,5 +73,5 @@ widgets:
         - text: "312 GB"
           subtext: "last 30 days"
 
-submitter: Ben
+submitter: benunskilled
 submission: ""

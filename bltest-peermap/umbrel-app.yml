@@ -21,7 +21,7 @@ description: >-
 
 
 releaseNotes: ""
-developer: Ben
+developer: benunskilled
 website: https://github.com/benunskilled/peer-map
 dependencies:
   - bitcoin
@@ -36,5 +36,5 @@ path: ""
 defaultUsername: ""
 defaultPassword: ""
 
-submitter: Ben
+submitter: benunskilled
 submission: ""
