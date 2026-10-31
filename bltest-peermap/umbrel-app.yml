@@ -2,7 +2,7 @@ manifestVersion: 1
 id: bltest-peermap
 category: bitcoin
 name: Peer Map (Test)
-version: "2.0.0-139"
+version: "2.0.0-140"
 tagline: Pre-release test build - not for general use
 description: >-
   Ever wondered who all these connections are? Your node talks to dozens, often hundreds, of other nodes, and Bitcoin Core lists them as a wall of addresses. Peer Map tells you what they are: real nodes running Core, Knots or btcd, mining pools, phone wallets, light clients, address indexers, network crawlers, university scanners – and disguised peers that only pretend to be Core. Next to what each peer claims, it shows what Core actually observed: whether it offers services, relays transactions and follows a chain Core knows.
@@ -20,7 +20,7 @@ description: >-
   IP geolocation and network data by DB-IP (https://db-ip.com), licensed CC BY 4.0. Map data from Natural Earth.
 
 
-releaseNotes: ""
+releaseNotes: "Removed local-only client descriptions. Wallet families and unknown apps are now distinguished. Neutrino shows its own version. Existing disguise checks remain."
 developer: benunskilled
 website: https://github.com/benunskilled/peer-map
 dependencies:
