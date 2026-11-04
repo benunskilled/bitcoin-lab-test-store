@@ -4,7 +4,7 @@ storage:
   dataRoot: data
 category: bitcoin
 name: Bitcoin Lab (Test)
-version: "2.0.1-84"
+version: "2.0.1-85"
 tagline: Pre-release test build - not for general use
 description: >-
   Ever wondered which of your peers actually brings you new blocks first? Your peers decide how soon your node hears about a new block, and Bitcoin Core picks them at random. Bitcoin Lab notes for every block which peer delivered it first and ranks your peers by it.
@@ -36,30 +36,9 @@ defaultUsername: ""
 defaultPassword: ""
 
 widgets:
-  - id: "stats"
-    type: "four-stats"
-    refresh: "60s"
-    endpoint: "dashboard:8788/api/widget/stats"
-    link: ""
-    example:
-      type: "four-stats"
-      link: ""
-      items:
-        - title: "Live Peers"
-          text: "42"
-          subtext: "connected"
-        - title: "Best Peer"
-          text: "33%"
-          subtext: "203.0.113.12:8333"
-        - title: "Fastest Pool"
-          text: "80ms"
-          subtext: "AtlasPool"
-        - title: "Manual"
-          text: "8/8"
-          subtext: "manual peers online"
   - id: "traffic"
     type: "three-stats"
-    refresh: "3600s"
+    refresh: "60s"
     endpoint: "dashboard:8788/api/widget/traffic"
     link: ""
     example:
@@ -70,8 +49,8 @@ widgets:
           subtext: "sent today"
         - text: "1.9 GB"
           subtext: "received today"
-        - text: "312 GB"
-          subtext: "last 30 days"
+        - text: "8 / 10"
+          subtext: "peers in / out"
 
 submitter: benunskilled
 submission: ""
