@@ -63,7 +63,7 @@ services:
       APP_PORT: 8788
 
   dashboard:
-    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:c1c17d53cbef4411e9ce6724531f515947808ed8493070bf12f6fddb516bc2a2
+    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:4ac3ea15f9676fb8191332fb9d2d6c40728c170d31d54462290afd37b8644685
     user: "1000:1000"
     init: true
     restart: on-failure
@@ -89,6 +89,7 @@ services:
       DATA_DIR: /data
       LAB_READ_ONLY: "1"   # test copy: never change Core's peers
       DASHBOARD_PORT: "8788"
+      TRUSTED_PROXY_HOST: bltest-node_app_proxy_1   # writes only through the app's own proxy
       PEERMAP_HEALTH_URL: http://bltest-peermap_web_1:8789/api/health
       PEERMAP_LINK_PORT: "8795"
     healthcheck:
@@ -108,7 +109,7 @@ services:
       start_period: 30s
 
   peer-profiler:
-    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:c1c17d53cbef4411e9ce6724531f515947808ed8493070bf12f6fddb516bc2a2
+    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:4ac3ea15f9676fb8191332fb9d2d6c40728c170d31d54462290afd37b8644685
     user: "1000:1000"
     init: true
     restart: on-failure
@@ -145,7 +146,7 @@ services:
       start_period: 60s
 
   relay-profiler:
-    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:c1c17d53cbef4411e9ce6724531f515947808ed8493070bf12f6fddb516bc2a2
+    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:4ac3ea15f9676fb8191332fb9d2d6c40728c170d31d54462290afd37b8644685
     user: "1000:1000"
     init: true
     restart: on-failure
@@ -182,7 +183,7 @@ services:
       start_period: 60s
 
   stratum-race:
-    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:c1c17d53cbef4411e9ce6724531f515947808ed8493070bf12f6fddb516bc2a2
+    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:4ac3ea15f9676fb8191332fb9d2d6c40728c170d31d54462290afd37b8644685
     user: "1000:1000"
     init: true
     restart: on-failure
