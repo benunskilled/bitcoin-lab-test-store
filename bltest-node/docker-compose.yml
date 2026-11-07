@@ -63,7 +63,7 @@ services:
       APP_PORT: 8788
 
   dashboard:
-    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:c1a1e684cf941979f0034dcafc713fb7f15aa7477471e0eeeefa40a4340e1ad1
+    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:1336713ca03e2207e3c33fb52df6919aa694c61d99d3e96e4e44df98832c6fd6
     user: "1000:1000"
     init: true
     restart: on-failure
@@ -110,7 +110,7 @@ services:
       start_period: 30s
 
   peer-profiler:
-    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:c1a1e684cf941979f0034dcafc713fb7f15aa7477471e0eeeefa40a4340e1ad1
+    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:1336713ca03e2207e3c33fb52df6919aa694c61d99d3e96e4e44df98832c6fd6
     user: "1000:1000"
     init: true
     restart: on-failure
@@ -147,7 +147,7 @@ services:
       start_period: 60s
 
   relay-profiler:
-    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:c1a1e684cf941979f0034dcafc713fb7f15aa7477471e0eeeefa40a4340e1ad1
+    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:1336713ca03e2207e3c33fb52df6919aa694c61d99d3e96e4e44df98832c6fd6
     user: "1000:1000"
     init: true
     restart: on-failure
@@ -184,7 +184,7 @@ services:
       start_period: 60s
 
   stratum-race:
-    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:c1a1e684cf941979f0034dcafc713fb7f15aa7477471e0eeeefa40a4340e1ad1
+    image: ghcr.io/benunskilled/bitcoin-lab:hb-test@sha256:1336713ca03e2207e3c33fb52df6919aa694c61d99d3e96e4e44df98832c6fd6
     user: "1000:1000"
     init: true
     restart: on-failure
