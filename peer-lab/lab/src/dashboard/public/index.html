@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Peer Lab · Overview</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="theme-color" content="#0b0f14" />
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/peerlab.css">
+  <script src="/peerlab.js" defer></script>
+</head>
+<body>
+  <div id="block-wave" class="block-wave" aria-hidden="true"></div>
+  <div id="action-toast" class="action-toast" role="status" aria-live="polite" hidden></div>
+
+  <header class="topbar">
+    <h1>Peer Lab</h1>
+    <a id="sibling-link" class="sibling-link" hidden target="peer-map">Peer Map &#8599;</a>
+    <div id="status" class="status-pill">loading…</div>
+  </header>
+  <nav class="peerlab-nav" aria-label="Peer Lab">
+    <a href="/" data-view="overview">Overview</a>
+    <a href="/map/" data-view="map">Peers &amp; Map</a>
+    <a href="/#live-peer-card" data-view="live-peer-card">Delivery</a>
+    <a href="/#slot-fill" data-view="slot-fill">Slot Fill</a>
+    <a href="/#stratum-race" data-view="stratum-race">Stratum Race</a>
+    <a href="/#storage-card" data-view="storage-card">Data &amp; Settings</a>
+  </nav>
+
+  <main>
+    <div id="readonly-banner" class="service-banner" hidden role="status">Read-only test copy: this Peer Lab does not add, remove or disconnect any of Core's peers.</div>
+    <div id="service-banner" class="service-banner" hidden role="status"></div>
+    <div id="refresh-banner" class="service-banner" hidden role="status"></div>
+    <section class="card hero-card">
+      <div class="hero-grid">
+        <div class="hero-stat">
+          <div class="hero-l">Block Height</div>
+          <div class="hero-n" id="block-height-number">–</div>
+          <!-- Who mined it, when the block says so. Empty is a normal answer
+               and takes no room: not every miner is on a list, and not every
+               coinbase carries a name. -->
+          <div class="hero-sub" id="block-pool" hidden></div>
+        </div>
+        <div class="stat-grid" id="live-stats"></div>
+      </div>
+    </section>
+
+    <!--
+      Folds by its title like every card (app.js, foldable). The top-10 toggle
+      inside only narrows the list; the chevron makes it vanish.
+    -->
+    <section class="card" id="live-peer-card">
+      <h2>Live Peer Ranking <span id="live-peer-count" class="hint"></span></h2>
+      <!-- On a phone nothing can be hovered, so the marks are said here,
+           folded. A wide screen says them on hover. -->
+      <details class="key">
+        <summary>What the marks mean</summary>
+        <ul>
+          <li><b class="hb">⚡</b> May send you new blocks without being asked</li>
+          <li><b class="hb">📡</b> Gets new blocks from you without asking</li>
+          <li><b class="key-new">orange row</b> Delivered the newest block first</li>
+          <li><b class="key-green">green address</b> Has delivered a block first</li>
+          <li><b class="key-grey">grey address<span class="never">⊘ never first</span></b> Passes no blocks on, e.g. a wallet</li>
+          <li><b><span class="kind-tag disg">Disguised</span></b> Probably not the software it says it is</li>
+          <li><b><span class="kind-tag disg">LinkingLion</span></b> On 0xB10C's list of spy nodes</li>
+          <li><b>🔒</b> Keeps its slot, even while offline</li>
+        </ul>
+      </details>
+      <div class="stick" id="live-stick" hidden><div><span>Live Peer Ranking<span id="live-stick-count"></span></span><button type="button" class="secondary" id="live-stick-back">Top 10</button></div></div>
+      <div class="table-wrap">
+        <table id="peer-table" class="peer-table">
+          <thead>
+            <tr>
+              <th class="col-address">Address</th>
+              <th class="col-client" data-drop="4">Client</th>
+              <th class="col-status">Type</th>
+              <th class="col-pct js-first-pct-head" title="Share of the blocks in the window this peer delivered first. Peers with few blocks rank lower.">First %</th>
+              <th class="col-ping" data-drop="3">Ping</th>
+              <th class="col-session" data-drop="2" title="Current session length while connected; time since it dropped while offline">Session</th>
+              <th class="col-sessions" data-drop="1" title="Sessions">Sess.</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr></tbody>
+        </table>
+      </div>
+      <div class="inline-form">
+        <button type="button" id="live-peer-limit-toggle" class="link" hidden></button>
+      </div>
+    </section>
+
+    <section class="card panel">
+      <h2>Outbound Peers</h2>
+      <!--
+        Slot Fill can keep a Tor and an I2P peer among the manual peers, and
+        Core can only reach them with those networks switched on. Said here
+        because this is the table where it shows.
+      -->
+      <p class="panel-note">Letting Bitcoin Core connect out over Tor and I2P as well as clearnet spreads your node's paths further.</p>
+      <div class="table-wrap">
+        <table id="outbound-peer-table" class="peer-table">
+          <thead>
+            <tr>
+              <th class="col-address">Address</th>
+              <th class="col-client" data-drop="4">Client</th>
+              <th class="col-status">Type</th>
+              <th class="col-pct js-first-pct-head" title="Share of the blocks in the window this peer delivered first. Peers with few blocks rank lower.">First %</th>
+              <th class="col-ping" data-drop="3">Ping</th>
+              <th class="col-session" data-drop="2" title="Current session length while connected; time since it dropped while offline">Session</th>
+              <th class="col-sessions" data-drop="1" title="Sessions">Sess.</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card panel">
+      <h2>Manual Peers <span id="manual-slots" class="hint"></span></h2>
+      <p id="manual-spread" class="hint manual-spread" hidden></p>
+      <div class="table-wrap">
+        <table id="manual-peer-table" class="peer-table">
+          <thead>
+            <tr>
+              <th class="col-address">Address</th>
+              <th class="col-client" data-drop="4">Client</th>
+              <th class="col-status">Type</th>
+              <th class="col-pct js-first-pct-head" title="Share of the blocks in the window this peer delivered first. Peers with few blocks rank lower.">First %</th>
+              <th class="col-ping" data-drop="3">Ping</th>
+              <th class="col-session" data-drop="2" title="Current session length while connected; time since it dropped while offline">Session</th>
+              <th class="col-sessions" data-drop="1" title="Sessions">Sess.</th>
+              <th class="col-actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="8"><i></i><i></i></td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!--
+      Its own section, right under the panel it writes into, next to Slot Fill:
+      the two ways a peer gets into the manual slots. It used to live inside
+      Live Peer Ranking, where it looked like a filter for that
+      table rather than what it is: the way you add a peer you found somewhere
+      else entirely.
+
+      Test answers "is anything listening there, and on which port" and changes
+      nothing at all - no row, no addnode, no disconnected session.
+    -->
+    <section class="card">
+      <h2>Add a Peer</h2>
+      <p class="panel-note">
+        <strong>Add &amp; Keep</strong> makes a peer manual and locks it, so it keeps its slot even while
+        offline. The lock above undoes that.
+      </p>
+      <form id="manual-add-form" class="inline-form">
+        <input
+          type="text"
+          id="manual-add-input"
+          aria-label="Peer IP address"
+          placeholder="IP address, e.g. 203.0.113.5"
+          title="A bare IP is probed on 8333, then 9333. Add an explicit :port to use only that one. IPv6 goes in brackets: [2001:db8::1]"
+          required
+        />
+        <button type="button" id="manual-test-button" class="secondary">Test</button>
+        <button type="submit">Add &amp; Keep</button>
+      </form>
+      <div id="manual-add-result" class="hint"></div>
+    </section>
+
+    <section class="card panel" id="slot-fill">
+      <h2>Slot Fill <span class="hint fold-sum" id="rotation-sum"></span></h2>
+      <div class="inline-form">
+        <label class="switch-label" for="rotation-toggle">
+          <input type="checkbox" id="rotation-toggle" />
+          Fill manual slots automatically (recommended)
+        </label>
+      </div>
+      <!--
+        Under the toggle, not beside it, and as short sentences rather than one
+        block: this is the label on a switch, read before flipping it, not
+        documentation. The full rules live in the README - what belongs here is
+        what the switch does and what it costs you.
+      -->
+      <div class="rotation-hint">
+        <p>Fills free manual slots where your node has the fewest connections: other regions, other providers.</p>
+        <details class="how">
+          <summary>How it works</summary>
+          <ul>
+            <li>When a manual slot is free, it goes to a peer from a missing region, taken from Core's address book.</li>
+            <li>Core tests it. If Core can't connect, the next one is tried.</li>
+            <li>A manual peer that is offline for an hour frees its slot. One that ever delivered a block first gets a day.</li>
+            <li>Working peers and Core's own connections are never touched.</li>
+          </ul>
+        </details>
+      </div>
+      <h3>Log</h3>
+      <div class="table-wrap">
+        <table id="rotation-log-table" class="rotation-log-table">
+          <thead>
+            <tr>
+              <th class="col-time">When</th>
+              <th class="col-rot-action">Action</th>
+              <th class="col-address">Address</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody><tr class="skeleton" aria-hidden="true"><td colspan="4"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="4"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="4"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="4"><i></i><i></i></td></tr></tbody>
+        </table>
+      </div>
+      <div class="inline-form">
+        <button type="button" id="rotation-log-toggle" class="link" hidden></button>
+      </div>
+    </section>
+
+    <section class="card" id="stratum-race">
+      <h2>Stratum Race <span class="hint fold-sum" id="stratum-sum"></span></h2>
+      <div class="inline-form">
+        <label class="switch-label" for="stratum-toggle">
+          <input type="checkbox" id="stratum-toggle" />
+          Time how fast mining pools hand out work on a new block
+        </label>
+      </div>
+      <!-- While it is off: the race is not for miners alone, and which pool
+           app needs setting up first (Umbrel's notes for each app). -->
+      <p class="hint" id="pool-no-miner" hidden>No miner needed: install a pool app on this Umbrel and race your own node against the solo pools.<br>
+        Every pool app works right away, except DATUM: it needs a Bitcoin address first.</p>
+      <div id="stratum-body">
+      <!-- The range as a switch, like the one on Peer Map's block card. -->
+      <div class="rt-switch" id="stratum-range" role="group" aria-label="Range">
+        <button type="button" data-range="10" class="on" aria-pressed="true">10 blocks</button>
+        <button type="button" data-range="100" aria-pressed="false">100 blocks</button>
+        <button type="button" data-range="all" aria-pressed="false">All time</button>
+      </div>
+      <div class="inline-form" id="pool-found" hidden>
+        <span class="hint" id="pool-found-text"></span>
+        <button type="button" data-action="add-found-pools">Add to Stratum Race</button>
+        <button type="button" class="secondary" data-action="dismiss-found-pools">No thanks</button>
+      </div>
+      <div class="inline-form">
+        <span class="hint">Local Umbrel pool:</span>
+        <button type="button" class="secondary" data-action="fill-pool-template" data-template="gobrrr">GoBrrr</button>
+        <button type="button" class="secondary" data-action="fill-pool-template" data-template="bassin">Bassin</button>
+        <button type="button" class="secondary" data-action="fill-pool-template" data-template="public-pool">Public Pool</button>
+        <button type="button" class="secondary" data-action="fill-pool-template" data-template="datum">DATUM</button>
+        <button type="button" class="secondary" data-action="fill-pool-template" data-template="pogolo">Pogolo</button>
+      </div>
+      <form id="pool-add-form" class="inline-form">
+        <input type="text" id="pool-label" aria-label="Pool name" placeholder="Label" required />
+        <input
+          type="text"
+          id="pool-host"
+          aria-label="Pool host"
+          placeholder="Host"
+          title="A local Umbrel pool app isn't reached at umbrel.local - use its container name instead (e.g. gobrrr-pool_ckpool_1), same network as this app."
+          required
+        />
+        <input
+          type="number"
+          id="pool-port"
+          aria-label="Pool port"
+          placeholder="Port"
+          min="1"
+          max="65535"
+          title="The stratum port inside the pool's container, not the one your miner uses on your network. The buttons above fill it in."
+          required
+        />
+        <button type="submit">Add Pool</button>
+        <span id="pool-add-result" class="hint"></span>
+      </form>
+      <div class="table-wrap">
+        <table id="pool-table">
+          <thead>
+            <tr>
+              <th>Pool</th>
+              <th data-drop="3">Host:Port</th>
+              <th>Wins</th>
+              <th>Win %</th>
+              <th data-card="Last" title="How long after the first pool's job this pool's job came, for the newest block">Last block</th>
+              <th data-card="Avg" title="How long after the first pool's job this pool's job came, on average over the range">Average</th>
+              <th data-drop="1">Seen</th>
+              <th data-drop="1">Miss</th>
+              <th>Enabled</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody><tr class="skeleton" aria-hidden="true"><td colspan="10"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="10"><i></i><i></i></td></tr><tr class="skeleton" aria-hidden="true"><td colspan="10"><i></i><i></i></td></tr></tbody>
+        </table>
+      </div>
+      </div>
+    </section>
+
+    <!-- What the node sends and receives, per UTC day. -->
+    <section class="card panel" id="traffic-card">
+      <h2>Traffic <span class="hint fold-sum" id="traffic-sum"></span></h2>
+      <div id="traffic-totals" class="traffic-totals"></div>
+      <div id="traffic-chart" class="traffic-chart" role="img" aria-label="Traffic per day, last 30 days"></div>
+      <p class="hint">Updated hourly from Core's byte counters.</p>
+    </section>
+
+    <!-- Closed by default and last on the page: nothing here is part of daily
+         use, and both buttons destroy data that cannot be recovered. -->
+    <details class="card" id="storage-card">
+      <summary><h2>Data &amp; Settings <span id="storage-total" class="hint"></span></h2></summary>
+
+      <div class="reset-group">
+        <h3>Peer measurement data <span id="reset-peers-size" class="hint"></span></h3>
+        <p class="hint">Block races, peer sessions, First % and the Slot Fill log. Your manual
+          peers are kept — only their record starts again.</p>
+        <button type="button" id="reset-peers" class="secondary">Reset peer data…</button>
+        <div id="reset-peers-confirm" class="reset-confirm" hidden>
+          <p class="warn">This cannot be undone. <span id="reset-peers-detail"></span></p>
+          <button type="button" id="reset-peers-yes" class="danger">Yes, delete it</button>
+          <button type="button" id="reset-peers-no" class="secondary">Cancel</button>
+        </div>
+      </div>
+
+      <div class="reset-group">
+        <h3>Pool history <span id="reset-pools-size" class="hint"></span></h3>
+        <p class="hint">Every stratum race and latency measured so far. The pools themselves
+          stay configured — only their history goes.</p>
+        <button type="button" id="reset-pools" class="secondary">Reset pool history…</button>
+        <div id="reset-pools-confirm" class="reset-confirm" hidden>
+          <p class="warn">This cannot be undone. <span id="reset-pools-detail"></span></p>
+          <button type="button" id="reset-pools-yes" class="danger">Yes, delete it</button>
+          <button type="button" id="reset-pools-no" class="secondary">Cancel</button>
+        </div>
+      </div>
+    </details>
+  </main>
+
+  <!-- CC BY 4.0 asks for this: the country and provider of each manual peer
+       come from DB-IP's Lite databases (src/data/NETWORK.md). -->
+  <footer class="foot">
+    <a href="https://db-ip.com" target="_blank" rel="noopener noreferrer">IP to ASN and country by DB-IP</a>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>

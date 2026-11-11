@@ -1,0 +1,64 @@
+name: Peer Lab CI
+on:
+  push:
+    branches: ['**']
+    paths: ['peer-lab/**', '.github/workflows/peer-lab.yml']
+  pull_request:
+    paths: ['peer-lab/**', '.github/workflows/peer-lab.yml']
+  workflow_dispatch: {}
+  workflow_call: {}
+permissions:
+  contents: read
+concurrency:
+  group: peer-lab-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci --no-audit --no-fund
+        working-directory: peer-lab/lab
+      - run: npm test
+        working-directory: peer-lab/lab
+        env:
+          PEER_MAP_DIR: ../map
+  go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: peer-lab/map/go.mod
+          cache: false
+      - run: go test -race ./...
+        working-directory: peer-lab/map
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+        working-directory: peer-lab/lab
+      - run: go build -o "$RUNNER_TEMP/peermap" .
+        working-directory: peer-lab/map
+      - run: PEERLAB_MAP_BINARY="$RUNNER_TEMP/peermap" node scripts/smoke-peer-lab.js
+        working-directory: peer-lab/lab
+  image:
+    needs: [node, go]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        with:
+          context: peer-lab
+          platforms: linux/amd64,linux/arm64
+          build-args: VERSION=0.1.0
+          push: false
+          tags: peer-lab:dev

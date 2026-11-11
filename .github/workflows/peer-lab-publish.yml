@@ -1,0 +1,91 @@
+name: Publish Peer Lab test build
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: peer-lab-test-release
+  cancel-in-progress: false
+jobs:
+  checks:
+    uses: ./.github/workflows/peer-lab.yml
+  publish:
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Choose unique test version
+        id: version
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          version="0.1.0-test.${RUN_NUMBER}.${RUN_ATTEMPT}"
+          echo "value=$version" >> "$GITHUB_OUTPUT"
+          python3 - "$version" <<'PY'
+          import json, pathlib, re, sys
+          version = sys.argv[1]
+          for name in ['package.json', 'package-lock.json']:
+              p = pathlib.Path('peer-lab/lab') / name
+              data = json.loads(p.read_text())
+              data['version'] = version
+              if 'packages' in data:
+                  data['packages']['']['version'] = version
+              p.write_text(json.dumps(data, indent=2) + '\n')
+          p = pathlib.Path('peer-lab/umbrel/bltest-peerlab/umbrel-app.yml')
+          p.write_text(re.sub(r'^version:.*$', 'version: "' + version + '"', p.read_text(), flags=re.M))
+          PY
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        id: image
+        with:
+          context: peer-lab
+          platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ steps.version.outputs.value }}
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/peer-lab:${{ steps.version.outputs.value }}
+      - name: Smoke-test both architectures
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/peer-lab@${{ steps.image.outputs.digest }}
+        run: |
+          set -euo pipefail
+          for arch in amd64 arm64; do
+            docker run --rm --platform "linux/$arch" --read-only --tmpfs /tmp \
+              -e DATA_DIR=/tmp/data "$IMAGE" node -e "const db=require('./src/lib/db'); db.open(); if(db.instance.pragma('integrity_check',{simple:true})!=='ok')process.exit(1); db.instance.close()"
+            name="peerlab-map-$arch"
+            docker run -d --name "$name" --platform "linux/$arch" --read-only \
+              -e PEERMAP_MOCK=1 "$IMAGE" /peermap
+            ready=0
+            for attempt in $(seq 1 30); do
+              if docker exec "$name" /peermap healthcheck; then ready=1; break; fi
+              sleep 1
+            done
+            docker logs "$name"
+            docker rm -f "$name"
+            test "$ready" = 1
+          done
+      - name: Verify public image and prepare test-store entry
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/peer-lab:${{ steps.version.outputs.value }}@${{ steps.image.outputs.digest }}
+        run: python3 peer-lab/prepare-store.py "$IMAGE"
+      - name: Commit the store entry
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+        run: |
+          git add peer-lab/lab/package.json peer-lab/lab/package-lock.json peer-lab/umbrel/bltest-peerlab/umbrel-app.yml bltest-peerlab
+          git -c commit.gpgsign=false commit -m "Publish verified Peer Lab test build"
+          git push origin HEAD

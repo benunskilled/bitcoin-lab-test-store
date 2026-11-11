@@ -1,0 +1,51 @@
+manifestVersion: 1
+id: bltest-peerlab
+category: bitcoin
+name: Peer Lab (Test)
+version: 0.1.0-test.1
+tagline: Unified Peer Lab preview — read-only by default
+description: 'Test build of the standalone Peer Lab replacement. All Bitcoin Lab and
+  Peer Map capabilities are included in one app. This test package starts read-only:
+  manual-peer writes and Slot Fill are disabled so it can run alongside existing apps.
+  It has independent data on port 8796. Stop all other peer managers before explicitly
+  enabling write mode. Peer Lab combines the complete Bitcoin Lab and Peer Map toolsets
+  in one app. Explore peer locations and behavioural classifications, measure block
+  delivery, manage manual peers with Slot Fill, and compare your own mining pool with
+  public pools in Stratum Race. Historical data, traffic, storage controls and the
+  Umbrel widget are included. Slot Fill and Stratum Race are off on a fresh install.
+  Geolocation and ASN data by DB-IP (CC BY 4.0); map data by Natural Earth.'
+releaseNotes: First unified Peer Lab test build. Independent app ID, same-origin navigation
+  and peer links, complete upstream feature modules and an offline database import
+  tool. Defaults to read-only. Production apps are not replaced.
+developer: Peer Lab contributors
+website: https://github.com/benunskilled/bitcoin-lab-test-store
+dependencies:
+- bitcoin
+repo: https://github.com/benunskilled/bitcoin-lab-test-store
+support: https://github.com/benunskilled/bitcoin-lab-test-store/issues
+icon: https://raw.githubusercontent.com/benunskilled/bitcoin-lab-test-store/main/bltest-peerlab/icon.svg
+port: 8796
+gallery: []
+path: ''
+defaultUsername: ''
+defaultPassword: ''
+widgets:
+- id: traffic
+  type: three-stats
+  refresh: 60s
+  endpoint: dashboard:8788/api/widget/traffic
+  link: ''
+  example:
+    type: three-stats
+    link: ''
+    items:
+    - text: 8.4 GB
+      subtext: sent today
+    - text: 1.9 GB
+      subtext: received today
+    - text: 8 / 10
+      subtext: peers in / out
+submitter: Peer Lab contributors
+submission: ''
+storage:
+  dataRoot: data

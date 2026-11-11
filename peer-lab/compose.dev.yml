@@ -1,0 +1,201 @@
+services:
+  dashboard:
+    image: peer-lab:dev
+    user: 1000:1000
+    init: true
+    restart: on-failure
+    read_only: true
+    tmpfs:
+    - /tmp
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    command:
+    - node
+    - src/dashboard-server.js
+    volumes:
+    - peerlab-data:/data
+    environment:
+      APP_BITCOIN_NODE_IP: ${APP_BITCOIN_NODE_IP:-host.docker.internal}
+      APP_BITCOIN_RPC_PORT: ${APP_BITCOIN_RPC_PORT:-8332}
+      APP_BITCOIN_RPC_USER: $APP_BITCOIN_RPC_USER
+      APP_BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
+      APP_BITCOIN_ZMQ_HASHBLOCK_PORT: ${APP_BITCOIN_ZMQ_HASHBLOCK_PORT:-28334}
+      APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
+      DATA_DIR: /data
+      DASHBOARD_PORT: '8788'
+      TRUSTED_PROXY_HOST: bitcoinlab-peerlab_app_proxy_1
+      PEERMAP_HEALTH_URL: http://peer-map:8789/api/health
+      PEERLAB_MAP_URL: http://peer-map:8789
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - 'require(''http'').get(''http://127.0.0.1:8788/api/health'', (r) => process.exit(r.statusCode
+        === 200 ? 0 : 1)).on(''error'', () => process.exit(1))'
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    build:
+      context: .
+      args:
+        VERSION: 0.1.0
+    ports:
+    - 127.0.0.1:8792:8788
+    extra_hosts:
+    - host.docker.internal:host-gateway
+  peer-profiler:
+    image: peer-lab:dev
+    user: 1000:1000
+    init: true
+    restart: on-failure
+    read_only: true
+    tmpfs:
+    - /tmp
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    command:
+    - node
+    - scripts/guard-worker.js
+    - peer-profiler
+    volumes:
+    - peerlab-data:/data
+    environment:
+      APP_BITCOIN_NODE_IP: ${APP_BITCOIN_NODE_IP:-host.docker.internal}
+      APP_BITCOIN_RPC_PORT: ${APP_BITCOIN_RPC_PORT:-8332}
+      APP_BITCOIN_RPC_USER: $APP_BITCOIN_RPC_USER
+      APP_BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
+      APP_BITCOIN_ZMQ_HASHBLOCK_PORT: ${APP_BITCOIN_ZMQ_HASHBLOCK_PORT:-28334}
+      APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
+      DATA_DIR: /data
+      PEERLAB_LEGACY_HEALTH_URL: http://bitcoinlab-node_dashboard_1:8788/api/health
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - require('/app/src/lib/health').assertFresh('peer-profiler', 120000)
+      interval: 60s
+      timeout: 10s
+      retries: 2
+      start_period: 60s
+    extra_hosts:
+    - host.docker.internal:host-gateway
+  relay-profiler:
+    image: peer-lab:dev
+    user: 1000:1000
+    init: true
+    restart: on-failure
+    read_only: true
+    tmpfs:
+    - /tmp
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    command:
+    - node
+    - scripts/guard-worker.js
+    - relay-profiler
+    volumes:
+    - peerlab-data:/data
+    environment:
+      APP_BITCOIN_NODE_IP: ${APP_BITCOIN_NODE_IP:-host.docker.internal}
+      APP_BITCOIN_RPC_PORT: ${APP_BITCOIN_RPC_PORT:-8332}
+      APP_BITCOIN_RPC_USER: $APP_BITCOIN_RPC_USER
+      APP_BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
+      APP_BITCOIN_ZMQ_HASHBLOCK_PORT: ${APP_BITCOIN_ZMQ_HASHBLOCK_PORT:-28334}
+      APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
+      DATA_DIR: /data
+      PEERLAB_LEGACY_HEALTH_URL: http://bitcoinlab-node_dashboard_1:8788/api/health
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - require('/app/src/lib/health').assertFresh('relay-profiler', 120000)
+      interval: 60s
+      timeout: 10s
+      retries: 2
+      start_period: 60s
+    extra_hosts:
+    - host.docker.internal:host-gateway
+  stratum-race:
+    image: peer-lab:dev
+    user: 1000:1000
+    init: true
+    restart: on-failure
+    read_only: true
+    tmpfs:
+    - /tmp
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    command:
+    - node
+    - scripts/guard-worker.js
+    - stratum-race
+    volumes:
+    - peerlab-data:/data
+    environment:
+      APP_BITCOIN_NODE_IP: ${APP_BITCOIN_NODE_IP:-host.docker.internal}
+      APP_BITCOIN_RPC_PORT: ${APP_BITCOIN_RPC_PORT:-8332}
+      APP_BITCOIN_RPC_USER: $APP_BITCOIN_RPC_USER
+      APP_BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
+      APP_BITCOIN_ZMQ_HASHBLOCK_PORT: ${APP_BITCOIN_ZMQ_HASHBLOCK_PORT:-28334}
+      APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
+      DATA_DIR: /data
+      PEERLAB_LEGACY_HEALTH_URL: http://bitcoinlab-node_dashboard_1:8788/api/health
+    healthcheck:
+      test:
+      - CMD
+      - node
+      - -e
+      - require('/app/src/lib/health').assertFresh('stratum-race', 120000)
+      interval: 60s
+      timeout: 10s
+      retries: 2
+      start_period: 60s
+    extra_hosts:
+    - host.docker.internal:host-gateway
+  peer-map:
+    image: peer-lab:dev
+    user: 1000:1000
+    restart: on-failure
+    read_only: true
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    environment:
+      APP_BITCOIN_NODE_IP: ${APP_BITCOIN_NODE_IP:-host.docker.internal}
+      APP_BITCOIN_RPC_PORT: ${APP_BITCOIN_RPC_PORT:-8332}
+      APP_BITCOIN_RPC_USER: $APP_BITCOIN_RPC_USER
+      APP_BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
+      APP_BITCOIN_TOR_PROXY_IP: $APP_BITCOIN_TOR_PROXY_IP
+      APP_BITCOIN_I2P_DAEMON_IP: $APP_BITCOIN_I2P_DAEMON_IP
+      PEERMAP_PORT: '8789'
+      PEERMAP_SIBLING_HEALTH_URL: http://dashboard:8788/api/health
+      APP_BITCOIN_ZMQ_HASHBLOCK_PORT: ${APP_BITCOIN_ZMQ_HASHBLOCK_PORT:-28334}
+    healthcheck:
+      test:
+      - CMD
+      - /peermap
+      - healthcheck
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    command:
+    - /peermap
+    volumes: []
+    extra_hosts:
+    - host.docker.internal:host-gateway
+volumes:
+  peerlab-data: {}

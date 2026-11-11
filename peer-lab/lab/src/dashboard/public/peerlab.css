@@ -1,0 +1,11 @@
+/* Shared Peer Lab navigation, usable at desktop and phone widths. */
+.topbar { flex-wrap: wrap; }
+.topbar h1 { letter-spacing: -.035em; }
+#sibling-link { display: none !important; }
+.peerlab-nav { display:flex; gap:6px; overflow-x:auto; padding:4px 0 14px; margin:0 auto; max-width:1440px; scrollbar-width:thin; }
+.peerlab-nav a { flex:0 0 auto; padding:9px 14px; border:1px solid #273747; border-radius:9px; color:#aebdcb; text-decoration:none; font-size:13px; font-weight:600; }
+.peerlab-nav a:hover, .peerlab-nav a:focus-visible { border-color:#f7931a; color:#fff; outline-offset:3px; }
+.peerlab-nav a[aria-current] { background:#f7931a; border-color:#f7931a; color:#10161e; }
+.peerlab-note { color:#aebdcb; font-size:13px; line-height:1.6; }
+[id] { scroll-margin-top:20px; }
+@media (max-width:600px) { .peerlab-nav { padding-bottom:10px; gap:5px; } .peerlab-nav a { padding:8px 11px; } }

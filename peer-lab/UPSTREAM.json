@@ -1,0 +1,12 @@
+{
+  "bitcoin-lab": {
+    "version": "2.6.0",
+    "commit": "c2bfd2f1fa024dbb7ee2bcf15c3a71b8f7866889",
+    "source": "https://github.com/benunskilled/bitcoin-lab"
+  },
+  "peer-map": {
+    "version": "2.8.0",
+    "commit": "5297c1e24410411900fc24220a274726a2d439e7",
+    "source": "https://github.com/benunskilled/peer-map"
+  }
+}
