@@ -428,7 +428,7 @@ function fitPct() {
   for (const td of document.querySelectorAll('.cards table.peer-table td[data-col="col-pct"]')) {
     const marks = [...td.querySelectorAll('.hb')];
     const cnt = td.querySelector('.cnt');
-    if (!cnt || !marks.length) { td.classList.remove('tight'); continue; }
+    if (!cnt || !marks.length || td.querySelector('.card-place')) { td.classList.remove('tight'); continue; }
     const pct = td.querySelector('.pct');
     const need = pct.getBoundingClientRect().width + textWidth(cnt, '\u00a0' + cnt.textContent)
       + marks.reduce((w, m) => w + m.getBoundingClientRect().width + parseFloat(getComputedStyle(m).marginLeft), 0);
@@ -959,12 +959,26 @@ function firstPctCell(p) {
   // 0/88 - unless it did deliver one after all (software that names itself a
   // wallet and relays anyway): then its numbers, as for every other peer.
   const never = neverFirstReason(p);
-  if (never && !p.first) return `<td title="${escapeHtml(neverFirstTitle(never))}"><span class="never">⊘ never first</span>${hbMark(p)}</td>`;
-  if (!p.eligible) return `<td><span class="pct">-</span>${hbMark(p)}</td>`;
+  if (never && !p.first) return `<td title="${escapeHtml(neverFirstTitle(never))}"><span class="never">⊘ never first</span>${hbMark(p)}${cardPlace(p, '<span class="never">⊘ never first</span>')}</td>`;
+  if (!p.eligible) return `<td><span class="pct">-</span>${hbMark(p)}${cardPlace(p, '')}</td>`;
   const windowBlocks = RECENT_WINDOW_BLOCKS || 500;
   const recent = (100 * (p.recentFirst || 0)) / windowBlocks;
   const title = `First for ${p.first} of the ${p.eligible} blocks it was connected for. ${p.recentFirst || 0} of the last ${windowBlocks} blocks.`;
-  return `<td title="${escapeHtml(title)}"><span class="pct">${p.first}/${p.eligible}</span>&nbsp;<span class="cnt">${fmtPct(recent)}</span>${hbMark(p)}</td>`;
+  return `<td title="${escapeHtml(title)}"><span class="nums"><span class="pct">${p.first}/${p.eligible}</span>&nbsp;<span class="cnt">${fmtPct(recent)}</span></span>${hbMark(p)}${cardPlace(p, `<b>${p.first}/${p.eligible}</b> ${fmtPct(recent)}`)}</td>`;
+}
+
+// On a phone card the cell says where the peer is instead: flag and country,
+// the provider under it - two lines, as tall as address and client beside
+// them. The numbers are the third line of an opened card. Hidden in a table
+// (style.css); a peer whose place is not known keeps its numbers.
+function cardPlace(p, numbers) {
+  const w = p.where;
+  if (!w) return '';
+  const flag = HIDDEN_FLAG[w.region] || flagOf(w.country);
+  const land = w.country ? countryName(w.country) : w.regionName;
+  return `<span class="card-place"><span class="cp-land"><span class="flag">${flag}</span>${escapeHtml(land)}${hbMark(p)}</span>`
+    + `<span class="cp-net">${escapeHtml(w.country ? (w.operator || '') : '')}&nbsp;</span>`
+    + (numbers ? `<span class="cp-num">${numbers}</span>` : '') + '</span>';
 }
 
 // The network note under Outbound Peers used to get a live count of Tor/I2P
@@ -1413,7 +1427,9 @@ const UMBREL_APP = 'UMBREL APP';
 function peerRow(p, { status = p.status, actions, place = false }) {
   if (p.localUmbrelPeer) status = UMBREL_APP;
   const weak = neverFirstReason(p) ? ' weak' : '';
-  const canAct = actions.includes('data-action="add-manual"') || actions.includes('data-action="disconnect"') || actions.includes('data-action="untrust"');
+  // Every row opens: on a phone card the type and the numbers are only in the
+  // opened card, whether or not it has a button.
+  const canAct = true;
   return `
     <tr data-key="${escapeHtml(p.address)}"${canAct ? ' tabindex="0"' : ''} class="${canAct ? 'can-act ' : ''}${rowClassFor(p.address)}${arrivedAt.has(p.address) ? ' arrived' : ''}${p.first > 0 && p.offlineSinceMs == null ? ' row-delivered' : ''}${weak}">
       ${withClientLine(place ? withPlaceLine(addressCell(p), p) : addressCell(p), p)}

@@ -1045,3 +1045,30 @@ tr.skeleton i + i { width: 55%; margin-top: 8px; }
 /* The licence line for the DB-IP data under the manual peers. */
 .foot { margin: 8px auto 28px; text-align: center; font-size: 12px; color: var(--muted); }
 .foot a { color: inherit; }
+
+/* A phone card says where the peer is (11.11.2026): flag and country, the
+   provider under it, beside address and client - two lines, no more. Type,
+   numbers and buttons belong to the opened card. */
+.card-place { display: none; }
+.cards.cards table.peer-table td[data-col="col-pct"]:has(.card-place) { min-width: min(38cqw, 170px); }
+/* Room for the chevron: a country name runs to the end of its cell. */
+.cards.cards table.peer-table tr.can-act { padding-right: 28px; }
+.cards.cards table.peer-table td[data-col="col-pct"]:has(.card-place)::before { content: none !important; }
+.cards.cards table.peer-table td[data-col="col-pct"]:has(.card-place) > :not(.card-place) { display: none; }
+.cards.cards table.peer-table .card-place { display: block; }
+.cards.cards table.peer-table .card-place > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cards.cards table.peer-table .cp-land { line-height: 18px; }
+.cards.cards table.peer-table .cp-land .flag { margin-right: 6px; }
+.cards.cards table.peer-table .cp-land .hb { line-height: 1; }
+.cards.cards table.peer-table .cp-net { margin-top: 2px; line-height: 16px; font-size: 12px; color: var(--muted); }
+.cards.cards table.peer-table .cp-num { margin-top: 2px; line-height: 16px; font-size: 12px; color: var(--muted); }
+.cards.cards table.peer-table .cp-num b { color: var(--text); }
+.cards.cards table.peer-table tr:not(.open) .cp-num { display: none; }
+.cards.cards table.peer-table tr { align-items: start; }
+.cards.cards table.peer-table tr:not(.open):has(.card-place) td[data-col="col-status"],
+.cards.cards table.peer-table tr:not(.open):has(.card-place) td.row-actions { display: none; }
+/* The place is on the right now; the manual peers' own line would say it twice. */
+.cards.cards table.peer-table tr:has(.card-place) .addr-place { display: none; }
+/* In a table a row without a button is not something to click. */
+.table-wrap:not(.cards) tr.can-act:not(:has(td.row-actions > button)) { cursor: default; }
+.cards.cards table.peer-table tr.open td[data-col="col-status"] { align-self: center; }
