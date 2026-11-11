@@ -14,7 +14,7 @@
  * restart.
  *
  * Ranges, not just types. `RECENT_SCORE_WINDOW_BLOCKS=0` is a number and a
- * meaningless one: the score divides by the window, and a peer's ranking would
+ * meaningless one: the ranking divides by the window, and a peer's share would
  * come out as a division by zero dressed up as a percentage. Same for a poll
  * interval of 0, which is a busy loop against Core's RPC.
  *

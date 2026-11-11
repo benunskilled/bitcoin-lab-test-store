@@ -22,7 +22,7 @@ let peerRankingStmt = null;
 let liveTipStmt = null;
 
 /**
- * Per-peer totals over the last N races, for the recent half of the peer score.
+ * Per-peer totals over the last N races, which is what the ranking is ordered by.
  *
  * Cached against the newest race id, which is the only thing that can change
  * the answer. Measured on a synthetic four-million-row observation table the
@@ -138,17 +138,15 @@ function peerRanking() {
     }
   }
 
-  // Ordered here rather than in SQL: the score combines two windows and one of
-  // them is not in that statement. The set is the live peers plus the manual
-  // ones - a couple of hundred rows - so sorting them in JavaScript costs
-  // nothing worth measuring, and the tiebreakers are the same ones the query
-  // used: a peer with any measured record beats one with none, then the lower
-  // ping, then the larger sample, then the address so the order never wobbles
-  // between two identical peers.
+  // Ordered here rather than in SQL, where the recent window is not at hand:
+  // by the share of the recent window delivered first, then by how many
+  // blocks the peer has delivered first in all, then the lower ping, the
+  // larger sample, and the address so the order never wobbles.
   return rows.sort((a, b) => {
     const sa = a.score == null ? -1 : a.score;
     const sb = b.score == null ? -1 : b.score;
     if (sa !== sb) return sb - sa;
+    if ((a.first || 0) !== (b.first || 0)) return (b.first || 0) - (a.first || 0);
     const pa = a.minPingMs == null ? Infinity : a.minPingMs;
     const pb = b.minPingMs == null ? Infinity : b.minPingMs;
     if (pa !== pb) return pa - pb;
@@ -260,8 +258,8 @@ function peerRankingSql() {
          UNION
          SELECT id FROM peer WHERE address IN (SELECT address FROM trusted_peer)
        )
-       -- No ORDER BY: peerRanking() sorts these rows by the peer score in
-       -- JavaScript, since the score blends in the recent window, which this
+       -- No ORDER BY: peerRanking() sorts these rows in JavaScript, by the
+       -- share of the recent window, which this
        -- statement does not have. An order here was a sort thrown away.
        `;
 }

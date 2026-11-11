@@ -558,7 +558,7 @@ async function refreshStatus() {
   if (s.recentScoreWindowBlocks && s.recentScoreWindowBlocks !== RECENT_WINDOW_BLOCKS) {
     RECENT_WINDOW_BLOCKS = s.recentScoreWindowBlocks;
     for (const th of document.querySelectorAll('.js-first-pct-head')) {
-      th.textContent = `First % (last ${RECENT_WINDOW_BLOCKS})`;
+      th.textContent = `First/Blocks · last ${RECENT_WINDOW_BLOCKS}`;
     }
   }
   applyStratumEnabled(Boolean(s.stratumRaceEnabled));
@@ -948,37 +948,23 @@ function sessionCell(p) {
 }
 
 /**
- * The rate over the window the ranking actually sorts by - not the lifetime
- * rate it used to show.
- *
- * Showing one number in a table ordered by a different one made the order look
- * broken, and there was no way to check it from the page: two manual peers sat
- * at 21.2% and 37.5%, in that order, because over the last five hundred blocks
- * they were 33.8% and 33.4% - level, and in exactly the order shown. The
- * deciding number appeared nowhere.
- *
- * The lifetime rate is not dropped: it is in the cell's tooltip, and in the
- * slot fill log. It is still the right number for what a peer has been worth
- * over its life, and it is still what the offline grace is scaled by - so the
- * log keeps showing it.
+ * How often this peer was first, as "46/1276": blocks delivered first out of
+ * the blocks it was connected for, counted for as long as it has been known.
+ * Beside it the share of the last N blocks it delivered first, which is what
+ * the table is ordered by. The share is out of the whole window, so a peer
+ * that has been here for three blocks does not lead with one of them.
  */
 function firstPctCell(p) {
   // A peer that cannot deliver a block reads "never first" instead of its
-  // 0.0% - unless it did deliver one after all (software that names itself a
-  // wallet and relays anyway): then its number, as for every other peer.
+  // 0/88 - unless it did deliver one after all (software that names itself a
+  // wallet and relays anyway): then its numbers, as for every other peer.
   const never = neverFirstReason(p);
   if (never && !p.first) return `<td title="${escapeHtml(neverFirstTitle(never))}"><span class="never">⊘ never first</span>${hbMark(p)}</td>`;
-  const windowed = p.recentEligible > 0;
-  const pct = windowed ? (100 * p.recentFirst) / p.recentEligible : p.firstPct;
-  const counts = windowed ? `${p.recentFirst}/${p.recentEligible}` : `${p.first}/${p.eligible}`;
-  // The lifetime rate only on hover, once there is more lifetime than window:
-  // a second number in every cell was noise in a table sorted by the first.
-  const lifetime = windowed && p.eligible > p.recentEligible;
-  // Without a block in the window the cell holds the lifetime rate, under a
-  // heading that says "last N": the tooltip says which it is.
-  const title = lifetime ? `Lifetime: ${fmtPct(p.firstPct)} (${p.first} of ${p.eligible} blocks first)`
-    : !windowed && p.eligible > 0 ? `Lifetime: not connected for any of the last ${RECENT_WINDOW_BLOCKS || 'recent'} blocks` : '';
-  return `<td${title ? ` title="${escapeHtml(title)}"` : ''}><span class="pct">${fmtPct(pct)}</span>&nbsp;<span class="cnt">${counts}</span>${hbMark(p)}</td>`;
+  if (!p.eligible) return `<td><span class="pct">-</span>${hbMark(p)}</td>`;
+  const windowBlocks = RECENT_WINDOW_BLOCKS || 500;
+  const recent = (100 * (p.recentFirst || 0)) / windowBlocks;
+  const title = `First for ${p.first} of the ${p.eligible} blocks it was connected for. ${p.recentFirst || 0} of the last ${windowBlocks} blocks.`;
+  return `<td title="${escapeHtml(title)}"><span class="pct">${p.first}/${p.eligible}</span>&nbsp;<span class="cnt">${fmtPct(recent)}</span>${hbMark(p)}</td>`;
 }
 
 // The network note under Outbound Peers used to get a live count of Tor/I2P

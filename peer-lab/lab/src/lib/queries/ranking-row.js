@@ -42,7 +42,6 @@ function whereOf(address) {
   const { region, country, operator } = network.lookup(address);
   return region ? { region, regionName: REGION_NAMES[region], country, operator } : null;
 }
-const { peerScore } = require('../score');
 
 // Core's spelling of the network, turned into the display name this app uses.
 // Only the three it cannot dial get a name; ipv4, ipv6 and
@@ -173,21 +172,14 @@ function mapRankingRow(now, recent = new Map(), graceFrom = 0, liveTip = 0) {
       eligible: r.eligible,
       first: r.first,
       firstPct: r.eligible > 0 ? (100 * r.first) / r.eligible : null,
-      // The same two counts over the recent window only, and the score that
-      // weighs them against the lifetime pair (see score.js). firstPct stays
-      // exactly what it was - the lifetime rate, shown in the table and used
-      // for everything that asks what a peer has been worth over its life: its
-      // offline grace, how long it is kept parked, how often it is re-probed.
-      // The score answers a different question - who should hold a slot right
-      // now - and only the rotation's ordering uses it.
+      // first/eligible count for as long as the peer has been known and are
+      // what the table shows. The order comes from the recent window alone:
+      // the share of its blocks this peer delivered first, out of the whole
+      // window, so a peer seen for three blocks cannot lead with one of them.
+      // Null for a peer with no record at all, which sorts below a measured 0.
       recentEligible: recentRow ? recentRow.eligible : 0,
       recentFirst: recentRow ? recentRow.first : 0,
-      score: peerScore({
-        first: r.first,
-        eligible: r.eligible,
-        recentFirst: recentRow ? recentRow.first : 0,
-        recentEligible: recentRow ? recentRow.eligible : 0,
-      }),
+      score: r.eligible > 0 ? (100 * (recentRow ? recentRow.first : 0)) / config.recentScoreWindowBlocks : null,
       live: Boolean(r.liveDirection),
       direction: r.liveDirection,
       connectionType: r.liveConnectionType,

@@ -216,10 +216,10 @@ test('deletePool removes a pool that already has observation history without thr
   assert.equal(obsRows.length, 0);
 });
 
-test('peer ranking sorts by first% (rate), not raw first count', () => {
-  // Peer C: first in 1 of 2 eligible races (50%). Peer D: first in 2 of 10
-  // (20%), but with a higher raw count. Ranking by percentage should put C
-  // above D even though D has "more firsts" overall.
+test('peer ranking sorts by the share of the recent blocks delivered first', () => {
+  // Peer C: first in 1 of the 2 blocks it was there for. Peer D: first in 2
+  // of 10. Out of the same recent blocks D delivered more, so D ranks above
+  // C: a short stay does not lead with one lucky block.
   const peerC = db.getOrCreatePeer('198.51.100.30:8333');
   const peerD = db.getOrCreatePeer('198.51.100.31:8333');
   openSession(peerC.id);
@@ -245,7 +245,7 @@ test('peer ranking sorts by first% (rate), not raw first count', () => {
   const ranking = queries.peerRanking();
   const idxC = ranking.findIndex((r) => r.address === '198.51.100.30:8333');
   const idxD = ranking.findIndex((r) => r.address === '198.51.100.31:8333');
-  assert.ok(idxC < idxD, 'higher first% should rank above higher raw first count');
+  assert.ok(idxD < idxC, 'more of the recent blocks delivered first ranks higher');
 });
 
 test('a live peer Core reports as connection_type "manual" is treated as trusted even without a trusted_peer row', () => {
@@ -781,7 +781,7 @@ test('weakestTrustedPeer breaks a tie towards the peer that is not even connecte
   // The documented tiebreak had no coverage: deleting it left the suite green,
   // and eviction then depended on array order in all three callers.
   //
-  // Ranked on `score` (the blended Wilson figure), not the lifetime rate:
+  // Ranked on `score` (the share of the recent window), not the lifetime rate:
   // whose slot to take is a question about who is worth holding now.
   const live = { address: 'a:8333', score: 5, live: true };
   const offline = { address: 'b:8333', score: 5, live: false };

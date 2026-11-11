@@ -28,12 +28,13 @@ const db = require('../db');
  */
 function weakestTrustedPeer(peers) {
   if (!peers || peers.length === 0) return null;
-  // The peer score, not the lifetime rate: whose slot to take is a question
-  // about who is worth holding now, and that is what the score is for. A peer
-  // with no record at all still sorts below any measured one.
+  // The same order as the ranking: the share of the recent window, then the
+  // blocks delivered first in all. A peer with no record at all sorts below
+  // any measured one.
   const score = (p) => (p.score == null ? -1 : p.score);
   return peers.reduce((worst, p) => {
     if (score(p) !== score(worst)) return score(p) < score(worst) ? p : worst;
+    if ((p.first || 0) !== (worst.first || 0)) return (p.first || 0) < (worst.first || 0) ? p : worst;
     if (!p.live && worst.live) return p;
     return worst;
   });
