@@ -2,9 +2,5 @@
 **/.git
 **/test
 **/scripts
-!lab/scripts
-lab/scripts/*
-!lab/scripts/migrate-peer-lab.js
-!lab/scripts/guard-worker.js
 **/dev-data
 *.log

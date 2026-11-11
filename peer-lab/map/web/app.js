@@ -243,7 +243,7 @@
     } catch (e) {
       state.failed = true;
       renderStatus();
-      showError("Peer Map backend not reachable: " + e.message);
+      showError("Map service not reachable: " + e.message);
     } finally {
       inFlight = false;
     }
@@ -2359,7 +2359,7 @@
         // What the row colour means, said where the peer is named rather
         // than over every cell of the row.
         const got = deliveredNow.has(p.addr) ? "Delivered the newest block first"
-          : deliveredEver.has(p.addr) ? "Has delivered a block first (Bitcoin Lab)" : "";
+          : deliveredEver.has(p.addr) ? "Has delivered a block first" : "";
         fit(sub, p.addr, got);
         if (deliveredNow.has(p.addr)) {
           const star = document.createElement("span");
@@ -2595,7 +2595,7 @@
       // is: where someone wonders, one line says where to find out.
       if (p.no_relay && (word === "never first" || word === p.fork) && !state.data.sibling) {
         const more = el("span", "pd-more", "Which of your peers bring you new blocks first: ");
-        const a = el("a", "", "Bitcoin Lab \u2197");
+        const a = el("a", "", "Ranking \u2192");
         a.href = LAB_PAGE;
         a.target = "_blank";
         a.rel = "noopener";
@@ -2692,7 +2692,7 @@
     who.appendChild(svc);
     if (p.version) who.appendChild(el("p", "pd-small", "Protocol " + p.version));
     if (state.data && state.data.sibling) {
-      const lab = el("a", "pd-lab", "Bitcoin Lab \u2197");
+      const lab = el("a", "pd-lab", "Ranking \u2192");
       lab.title = "View this peer in the ranking";
       lab.href = siblingURL(p.addr);
       lab.target = LAB_TARGET;

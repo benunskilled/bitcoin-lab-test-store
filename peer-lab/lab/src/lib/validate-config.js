@@ -115,7 +115,7 @@ function assertConfig(config, { exit = (code) => process.exit(code), log = conso
   if (problems.length === 0) return;
   log('Bitcoin Lab cannot start - the configuration is not usable:');
   for (const problem of problems) log(`  - ${problem}`);
-  log('See docs/configuration.md for what each setting means.');
+  log('See lab/docs/configuration.md in the repository for what each setting means.');
   exit(1);
 }
 

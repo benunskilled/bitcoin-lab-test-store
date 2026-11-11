@@ -58,8 +58,7 @@ services:
     - ALL
     command:
     - node
-    - scripts/guard-worker.js
-    - peer-profiler
+    - src/peer-profiler.js
     volumes:
     - ${APP_DATA_DIR}/data:/data
     environment:
@@ -70,7 +69,6 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
-      PEERLAB_LEGACY_HEALTH_URL: http://bitcoinlab-node_dashboard_1:8788/api/health
       LAB_READ_ONLY: '1'
     healthcheck:
       test:
@@ -96,8 +94,7 @@ services:
     - ALL
     command:
     - node
-    - scripts/guard-worker.js
-    - relay-profiler
+    - src/relay-profiler.js
     volumes:
     - ${APP_DATA_DIR}/data:/data
     environment:
@@ -108,7 +105,6 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
-      PEERLAB_LEGACY_HEALTH_URL: http://bitcoinlab-node_dashboard_1:8788/api/health
       LAB_READ_ONLY: '1'
     healthcheck:
       test:
@@ -134,8 +130,7 @@ services:
     - ALL
     command:
     - node
-    - scripts/guard-worker.js
-    - stratum-race
+    - src/stratum-race.js
     volumes:
     - ${APP_DATA_DIR}/data:/data
     environment:
@@ -146,7 +141,6 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
-      PEERLAB_LEGACY_HEALTH_URL: http://bitcoinlab-node_dashboard_1:8788/api/health
       LAB_READ_ONLY: '1'
     healthcheck:
       test:

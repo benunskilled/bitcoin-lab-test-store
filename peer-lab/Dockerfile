@@ -83,7 +83,6 @@ COPY lab/package.json ./
 
 # The stock node:* image already ships a non-root "node" user at uid/gid
 # 1000, matching what Umbrel expects to own ${APP_DATA_DIR}.
-COPY lab/scripts/migrate-peer-lab.js lab/scripts/guard-worker.js ./scripts/
 COPY --from=map-build /out/peermap /peermap
 
 RUN mkdir -p /data/sqlite && chown -R node:node /data

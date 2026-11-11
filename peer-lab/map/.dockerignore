@@ -1,6 +1,0 @@
-.git
-.github
-tools
-**/testdata
-**/*_test.go
-*.md

@@ -1,6 +1,6 @@
 # Configuration
 
-Bitcoin Lab is ready to use with its default settings. On Umbrel, the connection details for Bitcoin Core are supplied automatically.
+Peer Lab is ready to use with its default settings. On Umbrel, the connection details for Bitcoin Core are supplied automatically.
 
 Slot Fill can add Tor and I2P peers if Core connects out over those networks. On Umbrel: **Bitcoin Node → Settings → Outgoing Peer Connections**.
 
@@ -69,7 +69,7 @@ A padlocked manual peer that Core has connected to at least once never loses its
 | `STRATUM_AUTHORIZE_ADDRESS` | Address sent in `mining.authorize` | `1BitcoinEaterAddressDontSendf59kuE` |
 | `STRATUM_HISTORY_RETENTION_DAYS` | How long stratum race history is kept | `365` |
 
-The default authorisation address is a public burn address used to subscribe to pools that require a valid Bitcoin address. Bitcoin Lab does not submit shares or use it to earn mining payouts.
+The default authorisation address is a public burn address used to subscribe to pools that require a valid Bitcoin address. Peer Lab does not submit shares or use it to earn mining payouts.
 
 TCP keepalive helps detect broken connections. The socket inactivity timeout provides a separate fallback for a connection that remains silent.
 
@@ -105,12 +105,12 @@ peer-management decisions.
 ## Manual peer ports
 
 When you type in a bare IP, or when an inbound peer has to be checked for a
-reachable listening port, Bitcoin Lab tries `8333` and then `9333`. That list is
+reachable listening port, Peer Lab tries `8333` and then `9333`. That list is
 in `src/lib/config.js` and is not an environment variable.
 
 ## For a test copy
 
-`LAB_READ_ONLY=1` keeps a second copy of the app from changing Core's peers, and `PEERMAP_LINK_PORT` points its links at a test Peer Map. `PEERMAP_HEALTH_URL`, `SSE_MAX_AGE_MS` and `WRITE_SOURCE_DEBUG` are for development only.
+`LAB_READ_ONLY=1` keeps a second copy of the app from changing Core's peers,. `PEERMAP_HEALTH_URL`, `SSE_MAX_AGE_MS` and `WRITE_SOURCE_DEBUG` are for development only.
 
 ## Changing defaults
 

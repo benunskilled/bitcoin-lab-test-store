@@ -4,9 +4,6 @@ Pre-release builds of [Bitcoin Lab](https://github.com/benunskilled/bitcoin-lab)
 
 **Not for general use.** Install the released apps from the [Bitcoin Peer Lab store](https://github.com/benunskilled/bitcoin-lab-community-store) instead. The test apps use their own IDs (`bltest-…`) and ports (8794, 8795), so they can run beside the released ones; both read from the same Bitcoin node. The test Bitcoin Lab runs read-only (`LAB_READ_ONLY=1`): it never adds, removes or disconnects Core's peers, so it cannot interfere with the installed app. Its links point at the test apps' ports (`PEERMAP_LINK_PORT`, `PEERMAP_SIBLING_LINK_PORT`).
 
-## Peer Lab test candidate
+## Peer Lab
 
-The standalone replacement is prepared in [peer-lab/](peer-lab/README.md). It uses
-`bltest-peerlab`, port **8796**, and read-only mode by default. Its store listing
-is generated only after the combined image passes tests, is published, and its
-public multi-architecture digest has been verified. Existing test apps stay intact.
+A test build of one combined app lives in [peer-lab/](peer-lab/README.md): `bltest-peerlab`, port **8796**, read-only by default, with its own data.

@@ -22,7 +22,7 @@ func TestBuildImageMatchesGoModAndIsPinned(t *testing.T) {
 	}
 	want := string(m[1])
 
-	df, err := os.ReadFile("Dockerfile")
+	df, err := os.ReadFile("../Dockerfile")
 	if err != nil {
 		t.Fatal(err)
 	}
