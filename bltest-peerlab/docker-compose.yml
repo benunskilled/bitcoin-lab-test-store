@@ -4,7 +4,7 @@ services:
       APP_HOST: bltest-peerlab_dashboard_1
       APP_PORT: 8788
   dashboard:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.14.1@sha256:502b0b71927fa993b76d0127e055bf1f651d36568dab32647a03578790537f0e
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.15.1@sha256:d8b7d7d521dbfdbbedcecc760412457e57824d9db4b9837300e17b7fb58e0353
     user: 1000:1000
     init: true
     restart: on-failure
@@ -30,9 +30,8 @@ services:
       DATA_DIR: /data
       DASHBOARD_PORT: '8788'
       TRUSTED_PROXY_HOST: bltest-peerlab_app_proxy_1
-      PEERMAP_HEALTH_URL: http://bltest-peerlab_peer-map_1:8789/api/health
-      PEERLAB_MAP_URL: http://bltest-peerlab_peer-map_1:8789
-      LAB_READ_ONLY: '1'
+      PEERS_HEALTH_URL: http://bltest-peerlab_peer-map_1:8789/api/health
+      PEERS_URL: http://bltest-peerlab_peer-map_1:8789
     healthcheck:
       test:
       - CMD
@@ -45,7 +44,7 @@ services:
       retries: 3
       start_period: 30s
   peer-profiler:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.14.1@sha256:502b0b71927fa993b76d0127e055bf1f651d36568dab32647a03578790537f0e
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.15.1@sha256:d8b7d7d521dbfdbbedcecc760412457e57824d9db4b9837300e17b7fb58e0353
     user: 1000:1000
     init: true
     restart: on-failure
@@ -69,7 +68,6 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
-      LAB_READ_ONLY: '1'
     healthcheck:
       test:
       - CMD
@@ -81,7 +79,7 @@ services:
       retries: 2
       start_period: 60s
   relay-profiler:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.14.1@sha256:502b0b71927fa993b76d0127e055bf1f651d36568dab32647a03578790537f0e
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.15.1@sha256:d8b7d7d521dbfdbbedcecc760412457e57824d9db4b9837300e17b7fb58e0353
     user: 1000:1000
     init: true
     restart: on-failure
@@ -105,7 +103,6 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
-      LAB_READ_ONLY: '1'
     healthcheck:
       test:
       - CMD
@@ -117,7 +114,7 @@ services:
       retries: 2
       start_period: 60s
   stratum-race:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.14.1@sha256:502b0b71927fa993b76d0127e055bf1f651d36568dab32647a03578790537f0e
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.15.1@sha256:d8b7d7d521dbfdbbedcecc760412457e57824d9db4b9837300e17b7fb58e0353
     user: 1000:1000
     init: true
     restart: on-failure
@@ -141,7 +138,6 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
-      LAB_READ_ONLY: '1'
     healthcheck:
       test:
       - CMD
@@ -153,7 +149,7 @@ services:
       retries: 2
       start_period: 60s
   peer-map:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.14.1@sha256:502b0b71927fa993b76d0127e055bf1f651d36568dab32647a03578790537f0e
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.15.1@sha256:d8b7d7d521dbfdbbedcecc760412457e57824d9db4b9837300e17b7fb58e0353
     user: 1000:1000
     restart: on-failure
     read_only: true
@@ -168,16 +164,16 @@ services:
       APP_BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
       APP_BITCOIN_TOR_PROXY_IP: $APP_BITCOIN_TOR_PROXY_IP
       APP_BITCOIN_I2P_DAEMON_IP: $APP_BITCOIN_I2P_DAEMON_IP
-      PEERMAP_PORT: '8789'
-      PEERMAP_SIBLING_HEALTH_URL: http://bltest-peerlab_dashboard_1:8788/api/health
+      PEERS_PORT: '8789'
+      DASHBOARD_HEALTH_URL: http://bltest-peerlab_dashboard_1:8788/api/health
     healthcheck:
       test:
       - CMD
-      - /peermap
+      - /peers
       - healthcheck
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
     command:
-    - /peermap
+    - /peers
