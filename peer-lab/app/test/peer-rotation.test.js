@@ -1358,3 +1358,12 @@ test('Core not answering is said, not left as an old status', async () => {
   assert.equal(peerRotation.readStatus().state, 'core');
   peerRotation.setEnabled(false);
 });
+
+test('switched on, Slot Fill waits for its first pass only until that ran', async () => {
+  assert.equal(peerRotation.waitsForFirstPass(), false, 'off: nothing to wait for');
+  peerRotation.setEnabled(true);
+  assert.equal(peerRotation.waitsForFirstPass(), true, 'the profiler runs it at its next poll');
+  await peerRotation.tick();
+  assert.equal(peerRotation.waitsForFirstPass(), false);
+  peerRotation.setEnabled(false);
+});

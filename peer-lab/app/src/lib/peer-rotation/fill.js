@@ -329,7 +329,12 @@ function trialView(trial, peers, now = Date.now()) {
   const limit = !session
     ? NO_CONNECT_MS[unreachableNetwork(trial.address)] || NO_CONNECT_MS.clearnet
     : headersOpen ? HEADERS_OPEN_MS : TRIAL_MS;
-  return { address: trial.address, what: trial.what, note: trial.note, startedAt: trial.startedAt, phase, decideBy: trial.startedAt + limit };
+  const { region, country } = spread.placeOf({ address: trial.address });
+  return {
+    address: trial.address, startedAt: trial.startedAt, phase, decideBy: trial.startedAt + limit,
+    // Where, in words a person reads: the country, or Tor, I2P, the region.
+    country: country || null, region: spread.REGION_NAMES[region] || null,
+  };
 }
 
 // Take a candidate out at once, trial or not: the slot fill was switched off

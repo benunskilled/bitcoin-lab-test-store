@@ -338,6 +338,11 @@ function startPolling(intervalMs) {
   let timer = null;
   const tick = async () => {
     await pollOnce();
+    // Slot Fill just switched on: its first pass now, not at the next
+    // ten-minute mark. One database read per poll otherwise.
+    if (peerRotation.waitsForFirstPass()) {
+      await peerRotation.tick().catch((err) => logger.warn('slot fill first pass failed', { error: err.message }));
+    }
     timer = setTimeout(tick, intervalMs);
     timer.unref?.();
   };

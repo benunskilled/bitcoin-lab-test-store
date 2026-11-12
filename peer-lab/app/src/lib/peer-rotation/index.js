@@ -200,6 +200,12 @@ async function pass() {
   };
 }
 
+// Switched on and not yet checked (switching on clears the status): the
+// profiler runs the first pass at its next poll, seconds away.
+function waitsForFirstPass() {
+  return isEnabled() && readStatus() == null;
+}
+
 // The status after a pass: a candidate on trial, the set full, or why no
 // candidate went into a free slot.
 function reportPass(peers, chain) {
@@ -217,6 +223,7 @@ function reportPass(peers, chain) {
 module.exports = {
   PASS_EVERY_MS,
   readStatus,
+  waitsForFirstPass,
   isEnabled,
   setEnabled,
   settleOnSwitchOff,

@@ -1019,8 +1019,7 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
 .panel .slot-now::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin: 0 8px 1px 0; background: var(--muted); }
 .panel .slot-status[data-state="trial"] .slot-now::before { background: var(--accent); }
 .panel .slot-status[data-state="core"] .slot-now::before { background: #f85149; }
-.panel .slot-now .addr-txt { color: var(--muted); }
-.panel .slot-when { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.panel .slot-now b { font-weight: 600; }
 .panel .rotation-hint {
   margin: 0 0 16px;
   font-size: 12px;
