@@ -277,7 +277,7 @@ test('the poll takes the peer list from the peers service, and asks Core only wh
   const rpc = require('../src/lib/rpc');
   const peersService = require('../src/lib/peers-service');
   const profiler = require('../src/peer-profiler');
-  let fromService = [corePeer({ id: 1, conntimeSecondsAgo: 60 })];
+  let fromService = { peers: [corePeer({ id: 1, conntimeSecondsAgo: 60 })], atMs: Date.now() - 5000 };
   let coreAsked = 0;
   mock.method(peersService, 'peerInfo', async () => fromService);
   mock.method(rpc, 'getPeerInfo', async () => { coreAsked++; return [corePeer({ id: 1, conntimeSecondsAgo: 60 })]; });
@@ -288,5 +288,13 @@ test('the poll takes the peer list from the peers service, and asks Core only wh
   fromService = null;
   await profiler.pollOnce();
   assert.equal(coreAsked, 1, 'no list from the service: Core is asked');
+  // A list from the service's copy, but Core itself silent: Core is down,
+  // and nothing is recorded as if it had answered.
+  fromService = { peers: [], atMs: Date.now() };
+  mock.method(rpc, 'call', async () => { throw new Error('ECONNREFUSED'); });
+  profiler._coreState.down = false;
+  await profiler.pollOnce();
+  assert.equal(profiler._coreState.down, true, 'Core counted as down');
+  assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM peer_session WHERE ended_at IS NULL').get().n, 1, 'the session was not closed on an old list');
   mock.restoreAll();
 });

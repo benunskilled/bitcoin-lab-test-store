@@ -76,9 +76,10 @@ function needsWrite(stored, next) {
   return Math.abs(next.lastPingMs - stored.last_ping_ms) >= PING_DRIFT_MS;
 }
 
-function upsertSessions(peers) {
+// nowMs: when Core gave the list (a copy from the peers service can be a few
+// seconds old).
+function upsertSessions(peers, nowMs = Date.now()) {
   const database = db.instance;
-  const nowMs = Date.now();
 
   // Every column the update below can touch is read back here, not just the
   // ones the session-matching needs: a row is only worth rewriting if one of
@@ -295,7 +296,9 @@ function restoreAfterCoreRestart() {
 async function pollOnce() {
   // From the peers service when it has a fresh copy (the page's list is
   // drawn from the same one), from Core directly otherwise.
-  let peers = await peersService.peerInfo();
+  const shared = await peersService.peerInfo();
+  let peers = shared ? shared.peers : null;
+  const atMs = shared ? shared.atMs : Date.now();
   if (!peers) {
     try {
       peers = await rpc.getPeerInfo();
@@ -310,6 +313,14 @@ async function pollOnce() {
     uptime = await rpc.call('uptime');
   } catch (err) {
     logger.debug('uptime reading failed', { error: err.message });
+    // The list came from the peers service's copy, so this is the first
+    // word from Core itself this poll: no answer means Core is down, as a
+    // failed getpeerinfo always did.
+    if (shared) {
+      coreRestarted({ ok: false });
+      logger.warn('Bitcoin Core not answering', { error: err.message });
+      return;
+    }
   }
   if (coreRestarted({ ok: true, uptime })) restoreAfterCoreRestart();
   // Traffic rides on the same poll: getnettotals is one small call.
@@ -319,7 +330,7 @@ async function pollOnce() {
     logger.debug('traffic reading failed', { error: err.message });
   }
   try {
-    upsertSessions(peers);
+    upsertSessions(peers, atMs);
   } catch (err) {
     // Same reasoning as relay-profiler.js: this runs inside an async function
     // driven by a timer, so an unhandled throw here used to become an
@@ -435,7 +446,9 @@ async function main() {
   // bitcoin app itself (pollOnce restores them at once when it notices the
   // restart; this catches one it did not see), and adopt anything newly addnode'd outside this app
   // (e.g. a direct `bitcoin-cli addnode` call) since the last pass.
+  peerRotation.scheduled({ passAt: Date.now() + PEER_SYNC_INTERVAL_MS, trialAt: Date.now() + 60 * 1000 });
   setInterval(() => {
+    peerRotation.scheduled({ passAt: Date.now() + PEER_SYNC_INTERVAL_MS });
     adoptExternalManualPeers()
       .then((adoptResult) => syncTrustedToAddnode(adoptResult.addedNodes))
       .catch((err) => logger.warn('periodic peer sync failed', { error: err.message }));
@@ -453,6 +466,7 @@ async function main() {
   // While a slot-fill candidate is on trial: look every minute, so it is judged
   // at its own deadline. Does nothing without a trial.
   setInterval(() => {
+    peerRotation.scheduled({ trialAt: Date.now() + 60 * 1000 });
     peerRotation.watchTrial().catch((err) => logger.warn('slot fill trial check failed', { error: err.message }));
   }, 60 * 1000).unref?.();
 

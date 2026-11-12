@@ -1363,7 +1363,22 @@ test('switched on, Slot Fill waits for its first pass only until that ran', asyn
   assert.equal(peerRotation.waitsForFirstPass(), false, 'off: nothing to wait for');
   peerRotation.setEnabled(true);
   assert.equal(peerRotation.waitsForFirstPass(), true, 'the profiler runs it at its next poll');
+  assert.equal(peerRotation.waitsForFirstPass(), false, 'once: a pass that wrote nothing is not run again every poll');
   await peerRotation.tick();
   assert.equal(peerRotation.waitsForFirstPass(), false);
   peerRotation.setEnabled(false);
+  peerRotation.setEnabled(true);
+  assert.equal(peerRotation.waitsForFirstPass(), true, 'switched on again: a first pass again');
+  peerRotation.setEnabled(false);
+});
+
+test('the next check on the page is when the timer really fires', () => {
+  const now = Date.now();
+  peerRotation.scheduled({ passAt: now + 2 * 60 * 1000 });
+  peerRotation.setEnabled(true);
+  peerRotation.reportPassForTest([], { initialblockdownload: false });
+  const st = peerRotation.readStatus();
+  assert.ok(Math.abs(st.nextAt - (now + 2 * 60 * 1000)) < 50, `nextAt ${st.nextAt - now} ms from now`);
+  peerRotation.setEnabled(false);
+  peerRotation.scheduled({ passAt: 1 });
 });

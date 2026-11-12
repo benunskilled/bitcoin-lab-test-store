@@ -10,7 +10,7 @@ test('the peers service stays same-origin, read-only, and never receives credent
     requests.push({ url: req.url, headers: req.headers });
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Security-Policy', "default-src 'self'");
-    if (req.url === '/moved') { res.writeHead(301, { Location: 'https://elsewhere.test/' }); return res.end(); }
+    if (req.url === '/api/peers?moved=1') { res.writeHead(301, { Location: 'https://elsewhere.test/' }); return res.end(); }
     res.end(JSON.stringify({ ok: true }));
   });
   await new Promise(r => upstream.listen(0, '127.0.0.1', r));
@@ -34,11 +34,14 @@ test('the peers service stays same-origin, read-only, and never receives credent
   assert.equal(requests[0].url, '/api/peers?peer=x');
   for (const name of ['cookie', 'authorization', 'x-forwarded-host']) assert.equal(requests[0].headers[name], undefined);
   assert.equal((await fetch(base + '/peers/api/peers', { method: 'POST' })).status, 405);
-  assert.equal((await fetch(base + '/peers/api/peerinfo')).status, 404, "Core's raw list is the profiler's, not the browser's");
-  assert.equal(requests.length, 1);
-  await fetch(base + '/peers//attacker.test/resource');
-  assert.equal(requests[1].url, '//attacker.test/resource');
-  assert.equal((await fetch(base + '/peers/moved', { redirect: 'manual' })).headers.get('location'), null, 'a redirect from inside is not passed on');
+  // Only the page's three paths go through, spelled exactly: Core's raw list
+  // is the profiler's, however the path is written.
+  for (const path of ['/peers/api/peerinfo', '/peers/api/%70eerinfo', '/peers/%61pi/peerinfo', '/peers/api/kinds',
+    '/peers//attacker.test/resource', '/peers/api/peers/', '/peers/API/peers', '/peers/api%2Fpeers', '/peers/index.html']) {
+    assert.equal((await fetch(base + path, { redirect: 'manual' })).status, 404, path);
+  }
+  assert.equal(requests.length, 1, 'none of them reached the service');
+  assert.equal((await fetch(base + '/peers/api/peers?moved=1', { redirect: 'manual' })).headers.get('location'), null, 'a redirect from inside is not passed on');
   upstream.closeAllConnections();
   await new Promise(r => upstream.close(r));
   assert.equal((await fetch(base + '/peers/api/peers')).status, 502);

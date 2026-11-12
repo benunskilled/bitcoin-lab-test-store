@@ -7,6 +7,8 @@ const http = require('node:http');
 // credentials, browser-controlled hosts, or mutations to it. Dashboard writes
 // keep their own source and CSRF checks, with no proxy in front of them.
 // /peers itself is no page: it leads to the page, at /.
+const PAGE_PATHS = new Set(['/peers/app.js', '/peers/world.json', '/peers/api/peers']);
+
 function proxyPeers(req, res, url, target = process.env.PEERS_URL || 'http://peers:8789') {
   if (url.pathname !== '/peers' && !url.pathname.startsWith('/peers/')) return false;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -17,9 +19,11 @@ function proxyPeers(req, res, url, target = process.env.PEERS_URL || 'http://pee
     res.writeHead(308, { Location: '/' }).end();
     return true;
   }
-  // Core's raw peer list is the profiler's, container to container: the page
-  // has its own list, drawn for it.
-  if (url.pathname === '/peers/api/peerinfo') {
+  // Only what the page loads from there, spelled exactly so. The service
+  // also answers the dashboard and the profiler (/api/kinds, /api/peerinfo:
+  // Core's raw peer list), and Go decodes %70 to p before it matches a
+  // path, so a list of what is NOT passed on could be spelled around.
+  if (!PAGE_PATHS.has(url.pathname)) {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }).end('Not found');
     return true;
   }

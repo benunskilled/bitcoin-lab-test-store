@@ -208,14 +208,27 @@ func (s *source) peerInfo(ctx context.Context) (peers []json.RawMessage, at time
 	}
 	peers = make([]json.RawMessage, 0, len(s.raw))
 	for _, p := range s.raw {
-		if p.full == nil { // demo data, built in code
+		full := p.full
+		if full == nil { // demo data, built in code
 			b, err := json.Marshal(p)
 			if err != nil {
 				return nil, time.Time{}, false
 			}
-			p.full = b
+			full = b
 		}
-		peers = append(peers, p.full)
+		// Every field as Core wrote it but one: addrlocal is the address the
+		// peer sees this node under - its public IP - and the profiler has no
+		// use for it.
+		var fields map[string]json.RawMessage
+		if err := json.Unmarshal(full, &fields); err != nil {
+			return nil, time.Time{}, false
+		}
+		delete(fields, "addrlocal")
+		b, err := json.Marshal(fields)
+		if err != nil {
+			return nil, time.Time{}, false
+		}
+		peers = append(peers, b)
 	}
 	return peers, s.rawAt, true
 }

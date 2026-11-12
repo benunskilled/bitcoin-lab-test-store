@@ -25,7 +25,7 @@ func TestPeerInfoSharesTheWindowAndKeepsCoresFields(t *testing.T) {
 			w.Write([]byte(`{"result":null,"error":{"code":-28,"message":"Loading block index..."}}`))
 			return
 		}
-		w.Write([]byte(`{"result":[{"id":7,"addr":"1.0.0.1:8333","connection_type":"manual","startingheight":871000,"pingtime":0.0123456789}],"error":null}`))
+		w.Write([]byte(`{"result":[{"id":7,"addr":"1.0.0.1:8333","connection_type":"manual","startingheight":871000,"pingtime":0.0123456789,"addrlocal":"203.0.113.9:8333"}],"error":null}`))
 	}))
 	defer core.Close()
 	c.url = core.URL + "/"
@@ -58,6 +58,9 @@ func TestPeerInfoSharesTheWindowAndKeepsCoresFields(t *testing.T) {
 	p := got.Result[0]
 	if string(p["id"]) != "7" || string(p["startingheight"]) != "871000" || string(p["pingtime"]) != "0.0123456789" {
 		t.Errorf("Core's fields changed on the way: %v", p)
+	}
+	if _, ok := p["addrlocal"]; ok {
+		t.Error("this node's own public address went out with the list")
 	}
 
 	now = now.Add(interval)

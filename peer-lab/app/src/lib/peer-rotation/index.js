@@ -78,10 +78,16 @@ function isEnabled() {
   return row ? row.value === '1' : false;
 }
 
+// When it was last switched on: the first pass after that runs at once, and
+// only once (waitsForFirstPass).
+const ON_AT_KEY = 'slot_fill_on_at';
+
 function setEnabled(enabled) {
-  db.instance
-    .prepare(`INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
-    .run(META_KEY, enabled ? '1' : '0');
+  const put = db.instance
+    .prepare(`INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`);
+  put.run(META_KEY, enabled ? '1' : '0');
+  // Unique per switching on, even two in the same millisecond.
+  if (enabled) put.run(ON_AT_KEY, `${Date.now()}-${Math.random().toString(36).slice(2)}`);
   // What a pass saw before the switch is not what Slot Fill is doing now.
   db.instance.prepare('DELETE FROM meta WHERE key = ?').run(STATUS_KEY);
   logger.info('manual slot fill toggled', { enabled: Boolean(enabled) });
@@ -156,7 +162,7 @@ async function pass() {
     [peers, chain] = await Promise.all([rpc.getPeerInfo(), rpc.getBlockchainInfo()]);
   } catch (err) {
     logger.debug('slot fill: Core not answering, skipping this pass', { error: err.message });
-    writeStatus({ at: Date.now(), nextAt: Date.now() + (fill.currentTrial() ? TRIAL_CHECK_MS : PASS_EVERY_MS), state: 'core' });
+    writeStatus({ at: Date.now(), nextAt: nextCheckAt(Boolean(fill.currentTrial()), Date.now()), state: 'core' });
     return { ...idle, enabled: true };
   }
   const trialBefore = fill.currentTrial();
@@ -169,7 +175,7 @@ async function pass() {
       peers = fill.withoutSession(await rpc.getPeerInfo(), trialBefore.address);
     } catch (err) {
       logger.debug('slot fill: Core not answering after a candidate went, next pass', { error: err.message });
-      writeStatus({ at: Date.now(), nextAt: Date.now() + PASS_EVERY_MS, state: 'core' });
+      writeStatus({ at: Date.now(), nextAt: nextCheckAt(false, Date.now()), state: 'core' });
       return { ...idle, enabled: true, reverted: 1 };
     }
   }
@@ -201,9 +207,30 @@ async function pass() {
 }
 
 // Switched on and not yet checked (switching on clears the status): the
-// profiler runs the first pass at its next poll, seconds away.
+// profiler runs the first pass at its next poll, seconds away. Once per
+// switching on: a pass that fails before it writes a status is not tried
+// again every 15 seconds, it waits for the ten-minute pass.
+let firstPassFor;
 function waitsForFirstPass() {
-  return isEnabled() && readStatus() == null;
+  if (!isEnabled() || readStatus() != null) return false;
+  const row = db.instance.prepare('SELECT value FROM meta WHERE key = ?').get(ON_AT_KEY);
+  const on = row ? row.value : null;
+  if (firstPassFor === on) return false;
+  firstPassFor = on;
+  return true;
+}
+
+// When the profiler's timers fire next (peer-profiler.js), so the page's
+// "trying again in N min" says when that really is, not ten minutes from
+// a pass the timer did not start.
+const next = { passAt: 0, trialAt: 0 };
+function scheduled({ passAt, trialAt }) {
+  if (passAt) next.passAt = passAt;
+  if (trialAt) next.trialAt = trialAt;
+}
+function nextCheckAt(trial, now) {
+  const at = trial ? next.trialAt : next.passAt;
+  return at > now ? at : now + (trial ? TRIAL_CHECK_MS : PASS_EVERY_MS);
 }
 
 // The status after a pass: a candidate on trial, the set full, or why no
@@ -212,7 +239,7 @@ function reportPass(peers, chain) {
   const now = Date.now();
   const trial = fill.currentTrial();
   const slots = slotsOf(queries.peerRanking(), now);
-  const base = { at: now, nextAt: now + (trial ? TRIAL_CHECK_MS : PASS_EVERY_MS), slots };
+  const base = { at: now, nextAt: nextCheckAt(Boolean(trial), now), slots };
   if (trial) return writeStatus({ ...base, state: 'trial', trial: fill.trialView(trial, peers, now) });
   if (chain.initialblockdownload) return writeStatus({ ...base, state: 'catching_up' });
   if (slots.used >= slots.max) return writeStatus({ ...base, state: 'full' });
@@ -224,6 +251,8 @@ module.exports = {
   PASS_EVERY_MS,
   readStatus,
   waitsForFirstPass,
+  scheduled,
+  reportPassForTest: reportPass,
   isEnabled,
   setEnabled,
   settleOnSwitchOff,

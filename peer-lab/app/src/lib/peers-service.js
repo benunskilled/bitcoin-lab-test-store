@@ -170,7 +170,8 @@ function peerKinds() {
 // profiler's 15-second poll. The service keeps Core's answer for ten
 // seconds and the page's list is drawn from the same copy, so with the page
 // open the two ask Core once between them instead of each on its own clock.
-// Every field as Core wrote it. null when the service is not there, slow, or
+// Every field as Core wrote it but addrlocal, and when Core gave it:
+// { peers, atMs }. null when the service is not there, slow, or
 // has no fresh answer - the caller then asks Core itself, as it always did.
 const PEERINFO_TIMEOUT_MS = 25 * 1000; // the service waits up to 20s for Core
 const PEERINFO_MAX_BYTES = 32 * 1024 * 1024;
@@ -193,7 +194,12 @@ function peerInfo() {
         res.on('end', () => {
           try {
             const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-            resolve(body && Array.isArray(body.result) ? body.result : null);
+            if (!body || !Array.isArray(body.result)) return resolve(null);
+            // When Core gave it: the copy can be up to ten seconds old. A time
+            // that cannot be right is replaced by now.
+            const now = Date.now();
+            const atMs = Number.isFinite(body.at_ms) && body.at_ms <= now && now - body.at_ms < 60 * 1000 ? body.at_ms : now;
+            resolve({ peers: body.result, atMs });
           } catch { resolve(null); }
         });
         res.on('error', () => resolve(null));
