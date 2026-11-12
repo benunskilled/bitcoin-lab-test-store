@@ -4,7 +4,7 @@ services:
       APP_HOST: bltest-peerlab_dashboard_1
       APP_PORT: 8788
   dashboard:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.12.1@sha256:03a59e24a022525692429c364f6702a09e85dd5df023fcf1cb7d54318389687e
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.13.1@sha256:26dbbd03a22ad093e161f96f7180b3fb207fed86698da2b1d0c70972400b7123
     user: 1000:1000
     init: true
     restart: on-failure
@@ -45,7 +45,7 @@ services:
       retries: 3
       start_period: 30s
   peer-profiler:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.12.1@sha256:03a59e24a022525692429c364f6702a09e85dd5df023fcf1cb7d54318389687e
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.13.1@sha256:26dbbd03a22ad093e161f96f7180b3fb207fed86698da2b1d0c70972400b7123
     user: 1000:1000
     init: true
     restart: on-failure
@@ -81,7 +81,7 @@ services:
       retries: 2
       start_period: 60s
   relay-profiler:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.12.1@sha256:03a59e24a022525692429c364f6702a09e85dd5df023fcf1cb7d54318389687e
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.13.1@sha256:26dbbd03a22ad093e161f96f7180b3fb207fed86698da2b1d0c70972400b7123
     user: 1000:1000
     init: true
     restart: on-failure
@@ -117,7 +117,7 @@ services:
       retries: 2
       start_period: 60s
   stratum-race:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.12.1@sha256:03a59e24a022525692429c364f6702a09e85dd5df023fcf1cb7d54318389687e
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.13.1@sha256:26dbbd03a22ad093e161f96f7180b3fb207fed86698da2b1d0c70972400b7123
     user: 1000:1000
     init: true
     restart: on-failure
@@ -153,7 +153,7 @@ services:
       retries: 2
       start_period: 60s
   peer-map:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.12.1@sha256:03a59e24a022525692429c364f6702a09e85dd5df023fcf1cb7d54318389687e
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.13.1@sha256:26dbbd03a22ad093e161f96f7180b3fb207fed86698da2b1d0c70972400b7123
     user: 1000:1000
     restart: on-failure
     read_only: true
