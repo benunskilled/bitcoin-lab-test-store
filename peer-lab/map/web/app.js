@@ -1133,6 +1133,11 @@
       const c = document.getElementById("group-" + g);
       if (c) go(LABEL[g], c);
     }
+    // The cards under the list, where the page has them.
+    for (const [label, id] of [["Slot Fill", "slot-fill"], ["Stratum", "stratum-race"]]) {
+      const c = document.getElementById(id);
+      if (c) go(label, c);
+    }
   }
   window.addEventListener("scroll", () => {
     const y = window.scrollY;

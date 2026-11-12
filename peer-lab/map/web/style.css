@@ -822,3 +822,9 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 .cards.cards .pc .pc-what .kind { margin-left: 0; max-width: 100%; vertical-align: middle; line-height: 16px; }
 .cards.cards .pc .pc-what .kind.never { margin-left: 0; }
 .cards.cards .pc .pc-what .hb { margin-left: 5px; font-size: 12px; }
+
+/* Six jumps do not fit a phone's width in one row: the bar keeps to the
+   screen and its buttons slide sideways under the finger. */
+.jump-bar { max-width: calc(100vw - 16px); overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.jump-bar::-webkit-scrollbar { display: none; }
+.jump-bar button { flex: none; }
