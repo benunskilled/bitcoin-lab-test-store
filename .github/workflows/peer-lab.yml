@@ -59,7 +59,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - run: ruby -ryaml -e 'ARGV.each { |f| YAML.load_file(f); puts "ok #{f}" }' peer-lab/umbrel/bltest-peerlab/*.yml bltest-peerlab/*.yml umbrel-app-store.yml
+      # A block, not a plain line: in a plain YAML line " #" starts a comment
+      # and cut the command short (12.11.2026).
+      - run: |
+          ruby -ryaml -e 'ARGV.each { |f| YAML.load_file(f); puts "ok #{f}" }' peer-lab/umbrel/bltest-peerlab/*.yml bltest-peerlab/*.yml umbrel-app-store.yml
   # Everything above proves the code does what it was written to do, against
   # its own mocks. This proves Bitcoin Core reports what the code assumes:
   # real regtest nodes, the peer that delivered a block credited with it,
