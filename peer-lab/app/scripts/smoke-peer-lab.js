@@ -82,7 +82,7 @@ async function main() {
     });
     let ready = false;
     for (let attempt = 0; attempt < 50; attempt++) {
-      try { ready = (await fetch(base + '/peers/api/health')).ok; } catch { /* starting */ }
+      try { ready = (await fetch(base + '/peers/app.js')).ok; } catch { /* starting */ }
       if (ready) break;
       await new Promise(resolve => setTimeout(resolve, 100));
     }
@@ -94,8 +94,13 @@ async function main() {
     }
     const peers = await (await fetch(base + '/peers/api/peers')).json();
     assert.ok(peers.peers.length > 0, 'the peers service returns its demo peers');
-    for (const resource of ['/app.js', '/style.css', '/favicon.png', '/peers/app.js', '/peers/world.json', '/peers/api/kinds', '/api/widget/traffic']) {
+    for (const resource of ['/app.js', '/style.css', '/favicon.png', '/peers/app.js', '/peers/world.json', '/api/widget/traffic']) {
       assert.equal((await fetch(base + resource)).status, 200, resource);
+    }
+    // What the service answers the dashboard and the profiler is not passed on:
+    // the page loads only its script, its map and its peer list from there.
+    for (const internal of ['/peers/api/peerinfo', '/peers/api/kinds', '/peers/api/health']) {
+      assert.equal((await fetch(base + internal)).status, 404, internal);
     }
     // /peers/ is no page of its own: it leads to the page.
     const redirect = await fetch(base + '/peers/', { redirect: 'manual' });
