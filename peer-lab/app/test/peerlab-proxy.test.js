@@ -34,6 +34,7 @@ test('the peers service stays same-origin, read-only, and never receives credent
   assert.equal(requests[0].url, '/api/peers?peer=x');
   for (const name of ['cookie', 'authorization', 'x-forwarded-host']) assert.equal(requests[0].headers[name], undefined);
   assert.equal((await fetch(base + '/peers/api/peers', { method: 'POST' })).status, 405);
+  assert.equal((await fetch(base + '/peers/api/peerinfo')).status, 404, "Core's raw list is the profiler's, not the browser's");
   assert.equal(requests.length, 1);
   await fetch(base + '/peers//attacker.test/resource');
   assert.equal(requests[1].url, '//attacker.test/resource');

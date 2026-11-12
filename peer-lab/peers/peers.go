@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"math"
 	"net/netip"
 	"os"
@@ -53,10 +54,24 @@ type rawPeer struct {
 	// the map (see homeOf); never passed on.
 	AddrLocal string `json:"addrlocal"`
 
+	// The peer's whole entry as Core wrote it, for the profiler (see
+	// /api/peerinfo): it reads fields this struct leaves out.
+	full json.RawMessage
+
 	mockLoc         *geo.Location // demo data only: documentation addresses have no location
 	mockASN         *asn.Info     // demo data only, same reason
 	mockLinkingLion bool          // demo only: a documentation address standing in for LinkingLion
 	mockHome        *geo.Location // demo only: where the demo node itself is
+}
+
+// UnmarshalJSON reads the fields above and keeps the entry as Core wrote it.
+func (p *rawPeer) UnmarshalJSON(b []byte) error {
+	type plain rawPeer // the same fields, without this method
+	if err := json.Unmarshal(b, (*plain)(p)); err != nil {
+		return err
+	}
+	p.full = append(json.RawMessage(nil), b...)
+	return nil
 }
 
 // Home is where this node is, as the map draws it: a region, never an address.

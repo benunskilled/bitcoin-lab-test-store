@@ -2,10 +2,11 @@
 // what they run, for the peer list and the world map, split into manual,
 // inbound and outbound connections.
 //
-// It is built to cost nothing while nobody is looking: there is no background
-// loop. Core is asked for getpeerinfo only when the dashboard asks for data,
-// and never more than once per interval (10s) no matter how many browsers are
-// open - every request inside that window gets the cached answer.
+// There is no background loop: Core is asked for getpeerinfo only when
+// someone asks here - the page for its list, the profiler every 15 seconds
+// for its records (/api/peerinfo) - and never more than once per interval
+// (10s), however many ask. Every request inside that window gets the cached
+// answer, so the app's two halves share one question to Core.
 package main
 
 import (
@@ -191,6 +192,32 @@ type source struct {
 	last    time.Time // when the last answer came in; the window runs from there
 	lastErr string    // the last failure logged, so a node that stays down logs once
 	snap    snapshot
+	raw     []rawPeer // Core's last good answer, as it came; nil while the last ask failed
+	rawAt   time.Time
+}
+
+// peerInfo is Core's answer from the cached window, each peer as Core wrote
+// it, and when Core gave it. ok is false while the last ask failed: the
+// profiler then asks Core itself rather than record an old list as new.
+func (s *source) peerInfo(ctx context.Context) (peers []json.RawMessage, at time.Time, ok bool) {
+	s.get(ctx)
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.raw == nil {
+		return nil, time.Time{}, false
+	}
+	peers = make([]json.RawMessage, 0, len(s.raw))
+	for _, p := range s.raw {
+		if p.full == nil { // demo data, built in code
+			b, err := json.Marshal(p)
+			if err != nil {
+				return nil, time.Time{}, false
+			}
+			p.full = b
+		}
+		peers = append(peers, p.full)
+	}
+	return peers, s.rawAt, true
 }
 
 func (s *source) get(ctx context.Context) snapshot {
@@ -221,9 +248,14 @@ func (s *source) get(ctx context.Context) snapshot {
 				s.lastErr = err.Error()
 			}
 			s.snap.Error = shownText(err) // keep the last good peer list on screen
+			s.raw = nil
 		default:
 			s.last = now
 			s.lastErr = ""
+			s.raw, s.rawAt = raw, now
+			if s.raw == nil {
+				s.raw = []rawPeer{}
+			}
 			s.snap.Peers = convertAt(raw, now)
 			s.snap.Home = homeOf(raw)
 			s.snap.FetchedAt = now.Unix()
@@ -307,6 +339,27 @@ func newHandler(src *source, dash *dashboardClient) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
 		json.NewEncoder(w).Encode(out)
+	})
+	// The profiler's question, container to container: Core's getpeerinfo,
+	// every field as Core wrote it, out of the same window the page's list
+	// comes from - so the profiler's 15-second poll and an open page ask Core
+	// once between them, not each on its own clock. 503 while the last ask
+	// failed; the profiler then asks Core itself. The dashboard does not pass
+	// this one on to the browser (peers-proxy.js).
+	mux.HandleFunc("GET /api/peerinfo", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+		peers, at, ok := src.peerInfo(ctx)
+		if !ok {
+			http.Error(w, "no fresh answer from Bitcoin Core", http.StatusServiceUnavailable)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		json.NewEncoder(w).Encode(struct {
+			At     int64             `json:"at_ms"`
+			Result []json.RawMessage `json:"result"`
+		}{at.UnixMilli(), peers})
 	})
 	// The two files the page loads from here, and nothing else: no index, no
 	// directory listing. no-cache for both, world.json included: it changes
@@ -453,7 +506,7 @@ func main() {
 	if cfg.mock {
 		mode = "DEMO DATA (PEERS_DEMO=1)"
 	}
-	log.Printf("peers %s listening on :%s, %s, geo table %d regions, %d/%d ranges (v4/v6), network table %d operators, %d/%d ranges (v4/v6), Core polled at most every %s and only while the dashboard is open",
+	log.Printf("peers %s listening on :%s, %s, geo table %d regions, %d/%d ranges (v4/v6), network table %d operators, %d/%d ranges (v4/v6), Core asked at most every %s, one answer for the page and the profiler",
 		Version, cfg.port, mode, regions, v4, v6, networks, a4, a6, interval)
 
 	ln, err := listenConfig().Listen(context.Background(), "tcp", srv.Addr)

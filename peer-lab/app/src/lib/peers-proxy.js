@@ -17,6 +17,12 @@ function proxyPeers(req, res, url, target = process.env.PEERS_URL || 'http://pee
     res.writeHead(308, { Location: '/' }).end();
     return true;
   }
+  // Core's raw peer list is the profiler's, container to container: the page
+  // has its own list, drawn for it.
+  if (url.pathname === '/peers/api/peerinfo') {
+    res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' }).end('Not found');
+    return true;
+  }
   const upstream = new URL(target);
   if (upstream.protocol !== 'http:') throw new Error('PEERS_URL must use internal HTTP');
   // Assign the path, do not resolve it as a URL: //evil must never change host.

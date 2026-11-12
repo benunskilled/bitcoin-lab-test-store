@@ -166,6 +166,46 @@ function peerKinds() {
   return kinds;
 }
 
+// Core's peer list by way of the peers service (/api/peerinfo), for the
+// profiler's 15-second poll. The service keeps Core's answer for ten
+// seconds and the page's list is drawn from the same copy, so with the page
+// open the two ask Core once between them instead of each on its own clock.
+// Every field as Core wrote it. null when the service is not there, slow, or
+// has no fresh answer - the caller then asks Core itself, as it always did.
+const PEERINFO_TIMEOUT_MS = 25 * 1000; // the service waits up to 20s for Core
+const PEERINFO_MAX_BYTES = 32 * 1024 * 1024;
+const peersBase = () => (process.env.PEERS_URL || 'http://peers:8789').replace(/\/+$/, '');
+
+function peerInfo() {
+  if (process.env.PEERS_URL === 'off') return Promise.resolve(null);
+  return new Promise((resolve) => {
+    let req;
+    try {
+      req = http.get(peersBase() + '/api/peerinfo', { timeout: PEERINFO_TIMEOUT_MS }, (res) => {
+        if (res.statusCode !== 200) { res.resume(); return resolve(null); }
+        const chunks = [];
+        let size = 0;
+        res.on('data', (c) => {
+          size += c.length;
+          if (size > PEERINFO_MAX_BYTES) { req.destroy(); return resolve(null); }
+          chunks.push(c);
+        });
+        res.on('end', () => {
+          try {
+            const body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+            resolve(body && Array.isArray(body.result) ? body.result : null);
+          } catch { resolve(null); }
+        });
+        res.on('error', () => resolve(null));
+      });
+    } catch {
+      return resolve(null);
+    }
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+    req.on('error', () => resolve(null));
+  });
+}
+
 // Tests need a clean slate between cases.
 function reset() {
   checkedAtMs = 0;
@@ -177,4 +217,4 @@ function reset() {
   kindsInFlight = false;
 }
 
-module.exports = { isUp, peerKinds, reset, target };
+module.exports = { isUp, peerKinds, peerInfo, reset, target };

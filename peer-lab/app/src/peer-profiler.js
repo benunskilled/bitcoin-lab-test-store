@@ -17,6 +17,7 @@ const { syncTrustedToAddnode, adoptExternalManualPeers } = require('./lib/peer-s
 const queries = require('./lib/queries');
 const traffic = require('./lib/traffic');
 const peerRotation = require('./lib/peer-rotation');
+const peersService = require('./lib/peers-service');
 
 // The sync and Slot Fill's pass share one timer; the page's "next check"
 // reads the same number.
@@ -292,13 +293,17 @@ function restoreAfterCoreRestart() {
 }
 
 async function pollOnce() {
-  let peers;
-  try {
-    peers = await rpc.getPeerInfo();
-  } catch (err) {
-    coreRestarted({ ok: false });
-    logger.warn('getpeerinfo failed', { error: err.message });
-    return;
+  // From the peers service when it has a fresh copy (the page's list is
+  // drawn from the same one), from Core directly otherwise.
+  let peers = await peersService.peerInfo();
+  if (!peers) {
+    try {
+      peers = await rpc.getPeerInfo();
+    } catch (err) {
+      coreRestarted({ ok: false });
+      logger.warn('getpeerinfo failed', { error: err.message });
+      return;
+    }
   }
   let uptime = null;
   try {

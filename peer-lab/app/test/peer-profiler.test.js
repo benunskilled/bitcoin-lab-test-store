@@ -10,6 +10,7 @@ const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'peerlab-peer-profiler-'));
 process.env.SQLITE_PATH = path.join(tmpDir, 'test.db');
 process.env.DATA_DIR = tmpDir;
 process.env.LOG_LEVEL = 'error';
+process.env.PEERS_URL = 'off'; // no peers service here unless a test brings one
 
 const db = require('../src/lib/db');
 const { upsertSessions } = require('../src/peer-profiler');
@@ -269,4 +270,23 @@ test('a Core restart is noticed on the next poll, and the manual peers go back a
   assert.ok(added.includes('add 198.51.100.77:8333'), added.join(', '));
   mock.restoreAll();
   db.instance.prepare(`DELETE FROM trusted_peer WHERE address = '198.51.100.77:8333'`).run();
+});
+
+test('the poll takes the peer list from the peers service, and asks Core only when that has none', async () => {
+  const { mock } = require('node:test');
+  const rpc = require('../src/lib/rpc');
+  const peersService = require('../src/lib/peers-service');
+  const profiler = require('../src/peer-profiler');
+  let fromService = [corePeer({ id: 1, conntimeSecondsAgo: 60 })];
+  let coreAsked = 0;
+  mock.method(peersService, 'peerInfo', async () => fromService);
+  mock.method(rpc, 'getPeerInfo', async () => { coreAsked++; return [corePeer({ id: 1, conntimeSecondsAgo: 60 })]; });
+  mock.method(rpc, 'call', async (m) => (m === 'uptime' ? 900 : { totalbytesrecv: 0, totalbytessent: 0, timemillis: Date.now() }));
+  await profiler.pollOnce();
+  assert.equal(coreAsked, 0, 'the service had a fresh list');
+  assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM peer_session').get().n, 1, 'and it was recorded');
+  fromService = null;
+  await profiler.pollOnce();
+  assert.equal(coreAsked, 1, 'no list from the service: Core is asked');
+  mock.restoreAll();
 });

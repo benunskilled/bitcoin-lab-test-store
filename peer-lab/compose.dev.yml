@@ -72,6 +72,7 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: ${APP_BITCOIN_ZMQ_HASHBLOCK_PORT:-28334}
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
+      PEERS_URL: http://peers:8789
     healthcheck:
       test:
       - CMD
