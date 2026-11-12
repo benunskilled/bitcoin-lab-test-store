@@ -180,6 +180,8 @@
     };
     title.addEventListener("click", flip);
     title.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(e); } });
+    // window.peerLab, not dashboard(): this runs before that is declared.
+    window.peerLab.foldsOnTap(card, flip);
     show();
   }
   foldable($("mapCard"), $("mapHead"), "map");
@@ -992,22 +994,28 @@
     foldInPlace({ anchor: summary, box, open: !box.open, set: (open) => { box.open = open; } });
   });
 
-  // The block's details fold shut again with a tap anywhere on them, not only
-  // on their title: on a phone the title has scrolled away by then, and it
+  // The block card opens its details, and folds them shut again, with a tap
+  // anywhere on it, like every other card - not only on "Details": on a
+  // phone that has scrolled away by the time the reader is done, and it
   // comes back into view.
-  for (const box of [$("blockMore")]) {
-    box.addEventListener("click", (ev) => {
-      if (!box.open || ev.target.closest("summary, a, button, input")) return;
+  {
+    const card = $("blockCard"), box = $("blockMore");
+    card.addEventListener("click", (ev) => {
+      if (!card.contains(ev.target) || ev.target.closest("summary, a, button, input, select, textarea, label")) return;
       if (String(window.getSelection()).length > 0) return;
+      const summary = box.querySelector(":scope > summary");
+      if (!box.open) {
+        foldInPlace({ anchor: summary, box, open: true, set: (open) => { box.open = open; } });
+        return;
+      }
       // Its title on screen: it rolls up into it, in place. Scrolled away:
       // shut at once, and the title comes back to the top of the screen.
-      const summary = box.querySelector(":scope > summary");
-      if (summary && summary.getBoundingClientRect().top >= 0) {
+      if (summary.getBoundingClientRect().top >= 0) {
         foldInPlace({ anchor: summary, box, open: false, set: (open) => { box.open = open; } });
         return;
       }
       box.open = false;
-      const top = box.getBoundingClientRect().top;
+      const top = card.getBoundingClientRect().top;
       if (top < 0) window.scrollBy(0, top - 8);
     });
   }
@@ -2818,17 +2826,20 @@
       sw.className = "swatch s-" + g;
       h.append(sw, LABEL[g]);
       foldable(card, h, "group-" + g);
-      // The count and the mix of kinds as chips beside the name. Counted
-      // before this group's own kind filter, so a group the filter emptied
-      // still offers the way back - and switching kinds is one click.
-      const mix = document.createElement("span");
-      mix.className = "kinds chips";
+      // The count beside the name - it picks nothing, so it is not among the
+      // chips below. Those are the mix of kinds, counted before this group's
+      // own kind filter, so a group the filter emptied still offers the way
+      // back - and switching kinds is one click.
+      const count = document.createElement("span");
+      count.className = "kinds chips head-count";
       const n = document.createElement("span");
       n.className = "chip count";
       const ni = document.createElement("i");
       ni.textContent = state.place || state.group ? `${peers.length} of ${all}` : String(all);
       n.append(ni, " peers");
-      mix.appendChild(n);
+      count.appendChild(n);
+      const mix = document.createElement("span");
+      mix.className = "kinds chips";
       // How many are catching up from this node right now, and what they took.
       const syncing = kindPool.filter((p) => p.sync_mb);
       if (syncing.length && (!state.group || state.group === SYNCING)) {
@@ -2863,7 +2874,8 @@
         mix.appendChild(fc);
       }
       if (kindPool.length) renderKindMix(mix, kindPool);
-      summary.append(h, mix);
+      summary.append(h, count);
+      if (mix.childElementCount) summary.appendChild(mix);
       card.appendChild(summary);
       if (state.group && !special(state.group)) {
         const inGroup = kindPool.filter((p) => groupOf(p.kind) === state.group);

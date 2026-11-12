@@ -606,6 +606,7 @@ window.peerLab = {
   },
   // How many peers take new blocks from this node first.
   fedCount: () => (lastPeerRanking || []).filter((p) => p.live && p.hbFrom).length,
+  foldsOnTap,
   actionsHtml: (address) => {
     const p = rankingByAddress.get(address);
     return p ? actionsCell(p, { lock: p.trusted ? keepStar(p) : '' }) : '';
@@ -954,8 +955,7 @@ function renderPools(pools) {
 
 // The legend and the explanations fold shut again with a tap anywhere on
 // them, not only on their title: on a phone the title has scrolled away by
-// then, and it comes back into view. Storage is left out - its buttons
-// delete data, and a tap beside one must not do anything at all.
+// then, and it comes back into view.
 // Only the panels': the block card's folds belong to the other script.
 for (const box of document.querySelectorAll('.panel details.how')) {
   box.addEventListener('click', (e) => {
@@ -1101,6 +1101,22 @@ document.getElementById('rotation-log-toggle').addEventListener('click', (e) => 
   } });
 });
 
+// A tap anywhere on a card folds it or opens it, not only on its title, the
+// same on every card (12.11.2026). What does something of its own keeps it:
+// buttons, links, fields, the peer rows, a fold inside the card, the map.
+// Selecting text folds nothing, and neither does a tap on something a redraw
+// has just taken off the page.
+const OWN_TAP = 'a, button, input, select, textarea, label, summary, details, [role="button"], tbody, svg, .map-wrap, .unplaced';
+function foldsOnTap(card, flip) {
+  card.addEventListener('click', (e) => {
+    if (!card.contains(e.target)) return;
+    const own = e.target.closest(OWN_TAP);
+    if (own && own !== card) return;
+    if (String(window.getSelection()).length > 0) return;
+    flip(e);
+  });
+}
+
 // Every card folds to its title on a tap and stays so on this device: open
 // unless the reader closed it (28.10.2026). Storage keeps its own <details>.
 const FOLD_KEY = 'peerlab.panelsFolded';
@@ -1137,7 +1153,13 @@ for (const card of document.querySelectorAll('main > section.panel')) {
   };
   title.addEventListener('click', flip);
   title.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(e); } });
+  foldsOnTap(card, flip);
   show();
+}
+{
+  const storage = document.getElementById('storage-card');
+  foldsOnTap(storage, () => foldInPlace({ anchor: storage.querySelector(':scope > summary'), box: storage,
+    open: !storage.open, set: (open) => { storage.open = open; } }));
 }
 
 // A folded card still says the one thing worth knowing about it, beside its

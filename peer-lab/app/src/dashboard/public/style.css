@@ -452,7 +452,7 @@ table.peers.aligned { table-layout: fixed; }
 .kinds.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; }
 /* Under the name in every group, also where a short list would fit beside it
    (Manual). Folded, the count alone stands beside the name. */
-.group-card:not(.folded) .group-head > .kinds.chips { flex-basis: 100%; }
+.group-card:not(.folded) .group-head > .kinds.chips:not(.head-count) { flex-basis: 100%; }
 .chips .chip { font-size: 12px; color: var(--muted); background: var(--panel-2); border: 1px solid var(--border); border-radius: 999px; padding: 2px 9px; line-height: 1.5; }
 .chips .chip i { font-style: normal; color: var(--text); font-weight: 600; margin-right: 3px; }
 .kinds.chips .kind-pick { cursor: pointer; font: inherit; font-size: 12px; }
@@ -623,7 +623,7 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 .cards tr.arrived > td { animation: none; }
 @keyframes arrived { from { background-color: rgba(247, 147, 26, .16); } }
 /* Scrolling back up on a phone: the sections, a tap away. */
-.jump-bar { position: fixed; z-index: 30; left: 50%; top: 8px; transform: translate(-50%, -64px); display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(17, 24, 32, .92); border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(0, 0, 0, .35); transition: transform .2s ease; max-width: calc(100vw - 16px); }
+.jump-bar { position: fixed; z-index: 30; left: 50%; top: 8px; transform: translate(-50%, calc(-100% - 16px)); display: flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(17, 24, 32, .92); border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(0, 0, 0, .35); transition: transform .2s ease; max-width: calc(100vw - 16px); }
 .jump-bar.shown { transform: translate(-50%, 0); }
 .jump-bar button { font: inherit; font-size: 13px; color: var(--text); background: none; border: 0; padding: 8px 11px; border-radius: 999px; white-space: nowrap; }
 .jump-bar button:active { background: var(--panel-2); }
@@ -644,7 +644,7 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
   .peers thead th { position: sticky; top: 0; z-index: 3; background: var(--panel); box-shadow: 0 1px 0 var(--border); }
 }
 /* With a mouse the sections wait in the bottom right corner. */
-.jump-bar.corner { left: auto; right: 16px; top: auto; bottom: 16px; transform: translateY(80px); }
+.jump-bar.corner { left: auto; right: 16px; top: auto; bottom: 16px; transform: translateY(calc(100% + 24px)); }
 .jump-bar.corner.shown { transform: none; }
 @media (prefers-reduced-motion: reduce) { .jump-bar.corner { transition: none; } }
 
@@ -691,10 +691,11 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 .fold-title:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
 .group-card.folded { padding-bottom: 14px; }
 .group-card.folded > :not(.group-head),
-.group-card.folded .group-head > :not(h2, .chips),
-.group-card.folded .chips > :not(.count) { display: none; }
+.group-card.folded .group-head > :not(h2, .head-count) { display: none; }
 .map-head { flex: 1 1 100%; margin: 0; padding: 12px 16px; font-size: 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
 .map-card.folded > :not(.map-head) { display: none; }
+/* A folded card opens with a tap anywhere on it. */
+.card.folded, details.card.panel:not([open]), .block-card:has(> .block-more:not([open])) { cursor: pointer; }
 .map-card.folded .map-head { border-bottom: 0; }
 
 /* The open inbound list keeps its name and the way back at the top. */
