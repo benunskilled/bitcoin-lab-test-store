@@ -11,6 +11,17 @@ const REFRESH_MS = 20000;
 // The rotation loop acts at most once every ten minutes, so its panel has no
 // reason to be on the same schedule as the peer list.
 const ROTATION_REFRESH_MS = 2 * 60 * 1000;
+// Which pool apps are installed: asked when the page opens, then every five
+// minutes, the server's own pace (see refreshPools).
+const LOCAL_POOLS_EVERY_MS = 5 * 60 * 1000;
+let localPoolsAtMs = 0;
+// The dashboard's word on each peer (/api/peers/ranking) is fetched on the
+// peer list's clock, not one of its own: with every second list (every 20s
+// or so). The list is the other script's and pauses with the page; should
+// it stop coming at all, the 20-second refresh asks once it is 45s old.
+const RANKING_EVERY_MS = 18 * 1000;
+const RANKING_MAX_AGE_MS = 45 * 1000;
+let rankingAtMs = 0;
 // New blocks no longer arrive by polling at all. /api/events is a
 // Server-Sent Events stream the dashboard process feeds from Core's own ZMQ
 // notification, so the ranking follows the block when it actually lands -
@@ -622,6 +633,7 @@ let lastPeerRanking = null;
 let peerRequestSeq = 0;
 async function refreshPeers() {
   const seq = ++peerRequestSeq;
+  rankingAtMs = Date.now();
   const peers = await api('/api/peers/ranking');
   if (seq !== peerRequestSeq) return;
   // A peer just removed or disconnected is left out until the server no longer
@@ -641,6 +653,9 @@ async function refreshPeers() {
 // buttons that act on it
 // - the same buttons as ever, handled by the click handler below.
 let rankingByAddress = new Map();
+window.addEventListener('peerlab:list', () => {
+  if (Date.now() - rankingAtMs >= RANKING_EVERY_MS) refreshPeers().catch(() => {});
+});
 // A read-only test copy (READ_ONLY=1, from /api/status): no button that
 // changes Core's peers.
 let readOnly = false;
@@ -1072,8 +1087,10 @@ async function refreshPools() {
   if (document.getElementById('stratum-body')?.hidden) return;
   const range = document.querySelector('#stratum-range button.on')?.dataset.range || '10';
   // First, and on its own: the quick-fill buttons need the templates even if
-  // the pool list below fails to load.
-  refreshLocalPools();
+  // the pool list below fails to load. Not on every poll: which pool apps are
+  // installed changes only by hand, and the server looks only every five
+  // minutes (lib/local-pools.js), so asking more often brings nothing new.
+  if (Date.now() - localPoolsAtMs >= LOCAL_POOLS_EVERY_MS) refreshLocalPools();
   const pools = await api(`/api/pools?range=${encodeURIComponent(range)}`);
   renderPools(pools);
 }
@@ -1217,7 +1234,8 @@ async function refreshAll() {
   // only ever changes on its own ten-minute tick, so it has its own, much
   // slower schedule (see startRefreshLoop).
   const results = await Promise.allSettled([
-    refreshStatus(), refreshPeers(), refreshPools(), refreshHealth(),
+    refreshStatus(), refreshPools(), refreshHealth(),
+    Date.now() - rankingAtMs >= RANKING_MAX_AGE_MS ? refreshPeers() : null,
   ]);
   // A failed refresh used to be completely invisible: allSettled swallowed
   // the rejection, nothing was logged, and the tables simply kept showing
@@ -1471,7 +1489,8 @@ function listLabels(labels) {
 
 async function refreshLocalPools() {
   let list;
-  try { list = await api('/api/pools/local'); } catch { return; }
+  localPoolsAtMs = Date.now();
+  try { list = await api('/api/pools/local'); } catch { localPoolsAtMs = 0; return; }
   localPoolTemplates = Object.fromEntries(list.map((p) => [p.key, p]));
   const dismissed = dismissedPools();
   foundPools = list.filter((p) => p.installed && !p.added && !dismissed.has(p.key));

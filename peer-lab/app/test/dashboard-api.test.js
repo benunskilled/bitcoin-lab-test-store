@@ -209,6 +209,21 @@ test('GET /api/peers/ranking answers with an array the tables can render', async
   assert.ok(Array.isArray(body));
 });
 
+test('the ranking hands the page only what it reads, and no flag that is off', async () => {
+  const now = Date.now();
+  const id = db.instance.prepare('INSERT INTO peer (address, first_seen_at) VALUES (?, ?)').run('198.51.100.21:8333', now).lastInsertRowid;
+  db.instance.prepare(
+    `INSERT INTO peer_session (peer_id, direction, connection_type, network, subver, started_at, services)
+     VALUES (?, 'outbound', 'outbound-full-relay', 'ipv4', '/Satoshi:31.0.0/', ?, 'NETWORK')`).run(id, now);
+  const { body } = await api('/api/peers/ranking');
+  const row = body.find((p) => p.address === '198.51.100.21:8333');
+  assert.ok(row && row.live === true && row.client === '/Satoshi:31.0.0/');
+  for (const gone of ['minPingMs', 'direction', 'connectionType', 'score', 'firstPct', 'everManual', 'trustedSince']) {
+    assert.ok(!(gone in row), `${gone} is the server's, not the page's`);
+  }
+  assert.ok(!('trusted' in row) && !('kept' in row), 'flags that are off are left out');
+});
+
 test('a peer offering no services is flagged, whatever it calls itself', async () => {
   // The table marks it "never first" like a wallet: it has no blocks to pass on.
   // Same rule as the peer list. An empty services list is the peer saying so;
@@ -229,7 +244,7 @@ test('a peer offering no services is flagged, whatever it calls itself', async (
   for (const [address, , , nothing] of cases) {
     const row = body.find((p) => p.address === address);
     assert.ok(row, `${address} is live and must be ranked`);
-    assert.equal(row.offersNothing, nothing, address);
+    assert.equal(Boolean(row.offersNothing), nothing, address);
   }
 });
 

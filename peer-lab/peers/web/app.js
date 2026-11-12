@@ -176,6 +176,8 @@
       state.failed = false;
       renderWhenFree();
       beat();
+      // The dashboard fetches its word on the peers on this clock.
+      window.dispatchEvent(new Event("peerlab:list"));
     } catch (e) {
       state.failed = true;
       renderStatus();

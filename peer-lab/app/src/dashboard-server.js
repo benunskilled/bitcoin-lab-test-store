@@ -285,6 +285,24 @@ const sseClients = new Set();
 // profiler writes its race row microseconds later, in a different process.
 // Waiting briefly before reading means the payload carries the finished race
 // (including which peer was first) rather than the previous one.
+// What the page reads of a ranking row, and nothing else. The peer list
+// itself (place, client, ping, kind) comes from the peers service; this adds
+// only what the dashboard alone knows - blocks delivered first, the manual
+// slots, the padlock, Slot Fill's trial. The rest of a row is the rotation's
+// business and stays on the server, which halves the answer. A flag that is
+// false and a value that is unknown are left out: the page reads both as no.
+const PAGE_FIELDS = ['address', 'where', 'client', 'status', 'live', 'trusted', 'kept',
+  'first', 'eligible', 'sessionsCount', 'offlineSinceMs', 'hb', 'hbFrom',
+  'localUmbrelPeer', 'sourceObscured', 'privateNetwork', 'offersNothing', 'otherChain',
+  'kind', 'noRelay', 'lion', 'fork'];
+function forThePage(row) {
+  const out = {};
+  for (const k of PAGE_FIELDS) {
+    if (row[k] !== null && row[k] !== undefined && row[k] !== false) out[k] = row[k];
+  }
+  return out;
+}
+
 const BLOCK_SETTLE_MS = 750;
 const POOL_SETTLE_MS = 4000;
 const SSE_KEEPALIVE_MS = 25_000;
@@ -639,7 +657,7 @@ async function router(req, res, pathname, url) {
         if (m.fork) row.fork = m.fork;
       }
     }
-    return sendJson(res, 200, rows);
+    return sendJson(res, 200, rows.map(forThePage));
   }
 
   // For the peers service, which marks the peer that delivered the last block
