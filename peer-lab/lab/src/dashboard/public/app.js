@@ -1746,7 +1746,8 @@ function renderPools(pools) {
 // them, not only on their title: on a phone the title has scrolled away by
 // then, and it comes back into view. Storage is left out - its buttons
 // delete data, and a tap beside one must not do anything at all.
-for (const box of document.querySelectorAll('details.key, details.how')) {
+// Only its own: the map's legend and folds belong to the map's script.
+for (const box of document.querySelectorAll('.lab details.key, .lab details.how')) {
   box.addEventListener('click', (e) => {
     if (!box.open || e.target.closest('summary, a, button, input')) return;
     if (String(window.getSelection()).length > 0) return;
@@ -1915,7 +1916,7 @@ const folded = (() => { try { return new Set(JSON.parse(localStorage.getItem(FOL
 // The card was called Manual Slot Fill until 10.11.2026: folded under that
 // name, it stays folded under the new one.
 if (folded.delete('Manual Slot Fill')) folded.add('Slot Fill');
-for (const card of document.querySelectorAll('main > section.card')) {
+for (const card of document.querySelectorAll('main > .lab > section.card')) {
   const title = card.querySelector(':scope > h2');
   if (!title) continue;
   const id = card.id || title.firstChild.textContent.trim();
@@ -2575,7 +2576,7 @@ function wireReset(scope) {
 // Every <details> folds in place too: its summary stays, its text rolls out
 // below and back up.
 document.addEventListener('click', (e) => {
-  const summary = e.target.closest && e.target.closest('details > summary');
+  const summary = e.target.closest && e.target.closest('.lab details > summary');
   if (!summary || e.target.closest('a, button, input')) return;
   e.preventDefault();
   const details = summary.parentElement;

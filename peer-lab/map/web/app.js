@@ -989,7 +989,9 @@
   // below and back up.
   document.addEventListener("click", (ev) => {
     const summary = ev.target.closest && ev.target.closest("details > summary");
-    if (!summary || ev.target.closest("a, button, input")) return;
+    // What is inside .lab folds by the measuring half's own script: two
+    // handlers on one fold opened it and shut it again (12.11.2026).
+    if (!summary || summary.closest(".lab") || ev.target.closest("a, button, input")) return;
     ev.preventDefault();
     const box = summary.parentElement;
     foldInPlace({ anchor: summary, box, open: !box.open, set: (open) => { box.open = open; } });
@@ -998,7 +1000,7 @@
   // The legend and the block's pool list fold shut again with a tap anywhere
   // on them, not only on their title: on a phone the title has scrolled away
   // by then, and it comes back into view.
-  for (const box of document.querySelectorAll("details.key, #blockMore")) {
+  for (const box of [...document.querySelectorAll("details.key, #blockMore")].filter((b) => !b.closest(".lab"))) {
     box.addEventListener("click", (ev) => {
       if (!box.open || ev.target.closest("summary, a, button, input")) return;
       if (String(window.getSelection()).length > 0) return;
