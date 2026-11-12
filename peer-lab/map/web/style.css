@@ -794,7 +794,20 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 .cards.cards table tr td.k-peer .who-text, .cards.cards table tr td.k-peer .who > .flag { display: none; }
 .cards.cards table tr td.k-kind, .cards.cards table tr td.k-operator, .cards.cards table tr td.k-net, .cards.cards table tr td.k-conntime { display: none; }
 .cards.cards table tr td.k-peer .who { display: block; }
-.cards.cards table tr td.k-peer .pc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 46%); gap: 3px 12px; align-items: center; min-width: 0; }
+.scroll.cards { container: pcards / inline-size; }
+.cards.cards table tr td.k-peer .pc { display: grid; grid-auto-flow: column; grid-template-rows: 20px 20px; grid-template-columns: minmax(0, 1fr) minmax(0, 46%); gap: 3px 12px; align-items: center; min-width: 0; }
+/* A wider card: first/blocks from 520px of card, ping and time connected from 700px. */
+.cards.cards .pc > .pc-x, .cards.cards .pc > .pc-y { display: none; text-align: right; font-variant-numeric: tabular-nums; }
+.cards.cards .pc > .pc-first, .cards.cards .pc > .pc-ping { font-weight: 600; }
+.cards.cards .pc > .pc-sub { font-size: 12px; font-weight: 400; color: var(--muted); }
+@container pcards (min-width: 520px) {
+  .cards.cards table tr td.k-peer .pc { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 132px; }
+  .cards.cards .pc > .pc-x { display: block; }
+}
+@container pcards (min-width: 700px) {
+  .cards.cards table tr td.k-peer .pc { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 132px 84px; }
+  .cards.cards .pc > .pc-y { display: block; }
+}
 .cards.cards .pc > span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 20px; height: 20px; }
 /* Every card one height: a flag, a mark or a smaller pill must not add a pixel. */
 .cards.cards .pc .pc-what { display: flex; align-items: center; }

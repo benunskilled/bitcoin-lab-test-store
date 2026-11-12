@@ -2417,7 +2417,20 @@
             (p.no_relay ? "\u2298 " : "") + (state.kind ? cardLine(p) || label : label));
           what.append(pill);
           for (const [active, symbol] of [[p.hb_to, "\u26a1"], [p.hb_from, "\ud83d\udce1"]]) if (active) what.append(span("hb", symbol));
-          pc.append(addr, land, what, span("pc-net", p.operator || (p.tor_exit ? "Tor exit" : "")));
+          // Filled column by column (style.css): each pair is one column of the card.
+          pc.append(addr, what, land, span("pc-net", p.operator || (p.tor_exit ? "Tor exit" : "")));
+          // A wider card has room for what a table would have had to drop: how
+          // often the peer was first, then ping and time connected. Shown by
+          // the card's width; all of it is in the opened row at any width.
+          const r = rankOf(p);
+          if (lab()) {
+            const n = span("pc-x pc-first", r && r.eligible ? r.first + "/" + r.eligible : "\u2013");
+            const s = span("pc-x pc-sub", r && r.eligible ? rankPct(r).toFixed(1) + "% of last " + lab().windowBlocks : "first/blocks");
+            if (r && r.eligible) n.title = s.title = `First for ${r.first} of the ${r.eligible} blocks it was connected for. ${r.recentFirst || 0} of the last ${lab().windowBlocks} blocks.`;
+            pc.append(n, s);
+          }
+          pc.append(span("pc-y pc-ping", p.min_ping_ms == null ? "\u2013" : fmtPing(p.min_ping_ms)),
+            span("pc-y pc-sub", p.conntime ? ago(Date.now() / 1000 - p.conntime) : ""));
           who.appendChild(pc);
         }
         td.appendChild(who);
@@ -3164,6 +3177,10 @@
       cards = level === DROP_LEVELS && overflows(wraps);
       if (cards) unalign();
     }
+    // With the measuring half on the page, cards come as soon as a table
+    // would lose its net and First/Blocks (level 3): a card that wide shows
+    // more than the three columns left (12.11.2026).
+    if (lab() && level >= 3 && !cards) { cards = true; unalign(); }
     for (const w of wraps) w.classList.toggle("cards", cards);
     // A second reason only where it fits whole, never cut short (09.11.2026):
     // on a card its own line, in the wide list the grey line it sits in.
