@@ -26,8 +26,8 @@ services:
       DATA_DIR: /data
       DASHBOARD_PORT: '8788'
       TRUSTED_PROXY_HOST: peerlab_app_proxy_1
-      PEERS_HEALTH_URL: http://peer-map:8789/api/health
-      PEERS_URL: http://peer-map:8789
+      PEERS_HEALTH_URL: http://peers:8789/api/health
+      PEERS_URL: http://peers:8789
     healthcheck:
       test:
       - CMD
@@ -158,7 +158,7 @@ services:
       start_period: 60s
     extra_hosts:
     - host.docker.internal:host-gateway
-  peer-map:
+  peers:
     image: peer-lab:dev
     user: 1000:1000
     restart: on-failure

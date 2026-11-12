@@ -34,7 +34,7 @@ test('four processes opening a fresh database at once all start', { timeout: 120
   const failures = [];
   for (let round = 0; round < 15; round++) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'peerlab-first-start-'));
-    const dbPath = path.join(dir, 'sqlite', 'bitcoinlab.db');
+    const dbPath = path.join(dir, 'sqlite', 'peerlab.db');
     const results = await Promise.all([1, 2, 3, 4].map(() => openOnce(dbPath)));
     for (const r of results) if (r.code !== 0) failures.push(r.stderr.split('\n').find((l) => /Error/.test(l)) || `exit ${r.code}`);
     fs.rmSync(dir, { recursive: true, force: true });

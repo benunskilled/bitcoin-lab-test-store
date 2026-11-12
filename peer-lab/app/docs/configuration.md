@@ -30,7 +30,7 @@ Apply shared settings consistently to the services that use them, then recreate 
 | Variable | Purpose | Default |
 |---|---|---|
 | `DATA_DIR` | Persistent data root | `/data` |
-| `SQLITE_PATH` | Full path to the database file, overriding `DATA_DIR` | `$DATA_DIR/sqlite/bitcoinlab.db` |
+| `SQLITE_PATH` | Full path to the database file, overriding `DATA_DIR` | `$DATA_DIR/sqlite/peerlab.db` |
 | `DASHBOARD_PORT` | Dashboard HTTP port *inside the container* | `8788` |
 | `LOG_LEVEL` | `error` / `warn` / `info` / `debug` | `info` |
 

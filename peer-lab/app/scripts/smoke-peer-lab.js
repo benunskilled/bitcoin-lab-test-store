@@ -13,7 +13,7 @@ async function main() {
   if (!process.env.PEERS_BINARY) throw new Error('Set PEERS_BINARY to the built map binary.');
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'peerlab-smoke-'));
   process.env.DATA_DIR = temporary;
-  process.env.SQLITE_PATH = path.join(temporary, 'sqlite', 'bitcoinlab.db');
+  process.env.SQLITE_PATH = path.join(temporary, 'sqlite', 'peerlab.db');
   process.env.READ_ONLY = '1';
   process.env.LOG_LEVEL = 'error';
   const db = require('../src/lib/db');

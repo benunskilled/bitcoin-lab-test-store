@@ -194,7 +194,7 @@ async function main() {
   // ---- the app, pointed at the watched node ------------------------------
   const dataDir = path.join(tmpRoot, 'app');
   fs.mkdirSync(dataDir, { recursive: true });
-  process.env.SQLITE_PATH = path.join(dataDir, 'bitcoinlab.db');
+  process.env.SQLITE_PATH = path.join(dataDir, 'peerlab.db');
   process.env.DATA_DIR = dataDir;
   process.env.LOG_LEVEL = 'error';
   process.env.BITCOIN_RPC_HOST = '127.0.0.1';

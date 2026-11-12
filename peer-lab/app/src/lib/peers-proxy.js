@@ -5,7 +5,7 @@ const http = require('node:http');
 // The map is an internal, read-only module. Never forward cookies, credentials,
 // browser-controlled hosts, or mutations to it. Dashboard writes retain their
 // original source and CSRF checks because there is no proxy in front of them.
-function proxyPeers(req, res, url, target = process.env.PEERS_URL || 'http://peer-map:8789') {
+function proxyPeers(req, res, url, target = process.env.PEERS_URL || 'http://peers:8789') {
   if (url.pathname !== '/peers' && !url.pathname.startsWith('/peers/')) return false;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { Allow: 'GET, HEAD' }).end();

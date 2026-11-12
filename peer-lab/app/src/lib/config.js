@@ -44,7 +44,7 @@ module.exports = {
     network: pick(process.env.BITCOIN_NETWORK, process.env.APP_BITCOIN_NETWORK, 'mainnet'),
     zmqHashBlockUrl: zmqExplicit || `tcp://${zmqHost}:${zmqPort}`,
   },
-  sqlitePath: pick(process.env.SQLITE_PATH, `${dataDir}/sqlite/bitcoinlab.db`),
+  sqlitePath: pick(process.env.SQLITE_PATH, `${dataDir}/sqlite/peerlab.db`),
   dashboardPort: Number(pick(process.env.DASHBOARD_PORT, '8788')),
 
   // Manual peer-add: ports tried in order when the user supplies a bare IP,

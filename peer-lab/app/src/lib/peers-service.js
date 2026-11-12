@@ -10,7 +10,7 @@ const http = require('http');
  * It is a separate process that may still be starting or restarting, so a
  * miss is silent and simply means no marks for a while.
  */
-const DEFAULT_URL = 'http://peer-map:8789/api/health';
+const DEFAULT_URL = 'http://peers:8789/api/health';
 // Once it answers, it stays up: asking once every five minutes is plenty,
 // and a service that is down costs no request on every dashboard poll.
 const RECHECK_MS = 5 * 60 * 1000;

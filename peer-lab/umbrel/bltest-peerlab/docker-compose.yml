@@ -30,8 +30,8 @@ services:
       DATA_DIR: /data
       DASHBOARD_PORT: '8788'
       TRUSTED_PROXY_HOST: bltest-peerlab_app_proxy_1
-      PEERS_HEALTH_URL: http://bltest-peerlab_peer-map_1:8789/api/health
-      PEERS_URL: http://bltest-peerlab_peer-map_1:8789
+      PEERS_HEALTH_URL: http://bltest-peerlab_peers_1:8789/api/health
+      PEERS_URL: http://bltest-peerlab_peers_1:8789
     healthcheck:
       test:
       - CMD
@@ -148,7 +148,7 @@ services:
       timeout: 10s
       retries: 2
       start_period: 60s
-  peer-map:
+  peers:
     image: peer-lab:dev
     user: 1000:1000
     restart: on-failure
