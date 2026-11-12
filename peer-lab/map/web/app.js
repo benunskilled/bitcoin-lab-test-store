@@ -194,6 +194,15 @@
     show();
   }
   foldable($("mapCard"), $("mapHead"), "map");
+  // The legend: folded on a phone the first time, open on a wide screen; after
+  // that it stays as the reader left it.
+  if ($("keyCard")) {
+    if (store.get("peerlab.keyDefault") == null) {
+      store.set("peerlab.keyDefault", "1");
+      if (window.matchMedia("(max-width: 600px)").matches) { folded.add("key"); store.set(FOLD_KEY, JSON.stringify([...folded])); }
+    }
+    foldable($("keyCard"), $("keyHead"), "key");
+  }
   // The block card folds to its summary line, but only when a route is drawn
   // under it (has-route): without one it is a single line already.
   foldable($("blockCard"), $("blockSummary"), "block");
@@ -1462,7 +1471,7 @@
     else a.title = "See which of your peers bring you new blocks first";
     // The star and the green address are Bitcoin Lab's word; without it the
     // legend does not explain marks the page never shows.
-    for (const li of document.querySelectorAll(".key .lab-only")) li.hidden = !lab;
+    for (const li of document.querySelectorAll(".key .lab-only, .key-list .lab-only")) li.hidden = !lab;
   }
 
   // Nodes are what passes blocks on (every "Node (...)" kind and pool nodes),

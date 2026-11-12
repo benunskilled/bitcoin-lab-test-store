@@ -131,11 +131,14 @@
         <span><span class="swatch s-manual"></span>Manual</span>
         <span><span class="swatch s-home"></span>Your node</span>
       </div>
-      <!-- On a phone nothing can be hovered, so the marks the tables use are
-           said here, folded. A wide screen says them on hover. -->
-      <details class="key">
-        <summary>What the marks mean</summary>
-        <ul>
+    </section>
+
+    <!-- What the marks in the peer list mean, between the map and the list:
+         open on a wide screen, folded on a phone, and it stays as the reader
+         leaves it. -->
+    <section class="card key-card" id="keyCard">
+      <h2 class="key-head" id="keyHead"><span class="key-long">What the marks mean</span><span class="key-short">What ⚡ 📡 ★ ⊘ 🔒 mean</span></h2>
+      <ul class="key-list">
           <li><b class="hb">⚡</b> May send you new blocks without being asked</li>
           <li><b class="hb">📡</b> Gets new blocks from you without asking</li>
           <li class="lab-only"><b class="star">★</b> Delivered the newest block first</li>
@@ -145,8 +148,7 @@
           <li><span class="kind disg">Disguised</span> Probably not the software it says it is</li>
           <li><span class="kind lion">LinkingLion</span> On 0xB10C's list of spy nodes</li>
           <li><b>Tor exit</b> Location and operator are the exit's, not the peer's</li>
-        </ul>
-      </details>
+      </ul>
     </section>
 
     <div class="tables" id="tables" aria-busy="true"><section class="card group-card skeleton-card"><div class="group-head"><h2>Inbound</h2></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div></section><section class="card group-card skeleton-card"><div class="group-head"><h2>Outbound</h2></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div></section><section class="card group-card skeleton-card"><div class="group-head"><h2>Manual</h2></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div></section></div>

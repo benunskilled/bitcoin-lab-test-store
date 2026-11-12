@@ -829,3 +829,39 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
   .jump-bar button { padding: 8px 9px; }
 }
 .jump-bar button { flex: none; }
+
+/* Every box on the page has the same head (12.11.2026): 30px of title row,
+   16px above and - folded - below it, the chevron 20px in from the edge and
+   the grey summary beside the title on its middle line, 12px. Folded, every
+   box is 64px tall whatever it holds. */
+.map-head, .key-head { padding: 16px 20px; min-height: 62px; box-sizing: border-box; }
+/* The count chip makes this head 34px, so 2px less around it: its middle line
+   is the same as every other head. */
+.group-card { padding-top: 14px; }
+.group-card.folded { padding-bottom: 14px; }
+.group-head { min-height: 30px; }
+
+/* The legend box. */
+.key-card { display: flex; flex-direction: column; }
+.key-head { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+.key-card.folded .key-head { border-bottom: 0; }
+.key-card.folded > :not(.key-head) { display: none; }
+.key-short { display: none; }
+@media (max-width: 600px) { .key-long { display: none; } .key-short { display: inline; } }
+.key-list { list-style: none; margin: 0; padding: 14px 20px 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 28px; color: var(--muted); font-size: 12px; }
+@media (max-width: 760px) { .key-list { grid-template-columns: minmax(0, 1fr); } }
+.key-list li { display: grid; grid-template-columns: 104px 1fr; align-items: center; gap: 10px; }
+.key-list li[hidden] { display: none; }
+.key-list li > :first-child { justify-self: start; }
+.key-list b { color: var(--text); font-weight: 600; }
+.key-list .hb { font-size: 13px; }
+.key-list .star { color: var(--accent); }
+.key-list .never-mark { color: var(--muted); }
+.key-list .addr-txt.delivered { color: #56d364; }
+.key-list .kind { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 999px; background: #1a2430; color: var(--text); white-space: nowrap; }
+.key-list .kind.disg, .key-list .kind.lion { background: rgba(248,81,73,.12); color: #e5534b; }
+
+/* Every peer row one height, table or card, the last one of a group too. */
+.scroll:not(.cards) table.peers > tbody > tr[data-anchor] > td { height: 60px; box-sizing: border-box; }
+.cards.cards table tr[data-anchor] { border-bottom: 1px solid var(--border); }
+.cards.cards table tr[data-anchor]:last-of-type { border-bottom-color: transparent; }

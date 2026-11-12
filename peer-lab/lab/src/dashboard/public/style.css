@@ -1030,3 +1030,13 @@ main > .lab:empty, main > .lab:not(:has(> :not([hidden]))) { display: none; }
 /* The three group chips are hidden on this page (the tiles say their numbers);
    the row is there only while a place or kind filter is on. */
 .filters:not(:has(> :not([hidden]))) { display: none; }
+
+/* The same head as every box on the page (map/style.css, 12.11.2026). Here,
+   after the base rules above, so they win. */
+.lab .card { padding-top: 16px; }
+.lab .card.folded, .lab details.card:not([open]) { padding-bottom: 16px; }
+.lab .card > h2.fold-title, .lab details.card > summary { min-height: 30px; }
+.lab .card h2 .hint, .lab details.card summary h2 .hint { margin: 0; font-size: 12px; }
+.lab details.card summary { gap: 8px; }
+.lab details.card summary::before { margin: 0 2px 0 1px; width: 6px; height: 6px; }
+.lab .card h2.fold-title::before { margin: 0 2px 0 1px; width: 6px; height: 6px; }
