@@ -49,11 +49,13 @@ type dashboardClient struct {
 	blockAt         time.Time
 	blockDetectedAt int64
 	block           *lastBlock
+	// When a page last asked past the cache for a block it had just heard
+	// of: at most once a second, whatever the pages ask.
+	askedAt time.Time
 }
 
 type stratumRace struct {
-	CreatedAt int64          `json:"created_at,omitempty"`
-	Entries   []stratumEntry `json:"entries,omitempty"`
+	Entries []stratumEntry `json:"entries,omitempty"`
 	// When this node's Core had the block, counted from the first new job any
 	// pool sent here - the race's zero. Both instants come from the dashboard,
 	// taken on one machine by one clock: the ZMQ announcement and the first
@@ -114,9 +116,6 @@ type lastBlock struct {
 	PoolTag    string   `json:"pool_tag,omitempty"`
 	PoolSource string   `json:"pool_source,omitempty"`
 	FirstPeers []string `json:"first_peers,omitempty"`
-	// How many peers were connected when it arrived - the number the one that
-	// delivered it was up against.
-	Eligible int `json:"eligible,omitempty"`
 	// The same block from the mining side: which pool turned it into fresh
 	// work first, and how far behind the others were. Absent when the dashboard
 	// recorded no race for it, which is the normal case with Stratum Race off.
@@ -227,16 +226,23 @@ func (s *dashboardClient) up(ctx context.Context) bool {
 // latest returns the newest block the dashboard knows about, or nil when it
 // is down, did not answer, or has not seen a block yet.
 //
-// Asked at most once per poll interval and never on the page's critical path:
-// a slow or missing dashboard costs the peer list nothing but a missing star.
-func (s *dashboardClient) latest(ctx context.Context) *lastBlock {
+// Asked at most once per poll interval, with a two-second timeout: a slow or
+// missing dashboard holds the peer list up by that much at most, and costs it
+// nothing but the block card. want is the hash of a block the page has just
+// heard of from the dashboard's own event stream: a cached answer without it
+// is asked again at once, not at the end of the interval.
+func (s *dashboardClient) latest(ctx context.Context, want string) *lastBlock {
 	if s.url == "off" || !s.up(ctx) {
 		return nil
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	now := s.now()
-	if !s.blockAt.IsZero() && now.Sub(s.blockAt) < interval {
+	now := s.clock()
+	stale := want != "" && (s.block == nil || s.block.Hash != want) && now.Sub(s.askedAt) >= time.Second
+	if stale {
+		s.askedAt = now
+	}
+	if !stale && !s.blockAt.IsZero() && now.Sub(s.blockAt) < interval {
 		return s.withAge(s.block, now)
 	}
 	// A dashboard that answers badly has answered: no block for this window,
@@ -271,7 +277,6 @@ func (s *dashboardClient) latest(ctx context.Context) *lastBlock {
 		PoolTag    string   `json:"poolTag"`
 		PoolSource string   `json:"poolSource"`
 		FirstPeers []string `json:"firstPeers"`
-		Eligible   int      `json:"eligible"`
 		Stratum    *struct {
 			CreatedAt int64 `json:"createdAt"`
 			Entries   []struct {
@@ -331,7 +336,7 @@ func (s *dashboardClient) latest(ctx context.Context) *lastBlock {
 	}
 	var race *stratumRace
 	if got.Stratum != nil {
-		race = &stratumRace{CreatedAt: got.Stratum.CreatedAt}
+		race = &stratumRace{}
 		if got.Stratum.CreatedAt > 0 {
 			ms := got.DetectedAt - got.Stratum.CreatedAt
 			race.CoreMs = &ms
@@ -372,7 +377,6 @@ func (s *dashboardClient) latest(ctx context.Context) *lastBlock {
 		PoolTag:           got.PoolTag,
 		PoolSource:        got.PoolSource,
 		FirstPeers:        got.FirstPeers,
-		Eligible:          got.Eligible,
 		Stratum:           race,
 		TemplateMs:        got.TemplateMs,
 		TemplateTx:        got.TemplateTx,

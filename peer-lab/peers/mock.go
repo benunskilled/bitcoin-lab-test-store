@@ -163,7 +163,7 @@ func mockPeers(ctx context.Context) ([]rawPeer, error) {
 			}
 		}
 		out = append(out, rawPeer{
-			ID: id, Addr: a, Network: network, ConnectionType: typ, Inbound: inbound,
+			Addr: a, Network: network, ConnectionType: typ, Inbound: inbound,
 			Subver: subver, PingTime: &ping, MinPing: &minPing,
 			ConnTime: now - int64(r.Intn(86400*3)), Transport: []string{"v1", "v2"}[r.Intn(2)],
 			BytesSent: int64(r.Intn(50 << 20)), BytesRecv: int64(r.Intn(200 << 20)),

@@ -87,6 +87,7 @@ test("the peers service's word on every peer is read without waiting", async () 
   let peerCalls = 0;
   const srv = http.createServer((req, res) => {
     if (req.url === '/api/health') { res.writeHead(200); return res.end('ok\n'); }
+    assert.equal(req.url, '/api/kinds', 'the slim answer, not the whole peer list');
     peerCalls += 1;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ peers: [
@@ -112,7 +113,7 @@ test("the peers service's word on every peer is read without waiting", async () 
   assert.deepEqual(marks.get('198.51.100.3:8333'), { kind: 'Node (Core)' });
   assert.deepEqual(marks.get('198.51.100.4:8333'), { kind: 'Wallet', noRelay: true });
   assert.deepEqual(marks.get('198.51.100.5:8333'), { kind: 'Disguised', lion: true });
-  assert.deepEqual(marks.get('198.51.100.6:8333'), { kind: 'Node (Knots)' }, 'only kind, no-relay and LinkingLion are taken');
+  assert.deepEqual(marks.get('198.51.100.6:8333'), { kind: 'Node (Knots)', fork: 'BIP110 fork' }, 'only kind, no-relay, LinkingLion and fork are taken');
   assert.equal(peerCalls, 1, 'within a minute the peers service is asked once');
 
   await new Promise((r) => srv.close(r));

@@ -80,14 +80,15 @@ async function isUp() {
 //
 // Never waited for: the ranking is answered from what was fetched last, and a
 // fetch starts at most once a minute, only while this page is being polled.
-// The peers service answers from its own cache, so this asks Core nothing
-// new. Its list can take seconds when Core is slow, which is why nobody waits.
+// The peers service answers from its own copy of Core's list while that is
+// under ten seconds old, and asks Core again otherwise; that can take
+// seconds when Core is slow, which is why nobody waits.
 const KINDS_EVERY_MS = 60 * 1000;
 const KINDS_TIMEOUT_MS = 30 * 1000;
-// The peers service's whole list, geography included: a few hundred
-// kilobytes for a few hundred peers. Anything far larger is not that list.
-const KINDS_MAX_BYTES = 16 * 1024 * 1024;
-const kindsTarget = () => target().replace(/\/api\/health$/, '/api/peers');
+// Three short fields a peer, from /api/kinds: some ten kilobytes for a few
+// hundred peers. Anything far larger is not that answer.
+const KINDS_MAX_BYTES = 4 * 1024 * 1024;
+const kindsTarget = () => target().replace(/\/api\/health$/, '/api/kinds');
 let kinds = new Map();
 let kindsAtMs = 0;
 // The peers service's names outlive a failed answer, but not by long: after
@@ -123,8 +124,9 @@ function fetchKinds() {
 }
 
 // What the ranking needs of a peer: its kind, whether its software passes
-// blocks on at all, and whether it is on 0xB10C's LinkingLion list. Only what
-// is set; the kind is the peers service's string, capped.
+// blocks on at all, whether it is on 0xB10C's LinkingLion list, and the chain
+// of its own it is on, if any. Only what is set; the strings are the peers
+// service's, capped.
 function kindsOf(body) {
   const out = new Map();
   for (const p of (body && Array.isArray(body.peers)) ? body.peers : []) {
@@ -133,6 +135,7 @@ function kindsOf(body) {
     const m = { kind: str(p.kind) };
     if (p.no_relay === true) m.noRelay = true;
     if (p.linking_lion === true) m.lion = true;
+    if (str(p.fork)) m.fork = str(p.fork);
     out.set(p.addr, m);
   }
   return out;

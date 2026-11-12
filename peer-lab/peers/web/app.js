@@ -16,12 +16,9 @@
   const SIDE_KEY = "peerlab.sideOpen";
   const $ = (id) => document.getElementById(id);
 
-  const regionName = (() => {
-    try {
-      const dn = new Intl.DisplayNames(["en"], { type: "region" });
-      return (cc) => { try { return dn.of(cc) || cc; } catch { return cc; } };
-    } catch { return (cc) => cc; }
-  })();
+  // A country's English name and its flag, made the same way as in the
+  // dashboard's own panels: by the dashboard.
+  const regionName = (cc) => window.peerLab.countryName(cc);
 
   // A peer that was not there at the last refresh lights up once, so what
   // changed since the last look is seen without searching. Not on the first
@@ -39,86 +36,15 @@
   // Smooth scrolling, unless the reader asked the system for less motion.
   const glide = () => (window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
 
-  // Folding in place (10.11.2026): what was tapped
-  // stays where it is on the screen. What opens rolls out downwards and what
-  // closes rolls up, gently, and the page never jumps - not to bring
-  // something into view, not because the page got shorter at its end. Every
-  // fold goes through here: a card, a group, a peer's panel, "Show all", a
-  // legend.
-  //
-  //   anchor  what stays put, or a function finding it again (the tables
-  //           are rebuilt, and with them the button that was tapped)
-  //   box     what grows or shrinks, the same
-  //   set     puts the page in the open (true) or closed (false) state
-  const FOLD_MS = 300;
-  let folding = 0;
-  // Room below the page's end while something shrinks there; it goes as soon
-  // as the reader scrolls up far enough not to need it.
-  let runway = 0;
-  function setRunway(px) {
-    runway = Math.max(0, Math.ceil(px));
-    document.body.style.paddingBottom = runway ? `${runway}px` : "";
-  }
-  window.addEventListener("scroll", () => {
-    if (!runway || folding) return;
-    const spare = document.documentElement.scrollHeight - (window.scrollY + window.innerHeight);
-    if (spare > 0) setRunway(runway - spare);
-  }, { passive: true });
-  function foldInPlace({ anchor, box, set, open }) {
-    const find = (x) => (typeof x === "function" ? x() : x);
-    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const a0 = find(anchor);
-    if (!a0) { set(open); return; }
-    const top0 = a0.getBoundingClientRect().top;
-    // To where, not by how much: Safari reports a scroll a frame late, and
-    // moving by the difference moved twice and swung back and forth.
-    const pin = () => {
-      const a = find(anchor);
-      if (!a || !a.isConnected) return;
-      const want = a.getBoundingClientRect().top + window.scrollY - top0;
-      if (Math.abs(window.scrollY - want) >= 0.5) window.scrollTo(0, want);
-    };
-    folding += 1;
-    // Room at the end for as much as the box could lose, lent before anything
-    // is measured: measuring a page that got shorter is already enough for
-    // the browser to pull everything down. When the fold is over, only what
-    // the reader still needs stays.
-    const lent = runway;
-    const b0 = find(box);
-    const h0 = b0 ? b0.getBoundingClientRect().height : 0;
-    setRunway(lent + h0);
-    const giveBack = () => {
-      const end = document.documentElement.scrollHeight - runway;
-      setRunway(Math.max(lent, window.scrollY + window.innerHeight - end));
-    };
-    const done = () => { pin(); giveBack(); pin(); requestAnimationFrame(() => { pin(); folding -= 1; freed(); }); };
-    // A fold that fails half way must not leave refreshes held back.
-    try { set(open); } catch (err) { folding -= 1; throw err; }
-    const b1 = find(box);
-    const h1 = b1 ? b1.getBoundingClientRect().height : 0;
-    // A whole list of peers is tens of thousands of pixels: rolled in a third
-    // of a second that rushes past at a screen per frame. That opens and
-    // shuts in place at once, the rows fading in.
-    const huge = Math.abs(h1 - h0) > window.innerHeight * 1.5;
-    if (huge && open && !still && b1 && b1.animate) b1.animate([{ opacity: 0.25 }, { opacity: 1 }], { duration: 220, easing: "ease-out" });
-    if (still || huge || !b1 || !b1.animate || Math.abs(h1 - h0) < 2) { pin(); done(); return; }
-    // Closing rolls up what is still there: back to open for the animation,
-    // closed at its end.
-    if (!open) set(true);
-    const b = find(box);
-    const anim = b.animate([{ height: `${h0}px`, overflow: "hidden" }, { height: `${h1}px`, overflow: "hidden" }],
-      { duration: FOLD_MS, easing: open ? "cubic-bezier(.2,.7,.3,1)" : "cubic-bezier(.5,0,.3,1)" });
-    let frame = requestAnimationFrame(function follow() { pin(); frame = requestAnimationFrame(follow); });
-    anim.onfinish = anim.oncancel = () => {
-      cancelAnimationFrame(frame);
-      try { if (!open) set(false); } finally { done(); }
-    };
-  }
+  // Folding in place: one implementation for the whole page, the
+  // dashboard's (its app.js), with one runway at the page's end and one
+  // count of folds under way. Anchor and box may be functions that find
+  // them again, for a list rebuilt by the fold.
+  const foldInPlace = (o) => window.peerLab.foldInPlace(o);
 
   const state = {
     data: null,           // last /api/peers reply
     world: null,          // world.json
-    show: { manual: true, inbound: true, outbound: true },
     place: null,          // location filter from clicking a marker: { key, label }
     group: null,          // first level of the kind filter: Nodes, Wallets, Watchers, Disguised, Other
     kind: null,           // kind filter from clicking an entry in a group's kind line
@@ -150,15 +76,13 @@
   const FOLD_KEY = "peerlab.folded";
   const folded = new Set((() => { try { return JSON.parse(store.get(FOLD_KEY)) || []; } catch { return []; } })());
   function foldable(card, title, id) {
-    title.classList.add("fold-title");
-    title.tabIndex = 0;
-    title.setAttribute("role", "button");
+    const btn = window.peerLab.foldTitle(title);
     const show = () => {
       card.classList.toggle("folded", folded.has(id));
-      title.setAttribute("aria-expanded", String(!folded.has(id)));
+      btn.setAttribute("aria-expanded", String(!folded.has(id)));
     };
     const flip = (e) => {
-      if (e.target.closest("button, a")) return;
+      if (e.target.closest("a, button:not(.fold-btn)")) return;
       // What is on screen: a card opened for a peer link is open, whatever
       // the stored state says.
       const opening = card.classList.contains("folded");
@@ -179,7 +103,6 @@
       if (id === "map" && opening) window.dispatchEvent(new Event("resize"));
     };
     title.addEventListener("click", flip);
-    title.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(e); } });
     // window.peerLab, not dashboard(): this runs before that is declared.
     window.peerLab.foldsOnTap(card, flip);
     show();
@@ -222,6 +145,16 @@
   // Exactly one polling chain at a time. Without the inFlight guard, a tab
   // that became visible again while a request was still running started a
   // second chain next to the first, and every such moment added another.
+  // A block the dashboard has just announced (its event stream): the block
+  // card, the star and the map's wave are asked for it at once, and asked
+  // again shortly, a few times at most, until the answer has it.
+  let wantBlock = "", wantTries = 0;
+  window.addEventListener("peerlab:block", (e) => {
+    if (!e.detail || (state.data && state.data.last_block && state.data.last_block.hash === e.detail)) return;
+    wantBlock = e.detail;
+    wantTries = 3;
+    refresh();
+  });
   async function refresh() {
     clearTimeout(pollTimer);
     if (inFlight || document.hidden || state.paused) return;
@@ -232,7 +165,7 @@
     let next = 10;
     inFlight = true;
     try {
-      const r = await fetch(BASE + "api/peers", { cache: "no-store" });
+      const r = await fetch(BASE + "api/peers" + (wantBlock ? "?block=" + wantBlock : ""), { cache: "no-store" });
       if (!r.ok) throw new Error("HTTP " + r.status);
       state.data = await r.json();
       state.receivedAt = Date.now();
@@ -244,10 +177,14 @@
     } catch (e) {
       state.failed = true;
       renderStatus();
-      showError("Map service not reachable: " + e.message);
+      showError("Peer list not reachable: " + e.message);
     } finally {
       inFlight = false;
     }
+    const lb = state.data && state.data.last_block;
+    if (wantBlock && lb && lb.hash === wantBlock) wantBlock = "";
+    if (wantBlock && wantTries > 0) { wantTries -= 1; next = 1.5; }
+    else wantBlock = "";
     clearTimeout(pollTimer);
     if (!document.hidden && !state.paused) pollTimer = setTimeout(refresh, next * 1000 + 250);
   }
@@ -305,19 +242,14 @@
   }
 
   // ---------- formatting ----------
-  function ago(sec) {
-    if (sec < 60) return Math.max(0, Math.floor(sec)) + "s";
-    const m = Math.floor(sec / 60), h = Math.floor(m / 60), d = Math.floor(h / 24);
-    if (d > 0) return d + "d " + (h % 24) + "h";
-    if (h > 0) return h + "h " + (m % 60) + "m";
-    return m + "m";
-  }
+  // Durations and pings as the dashboard writes them everywhere else.
+  const ago = (sec) => window.peerLab.fmtDuration(sec * 1000);
   const typeLabel = (t) => ({
     "outbound-full-relay": "Full relay",
     "block-relay-only": "Block relay",
   }[t] || t || "-");
   // Milliseconds below a second, seconds above.
-  const fmtPing = (ms) => (ms < 1000 ? Math.round(ms) + " ms" : (ms / 1000).toFixed(2) + " s");
+  const fmtPing = (ms) => window.peerLab.fmtMs(ms);
   const netLabel = (n) => ({
     ipv4: "IPv4", ipv6: "IPv6", onion: "Tor", i2p: "I2P", cjdns: "CJDNS",
     not_publicly_routable: "Private", ipv6_hidden: "IPv6 (address hidden)",
@@ -328,14 +260,13 @@
     tor_hidden: { short: "Tor", tip: "Reached through the Tor proxy, which hides the peer's address." },
     i2p_hidden: { short: "I2P", tip: "Reached through the I2P router, which hides the peer's address." },
   };
-  // A flag from the two-letter country code: regional-indicator letters, no
-  // image files. Unknown or missing codes get none.
+  // The networks without a country have a sign of their own instead of a flag.
   const HIDDEN_FLAG = {
     not_publicly_routable: "\u{1F3E0}",
     onion: "\u{1F9C5}", tor_hidden: "\u{1F9C5}",
     i2p: "\u{1F310}", i2p_hidden: "\u{1F310}", ipv6_hidden: "\u{1F310}",
   };
-  const flagOf = (cc) => (/^[A-Z]{2}$/.test(cc || "") ? String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)) : "");
+  const flagOf = (cc) => window.peerLab.flagOf(cc);
 
   // ---------- the block that just landed ----------
 
@@ -1156,16 +1087,17 @@
   }
 
   // The keyboard, as in a desktop app: Esc closes what is open (a panel, then
-  // the filters), the arrow keys go from row to row, Enter opens one.
+  // the filters) - asked by the dashboard's one Esc handler, in its turn -
+  // the arrow keys go from row to row, Enter opens one.
+  dashboard().onEscape(() => {
+    if (!somethingOpen()) return false;
+    if (state.openRows.size) state.openRows.clear();
+    else { state.group = null; state.kind = null; state.sub = null; state.label = null; state.place = null; }
+    applyFilters();
+    return true;
+  });
   document.addEventListener("keydown", (e) => {
     if (e.target.closest && e.target.closest("input, textarea, select")) return;
-    if (e.key === "Escape" && somethingOpen()) {
-      if (state.openRows.size) state.openRows.clear();
-      else { state.group = null; state.kind = null; state.sub = null; state.label = null; state.place = null; }
-      applyFilters();
-      e.preventDefault();
-      return;
-    }
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Enter") return;
     const rows = [...document.querySelectorAll("#tables tr[data-anchor]")].filter((r) => r.offsetParent);
     const at = rows.indexOf(document.activeElement);
@@ -1235,7 +1167,7 @@
     : groupOf(p.kind) === state.group && (!state.kind || p.kind === state.kind) && (!state.sub || subOf(p) === state.sub) && (!state.label || labelOf(p) === state.label));
 
   const visiblePeers = () =>
-    (state.data ? state.data.peers.filter((p) => state.show[p.group] && matchesKind(p)) : []);
+    (state.data ? state.data.peers.filter(matchesKind) : []);
   const regionMode = () => state.view.k >= REGION_ZOOM;
 
   // Every refresh rebuilds the tables and the map, and with them whatever the
@@ -1267,8 +1199,11 @@
   window.addEventListener("scroll", () => { scrolledAt = Date.now(); settle(); }, { passive: true });
   function busy() {
     if (moving()) return true;
+    // An action on a peer under way: its buttons are not drawn again until
+    // its answer is in (the dashboard holds its own tables for it too).
+    if (dashboard().acting()) return true;
     // A fold rolling: a refresh would rebuild what it is rolling (foldInPlace).
-    if (folding) return true;
+    if (dashboard().folding()) return true;
     const sel = window.getSelection && window.getSelection();
     if (sel && !sel.isCollapsed) return true;
     if (pressedAt && Date.now() - pressedAt < 2000) return true;
@@ -1290,6 +1225,7 @@
     render();
   }
   const freed = () => { if (renderPending) setTimeout(renderWhenFree, 0); };
+  dashboard().afterFolds(freed);
   document.addEventListener("pointerdown", () => { pressedAt = Date.now(); }, true);
   document.addEventListener("click", () => { pressedAt = 0; freed(); });
   for (const t of ["pointerup", "pointercancel"]) {
@@ -1386,13 +1322,16 @@
     const y = window.scrollY;
     const anchor = readAnchor();
     const d = state.data;
+    // A peer just disconnected or removed here leaves the list at once, not
+    // when this service next asks Core: its answer can be ten seconds old.
+    d.peers = d.peers.filter((p) => !dashboard().gone(p.addr));
+    // The tiles at the top count these same peers.
+    const counts = { manual: 0, inbound: 0, outbound: 0 };
+    for (const p of d.peers) counts[p.group]++;
+    dashboard().liveCounts(counts);
     $("demo").hidden = !d.demo;
     showError([d.error ? "Bitcoin Core: " + d.error + (d.fetched_at ? " - showing the last good peer list." : "") : "", state.worldError || ""].filter(Boolean).join(" "));
     $("version").textContent = "v" + (d.version || "dev");
-
-    const counts = { manual: 0, inbound: 0, outbound: 0 };
-    for (const p of d.peers) counts[p.group]++;
-    for (const g of GROUPS) document.querySelector(`[data-count="${g}"]`).textContent = counts[g];
 
     renderStatus();
     deliveredNow = deliveredSet();
@@ -1403,7 +1342,7 @@
     renderUnplaced();
     renderTables();
     if (window.scrollY !== y) window.scrollTo(0, y);
-    if (!folding) holdAnchor(anchor);
+    if (!dashboard().folding()) holdAnchor(anchor);
     restoreReloadY();
     const hash = d.last_block && d.last_block.hash;
     if (hash && state.lastHash && hash !== state.lastHash) pulseBlock();
@@ -1874,7 +1813,6 @@
       tip.appendChild(s);
     }
     for (const k of GROUPS) {
-      if (!state.show[k]) continue;
       const row = document.createElement("div");
       row.className = "row";
       const sw = document.createElement("span");
@@ -2025,15 +1963,6 @@
     });
   }
 
-  // ---------- filters ----------
-  for (const btn of document.querySelectorAll(".chip[data-group]")) {
-    btn.addEventListener("click", () => {
-      const g = btn.dataset.group;
-      state.show[g] = !state.show[g];
-      btn.setAttribute("aria-pressed", String(state.show[g]));
-      if (state.data) render();
-    });
-  }
 
   // ---------- not on the map (collapsible side panel) ----------
   function setSide(open) {
@@ -2055,7 +1984,7 @@
       let r = rows.get(key);
       if (!r) rows.set(key, (r = { manual: 0, inbound: 0, outbound: 0 }));
       r[p.group]++;
-      if (state.show[p.group]) total++;
+      total++;
     }
     $("unplacedCount").textContent = total;
     const body = $("unplacedBody");
@@ -2076,7 +2005,7 @@
       tr.appendChild(th);
       for (const g of GROUPS) {
         const td = document.createElement("td");
-        td.textContent = state.show[g] ? r[g] : "–";
+        td.textContent = r[g];
         tr.appendChild(td);
       }
       body.appendChild(tr);
@@ -2806,7 +2735,6 @@
     root.removeAttribute("aria-busy");
     let picksShown = false;
     for (const g of GROUPS) {
-      if (!state.show[g]) continue;
       let peers = state.data.peers.filter((p) => p.group === g);
       const all = peers.length;
       if (state.place) peers = peers.filter(peerMatchesPlace);
@@ -2814,7 +2742,12 @@
       if (state.group) peers = peers.filter(matchesKind);
       // A manual peer that is not connected still holds its slot: it stands
       // in the list with the others, from what the dashboard knows of it.
-      if (g === "manual" && !state.place && !state.group) peers = peers.concat(dashboard().offlineManual().map(offlinePeer));
+      // Connected again by the time this list was asked for, though the
+      // dashboard's picture is older: it stands once, as connected.
+      if (g === "manual" && !state.place && !state.group) {
+        const here = new Set(state.data.peers.map((p) => p.addr));
+        peers = peers.concat(dashboard().offlineManual().filter((r) => !here.has(r.address)).map(offlinePeer));
+      }
 
       const card = document.createElement("section");
       card.className = "card group-card";

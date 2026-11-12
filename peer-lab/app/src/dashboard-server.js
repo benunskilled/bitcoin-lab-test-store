@@ -83,7 +83,7 @@ const SERVICE_STALE_MS = {
 // browser sits between this and the operator.
 const SECURITY_HEADERS = {
   'Content-Security-Policy':
-    "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'self'",
+    "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'",
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'SAMEORIGIN',
   'Referrer-Policy': 'no-referrer',
@@ -548,7 +548,7 @@ function fmtBytesShort(bytes) {
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let v = bytes || 0;
   let i = 0;
-  while (v >= 1000 && i < units.length - 1) { v /= 1024; i += 1; }  // 1024-based, like the dashboard
+  while (v >= 1000 && i < units.length - 1) { v /= 1000; i += 1; }  // steps of 1000, like the page
   return `${v >= 100 || i === 0 ? v.toFixed(0) : v.toFixed(v < 1 ? 2 : 1)} ${units[i]}`;
 }
 
@@ -609,7 +609,6 @@ async function router(req, res, pathname, url) {
     }
     return sendJson(res, 200, {
       blockHeight,
-      network: config.bitcoin.network,
       live: queries.liveSummary(),
       maxManualPeers: config.maxManualPeers,
       // Whether the pool race is running at all. The page needs it before it
@@ -637,6 +636,7 @@ async function router(req, res, pathname, url) {
         row.kind = m.kind;
         if (m.noRelay) row.noRelay = true;
         if (m.lion) row.lion = true;
+        if (m.fork) row.fork = m.fork;
       }
     }
     return sendJson(res, 200, rows);
@@ -662,9 +662,6 @@ async function router(req, res, pathname, url) {
       poolTag: race.poolTag,
       poolSource: race.poolSource,
       firstPeers: race.firstPeers.map((p) => p.address),
-      // How many peers could have delivered it - the denominator behind the
-      // one that did.
-      eligible: race.eligible,
       // The same block seen from the mining side, when a race was recorded
       // for it. null is the normal answer with Stratum Race switched off.
       stratum: race.stratum,
@@ -690,11 +687,8 @@ async function router(req, res, pathname, url) {
       // The block's size in bytes, to read reconMissingBytes as a share of
       // it. Known once the pool is attributed, a moment after the block.
       blockSize: race.blockSize ?? null,
-      // The same over the last day and the last seven days.
-      reconDay: queries.reconstructionDay(),
-      reconWeek: queries.reconstructionWeek(),
       // The same over the last hundred blocks, the "typical" window of the
-      // route below; the block card reads this one.
+      // route below.
       reconLast100: queries.reconstructionLast(),
       // The same route for the typical block - the median over the last
       // hundred - so a change shows up as a shorter stretch.

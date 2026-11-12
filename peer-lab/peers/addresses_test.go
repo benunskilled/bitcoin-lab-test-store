@@ -61,8 +61,8 @@ func TestLinkingLionShowsItsOwnEvidence(t *testing.T) {
 // A university scanner under a wallet's name is named by its address.
 func TestResearchHosts(t *testing.T) {
 	got := convert([]rawPeer{
-		{ID: 1, Addr: "147.229.8.240:49422", ConnectionType: "inbound", Inbound: true, Subver: "/bitcoinj:0.16.5/Bitcoin Wallet:10.26/", Version: 70017, ServicesNames: []string{}},
-		{ID: 2, Addr: "147.229.8.241:49422", ConnectionType: "inbound", Inbound: true, Subver: "/bitcoinj:0.16.5/Bitcoin Wallet:10.26/", Version: 70017, ServicesNames: []string{}},
+		{Addr: "147.229.8.240:49422", ConnectionType: "inbound", Inbound: true, Subver: "/bitcoinj:0.16.5/Bitcoin Wallet:10.26/", Version: 70017, ServicesNames: []string{}},
+		{Addr: "147.229.8.241:49422", ConnectionType: "inbound", Inbound: true, Subver: "/bitcoinj:0.16.5/Bitcoin Wallet:10.26/", Version: 70017, ServicesNames: []string{}},
 	})
 	if got[0].Kind != "Research scanner" || !strings.Contains(got[0].About, "Brno") || !strings.Contains(got[0].PoolProof, "anton1.fit.vutbr.cz") {
 		t.Fatalf("Brno: %q %q %q", got[0].Kind, got[0].About, got[0].PoolProof)

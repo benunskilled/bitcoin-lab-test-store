@@ -26,7 +26,6 @@
 const RULES = {
   dashboardPort: { min: 1, max: 65535 },
   maxManualPeers: { min: 1, max: 8, note: "Bitcoin Core's own MAX_ADDNODE_CONNECTIONS is 8" },
-  minEligibleForJudgement: { min: 1, max: 100000 },
   newManualGraceBlocks: { min: 0, max: 100000 },
   manualPerRegion: { min: 1, max: 8 },
   offlineGraceHours: { min: 0, max: 8760, integer: false },
@@ -46,7 +45,6 @@ const ENV_NAMES = {
   dashboardPort: 'DASHBOARD_PORT',
   trafficFlushMs: 'TRAFFIC_FLUSH_MS',
   maxManualPeers: 'MAX_MANUAL_PEERS',
-  minEligibleForJudgement: 'MIN_ELIGIBLE_FOR_JUDGEMENT',
   newManualGraceBlocks: 'NEW_MANUAL_PEER_GRACE_BLOCKS',
   manualPerRegion: 'MANUAL_PER_REGION',
   offlineGraceHours: 'OFFLINE_GRACE_HOURS',

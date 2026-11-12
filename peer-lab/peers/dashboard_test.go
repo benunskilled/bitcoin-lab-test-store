@@ -130,7 +130,7 @@ func TestDashboardBlockRemembersARefusal(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			tr := &stubTransport{healthOK: true, err: c.err, calls: map[string]int{}}
 			s := dashboardVia(tr)
-			if s.latest(context.Background()) != nil || s.latest(context.Background()) != nil {
+			if s.latest(context.Background(), "") != nil || s.latest(context.Background(), "") != nil {
 				t.Fatal("a dashboard that sent no block must not produce one")
 			}
 			if got := tr.calls["/api/blocks/latest"]; got != c.want {
@@ -156,7 +156,7 @@ func TestDashboardLatestBlock(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"hash":"00beef","height":967724,"detectedAt":%d,"pool":"Foundry",
 			"poolName":"Foundry USA","poolTag":"Foundry USA Pool","poolSource":"address",
-			"firstPeers":["1.2.3.4:8333"],"eligible":204,
+			"firstPeers":["1.2.3.4:8333"],
 			"stratum":{"createdAt":%d,"entries":[
 				{"label":"Public A","own":false,"latencyMs":0,"rank":1,"miss":false},
 				{"label":"My pool","own":true,"latencyMs":412.5,"rank":2,"miss":false},
@@ -177,7 +177,7 @@ func TestDashboardLatestBlock(t *testing.T) {
 		now:      func() time.Time { return now },
 	}
 
-	got := s.latest(context.Background())
+	got := s.latest(context.Background(), "")
 	if got == nil {
 		t.Fatal("no block")
 	}
@@ -210,9 +210,6 @@ func TestDashboardLatestBlock(t *testing.T) {
 	if got.ReconLast100 == nil || got.ReconLast100.Blocks != 98 || got.ReconLast100.AskedAvgBytes == nil || *got.ReconLast100.AskedAvgBytes != 38200 {
 		t.Errorf("recon last 100 %+v", got.ReconLast100)
 	}
-	if got.Eligible != 204 {
-		t.Errorf("eligible %d, want 204", got.Eligible)
-	}
 	if got.Stratum == nil || len(got.Stratum.Entries) != 3 {
 		t.Fatalf("stratum race not carried through: %+v", got.Stratum)
 	}
@@ -242,17 +239,46 @@ func TestDashboardLatestBlock(t *testing.T) {
 	// Inside the poll interval the answer is cached - but it must age while it
 	// sits there, or a cached copy would claim the block is younger than it is.
 	now = now.Add(5 * time.Second)
-	again := s.latest(context.Background())
+	again := s.latest(context.Background(), "")
 	if calls != 1 {
 		t.Errorf("asked the dashboard %d times, want 1", calls)
 	}
 	if again.AgeMs != 35_000 {
 		t.Errorf("cached age %d ms, want 35000", again.AgeMs)
 	}
+
+	// The page has heard of a newer block: asked again at once, inside the
+	// interval - but only once a second, and not for the block it has.
+	s.latest(context.Background(), "00beef")
+	if calls != 1 {
+		t.Errorf("asked again for the block it had: %d calls", calls)
+	}
+	newer := strings.Repeat("ab", 32)
+	s.latest(context.Background(), newer)
+	s.latest(context.Background(), newer)
+	if calls != 2 {
+		t.Errorf("asked %d times for a newer block within a second, want 2 in all", calls)
+	}
+	now = now.Add(1100 * time.Millisecond)
+	s.latest(context.Background(), newer)
+	if calls != 3 {
+		t.Errorf("asked %d times after a second, want 3 in all", calls)
+	}
+}
+
+func TestBlockHashParameter(t *testing.T) {
+	for in, want := range map[string]bool{
+		strings.Repeat("0a", 32): true, "": false, "00beef": false,
+		strings.Repeat("0A", 32): false, strings.Repeat("0g", 32): false,
+	} {
+		if isBlockHash(in) != want {
+			t.Errorf("isBlockHash(%q) = %v", in, !want)
+		}
+	}
 }
 
 func TestDashboardLatestWhileDown(t *testing.T) {
-	if offDashboard().latest(context.Background()) != nil {
+	if offDashboard().latest(context.Background(), "") != nil {
 		t.Error(`"off" must not produce a block`)
 	}
 	s := &dashboardClient{
@@ -262,7 +288,7 @@ func TestDashboardLatestWhileDown(t *testing.T) {
 		every:    time.Minute,
 		now:      time.Now,
 	}
-	if s.latest(context.Background()) != nil {
+	if s.latest(context.Background(), "") != nil {
 		t.Error("an unreachable dashboard must not produce a block")
 	}
 }
@@ -295,7 +321,7 @@ func TestDashboardCoreOffset(t *testing.T) {
 				client: srv.Client(), every: time.Minute,
 				now: func() time.Time { return time.UnixMilli(1789900010000) },
 			}
-			got := s.latest(context.Background())
+			got := s.latest(context.Background(), "")
 			if got == nil || got.Stratum == nil {
 				t.Fatal("no block or no race")
 			}
@@ -341,14 +367,14 @@ func TestDashboardSaysSoWhenTheReplyIsTooLarge(t *testing.T) {
 		every:    time.Hour,
 		now:      func() time.Time { return clock },
 	}
-	if got := s.latest(context.Background()); got != nil {
+	if got := s.latest(context.Background(), ""); got != nil {
 		t.Fatalf("a truncated reply was shown: %+v", got)
 	}
 	if !strings.Contains(logged.String(), "64 KB") {
 		t.Fatalf("nothing logged about the size; log: %q", logged.String())
 	}
 	clock = clock.Add(interval)
-	s.latest(context.Background())
+	s.latest(context.Background(), "")
 	if n := strings.Count(logged.String(), "64 KB"); n != 1 {
 		t.Errorf("logged %d times, want once while it stays too large", n)
 	}
@@ -369,7 +395,7 @@ func TestDashboardReconUnclear(t *testing.T) {
 			fmt.Fprintf(w, `{"hash":"00beef","height":967724,"detectedAt":%d,"recon":%q}`, now.UnixMilli(), c.in)
 		}))
 		s := &dashboardClient{url: srv.URL + "/api/health", blockURL: srv.URL + "/api/blocks/latest", client: srv.Client(), every: time.Minute, now: func() time.Time { return now }}
-		got := s.latest(context.Background())
+		got := s.latest(context.Background(), "")
 		srv.Close()
 		if got == nil || got.Recon != c.want {
 			t.Errorf("recon %q: got %+v", c.in, got)

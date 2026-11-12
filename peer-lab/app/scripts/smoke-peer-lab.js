@@ -9,6 +9,48 @@ const path = require('node:path');
 const net = require('node:net');
 const { spawn } = require('node:child_process');
 
+// The page in a real browser, both scripts together: the peer list drawn,
+// the tiles counting the same peers, a card folding with a tap anywhere and
+// opening with the keyboard, Esc closing one thing, and no script error.
+// Needs Playwright with Chromium (CI installs both; SMOKE_BROWSER=1).
+async function browserSmoke(base, peers) {
+  const { chromium } = require('playwright');
+  const browser = await chromium.launch();
+  const errors = [];
+  try {
+    for (const width of [1400, 390]) {
+      const page = await browser.newPage({ viewport: { width, height: 900 } });
+      page.on('pageerror', (e) => errors.push(`${width}px: ${e.message}`));
+      await page.goto(base + '/');
+      await page.waitForSelector('#tables tr[data-anchor]', { timeout: 20000 });
+      const groups = { inbound: 0, outbound: 0, manual: 0 };
+      for (const p of peers.peers) groups[p.group] += 1;
+      const tiles = await page.$$eval('#live-stats .stat .n', (ns) => ns.map((n) => Number(n.textContent)));
+      assert.deepEqual(tiles.slice(1), [groups.inbound, groups.outbound, groups.manual], `${width}px: the tiles count the list's peers`);
+      const folded = () => page.$eval('#keyCard', (c) => c.classList.contains('folded'));
+      const was = await folded();
+      await page.click('#keyCard', { position: { x: 30, y: 8 } });
+      await page.waitForTimeout(700);
+      assert.notEqual(await folded(), was, `${width}px: a tap on the card folds or opens it`);
+      await page.focus('#keyHead .fold-btn');
+      await page.keyboard.press('Enter');
+      await page.waitForTimeout(700);
+      assert.equal(await folded(), was, `${width}px: Enter on its title turns it back`);
+      await page.click('#storage-card > summary');
+      await page.waitForTimeout(700);
+      await page.keyboard.press('Escape');
+      assert.equal(await page.$eval('#storage-card', (d) => d.open), false, `${width}px: Esc closes Data & Settings`);
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      assert.ok(overflow <= 0, `${width}px: nothing slides sideways (${overflow}px)`);
+      await page.close();
+    }
+  } finally {
+    await browser.close();
+  }
+  assert.deepEqual(errors, [], 'no script error on the page');
+  console.log('Peer Lab browser smoke test passed.');
+}
+
 async function main() {
   if (!process.env.PEERS_BINARY) throw new Error('Set PEERS_BINARY to the built map binary.');
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'peerlab-smoke-'));
@@ -47,10 +89,15 @@ async function main() {
     }
     const peers = await (await fetch(base + '/peers/api/peers')).json();
     assert.ok(peers.peers.length > 0, 'the peers service returns its demo peers');
-    for (const resource of ['/app.js', '/style.css', '/favicon.png', '/peers/app.js', '/peers/world.json', '/api/widget/traffic']) {
+    for (const resource of ['/app.js', '/style.css', '/favicon.png', '/peers/app.js', '/peers/world.json', '/peers/api/kinds', '/api/widget/traffic']) {
       assert.equal((await fetch(base + resource)).status, 200, resource);
     }
+    // /peers/ is no page of its own: it leads to the page.
+    const redirect = await fetch(base + '/peers/', { redirect: 'manual' });
+    assert.equal(redirect.status, 308);
+    assert.equal(redirect.headers.get('location'), '/');
     console.log('Peer Lab cross-module HTTP smoke test passed. No live node or peer writes used.');
+    if (process.env.SMOKE_BROWSER === '1') await browserSmoke(base, peers);
   } finally {
     if (child) {
       child.kill('SIGTERM');

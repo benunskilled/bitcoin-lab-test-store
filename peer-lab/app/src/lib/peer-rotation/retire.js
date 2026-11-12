@@ -51,8 +51,10 @@ async function stillToRetire(peer) {
  * `peers` is getpeerinfo from this pass: the ranking is the database's
  * picture, a few seconds old, and Core may have reconnected the peer since -
  * removing it then would cut a connection that works again.
+ * `stillOn` is asked right before each remove: Slot Fill switched off while
+ * this pass was waiting for Core removes nothing more.
  */
-async function retireOfflineManualPeers(ranking, onTrial = null, peers = []) {
+async function retireOfflineManualPeers(ranking, onTrial = null, peers = [], stillOn = () => true) {
   const connectedNow = new Set(peers.filter((p) => p.connection_type === 'manual').map((p) => keyOf(p.addr)));
   const now = Date.now();
   let retired = 0;
@@ -72,6 +74,7 @@ async function retireOfflineManualPeers(ranking, onTrial = null, peers = []) {
     const grace = offlineGraceMs(peer.firstPct);
     if (offlineMs < grace) continue;
     if (!(await stillToRetire(peer))) continue;
+    if (!stillOn()) break;
 
     await peerSync.removeTrustedPeer(peer.address);
     retired += 1;

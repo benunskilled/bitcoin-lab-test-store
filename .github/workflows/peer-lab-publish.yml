@@ -16,9 +16,11 @@ jobs:
       contents: write
       packages: write
     steps:
+      # The commit the checks above tested, not whatever the branch has by
+      # the time they are done.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: ${{ github.ref_name }}
+          ref: ${{ github.sha }}
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
       - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
@@ -88,4 +90,6 @@ jobs:
         run: |
           git add peer-lab/app/package.json peer-lab/app/package-lock.json peer-lab/umbrel/bltest-peerlab/umbrel-app.yml bltest-peerlab
           git -c commit.gpgsign=false commit -m "Publish verified Peer Lab test build"
-          git push origin HEAD
+          # Refused if the branch moved on meanwhile: then the entry belongs
+          # to an older commit, and this build is not published.
+          git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"

@@ -4,7 +4,7 @@
 //
 //	go test -tags integration -run TestAgainstBitcoinCore -v -count=1 .
 //
-// CI does this on release tags (see .github/workflows/ci.yml).
+// CI does this on every push (.github/workflows/peer-lab.yml, job integration).
 package main
 
 import (

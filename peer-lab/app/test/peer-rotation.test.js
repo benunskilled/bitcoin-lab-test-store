@@ -244,6 +244,15 @@ test('a manual peer never first loses its slot once it is offline past its hour'
   assert.equal(logRow.address, address);
 });
 
+test('Slot Fill switched off while a pass waits for Core: nothing more is retired', async () => {
+  const address = seedOfflineTrustedPeer({ eligible: 200, first: 0, offlineHours: 5 });
+
+  const retired = await peerRotation.retireOfflineManualPeers(ranking(), null, [], () => false);
+
+  assert.equal(retired, 0);
+  assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM trusted_peer WHERE address = ?').get(address).n, 1);
+});
+
 test('a manual peer that was ever first keeps its slot through an outage that retires one that never was', async () => {
   // One block first: a day of grace. Offline for 5 - the outage that just
   // cost the other peer its slot in the test above.

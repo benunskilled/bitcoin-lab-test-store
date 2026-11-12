@@ -26,6 +26,9 @@ const keyOf = (address) => addressKey(address, config.bitcoin.network);
  */
 async function syncTrustedToAddnode(knownAddedNodes) {
   const trusted = db.instance.prepare(`SELECT address FROM trusted_peer ORDER BY created_at ASC`).all();
+  // A read-only copy never issues an addnode: its table only mirrors Core's
+  // list (adoptExternalManualPeers), so there is nothing here to restore.
+  if (config.readOnly) return { trusted: trusted.length, existing: 0, added: 0, queued: 0 };
   let addedNodes = [];
   try {
     // Callers that already hold this list can pass it in. adoptExternalManualPeers
@@ -141,7 +144,9 @@ async function adoptExternalManualPeers() {
   const now = Date.now();
   let adopted = 0;
   const skipped = [];
-  const pending = pendingRemovals();
+  // A read-only copy removes nothing, not even again: what it did not take
+  // out itself is not its to take out.
+  const pending = config.readOnly ? {} : pendingRemovals();
   let pendingChanged = false;
   for (const { addednode } of addedNodes) {
     if (!addednode || known.has(keyOf(addednode))) continue;

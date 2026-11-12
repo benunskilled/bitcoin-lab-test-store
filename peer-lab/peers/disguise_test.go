@@ -376,13 +376,13 @@ func TestGivesOwnAddress(t *testing.T) {
 		}
 	}
 	// A wallet offering blocks is Disguised already; the address comes on top.
-	p := convert([]rawPeer{{ID: 1, Addr: "35.242.187.91:40000", AddrLocal: "35.242.187.91:8333", ConnectionType: "inbound", Inbound: true,
+	p := convert([]rawPeer{{Addr: "35.242.187.91:40000", AddrLocal: "35.242.187.91:8333", ConnectionType: "inbound", Inbound: true,
 		Subver: "/bitcoinj:0.14.5/Bitcoin Wallet:5.33/", Version: 70015, ServicesNames: []string{"NETWORK"}}})[0]
 	if p.Kind != fakeWalletKind || !strings.Contains(p.About, "Also: "+ownAddressAbout) || p.Tell != "wallet offering blocks \u00b7 gives its own address as ours" {
 		t.Fatalf("got %q %q %q", p.Kind, p.About, p.Tell)
 	}
 	// Alone it decides nothing.
-	if p := convert([]rawPeer{{ID: 1, Addr: "35.242.187.91:40000", AddrLocal: "35.242.187.91:8333", ConnectionType: "inbound", Inbound: true,
+	if p := convert([]rawPeer{{Addr: "35.242.187.91:40000", AddrLocal: "35.242.187.91:8333", ConnectionType: "inbound", Inbound: true,
 		Subver: "/Satoshi:31.1.0/", Version: 70016, ServicesNames: []string{"NETWORK", "WITNESS", "NETWORK_LIMITED", "P2P_V2"}}})[0]; p.Kind == fakeWalletKind {
 		t.Fatalf("own address alone made it %q", p.Kind)
 	}

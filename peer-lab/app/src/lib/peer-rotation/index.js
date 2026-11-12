@@ -132,9 +132,12 @@ async function pass() {
       return { ...idle, enabled: true, reverted: 1 };
     }
   }
+  // Switched off while this pass waited for Core: the switch has been
+  // answered already, so nothing more is removed or added from here on.
+  if (!isEnabled()) return { ...idle, enabled: false, confirmed: settled === 'confirmed' ? 1 : 0, reverted: settled === 'reverted' ? 1 : 0 };
   const onTrial = fill.currentTrial();
   const ranking = queries.peerRanking();
-  const retired = await retireOfflineManualPeers(ranking, onTrial && onTrial.address, peers);
+  const retired = await retireOfflineManualPeers(ranking, onTrial && onTrial.address, peers, isEnabled);
   // One move per pass: nothing new while a candidate is on trial.
   let started = onTrial
     ? 0

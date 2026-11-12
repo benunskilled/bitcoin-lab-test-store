@@ -265,10 +265,6 @@ test('a live peer Core reports as connection_type "manual" is treated as trusted
 
   assert.equal(row.trusted, true);
   assert.equal(row.status, 'MANUAL LIVE');
-  // connectionStatus stays the raw Core connection type - used by the
-  // Outbound panel, which this peer should no longer even appear in once
-  // the frontend filters on `trusted`.
-  assert.equal(row.connectionStatus, 'MANUAL');
 });
 
 test('peer ranking uses ping as the tiebreaker when first% is tied', () => {
@@ -425,9 +421,7 @@ test('peer ranking flags a same-host Umbrel app (e.g. electrs) as localUmbrelPee
   const externalRow = ranking.find((r) => r.address === '198.51.100.60:8333');
 
   assert.equal(electrsRow.localUmbrelPeer, true);
-  assert.equal(electrsRow.localAppName, 'electrs');
   assert.equal(externalRow.localUmbrelPeer, false);
-  assert.equal(externalRow.localAppName, null);
 });
 
 test('peer ranking treats the docker-proxy masked gateway as sourceObscured, not localUmbrelPeer', () => {
@@ -474,7 +468,6 @@ test('an inbound Tor peer is read from Core\'s network, not from its proxy addre
 
   assert.equal(row.privateNetwork, 'Tor');
   assert.equal(row.localUmbrelPeer, false, 'a Tor peer is an external peer, whatever address it arrives under');
-  assert.equal(row.localAppName, null);
   assert.equal(
     row.proxiedPrivatePeer,
     true,
@@ -536,7 +529,6 @@ test('a sibling app in the same address range is still a local app', () => {
 
   assert.equal(row.privateNetwork, null);
   assert.equal(row.localUmbrelPeer, true);
-  assert.equal(row.localAppName, 'electrs');
 });
 
 test('sessions written before the network column fall back to reading the address', () => {

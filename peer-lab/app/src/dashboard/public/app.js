@@ -36,9 +36,11 @@ function fmtMs(ms) {
   return `${(ms / 1000).toFixed(2)} s`;
 }
 
+// The peer list writes its durations and pings with these two as well.
 function fmtDuration(ms) {
   if (ms == null) return '-';
-  const s = Math.floor(ms / 1000);
+  // A clock a moment ahead of Core's is not a negative age.
+  const s = Math.max(0, Math.floor(ms / 1000));
   const d = Math.floor(s / 86400);
   const h = Math.floor((s % 86400) / 3600);
   const m = Math.floor((s % 3600) / 60);
@@ -273,27 +275,45 @@ document.addEventListener('mouseover', (e) => {
 });
 
 async function refreshStatus() {
+  const askedAt = Date.now();
   const s = await api('/api/status');
   if (s.maxManualPeers) MAX_MANUAL_PEERS = s.maxManualPeers;
   applyStratumEnabled(Boolean(s.stratumRaceEnabled));
   // Folded, the Storage card says how big the database is.
   if (s.dbBytes != null) document.getElementById('storage-total').textContent = fmtBytes(s.dbBytes);
-  const readOnlyBanner = document.getElementById('readonly-banner');
-  if (readOnlyBanner) readOnlyBanner.hidden = !s.readOnly;
-  const rotationToggleBox = document.getElementById('rotation-toggle');
-  if (rotationToggleBox && s.readOnly) rotationToggleBox.disabled = true;
+  if (Boolean(s.readOnly) !== readOnly) {
+    readOnly = Boolean(s.readOnly);
+    document.getElementById('readonly-banner').hidden = !readOnly;
+    document.getElementById('rotation-toggle').disabled = readOnly;
+    document.querySelector('#manual-add-form button[type="submit"]').disabled = readOnly;
+    // The list's buttons are drawn from actionsCell: drawn again without them.
+    window.dispatchEvent(new Event('peerlab:ranking'));
+  }
 
-  setBlockHeight(s.blockHeight);
+  setBlockHeight(s.blockHeight, { at: askedAt, fromCore: true });
 
-  // The last field is the colour strip along the tile's foot, in the group's
-  // own colour. Outbound leaves out the manual peers, which have a tile of
-  // their own - as in the peer list, so the three groups add up to the total.
-  // Full relay and block relay are told apart in the Outbound table below.
+  // Until the peer list has its first answer, the tiles show what the
+  // profiler counted; from then on the list's own numbers (drawTiles).
+  if (!listCounts) {
+    drawTiles({ inbound: s.live.inbound, outbound: s.live.outbound - s.live.manual, manual: s.live.manual });
+  }
+}
+
+// The tiles at the top count the same peers as the list under them, from the
+// same answer of Core (window.peerLab.liveCounts): two sources a few seconds
+// apart, and one of them counting the short feeler and address-fetch
+// connections the list leaves out, made the tiles and the list disagree.
+let listCounts = null;
+// The last field is the colour strip along the tile's foot, in the group's
+// own colour. Outbound leaves out the manual peers, which have a tile of
+// their own - as in the peer list, so the three groups add up to the total.
+// Full relay and block relay are told apart in the Outbound table below.
+function drawTiles({ inbound, outbound, manual }) {
   const stats = [
-    ['Total', s.live.total, ''],
-    ['Inbound', s.live.inbound, 'inbound'],
-    ['Outbound', s.live.outbound - s.live.manual, 'outbound'],
-    ['Manual', s.live.manual, 'manual', `of ${MAX_MANUAL_PEERS}`],
+    ['Total', inbound + outbound + manual, ''],
+    ['Inbound', inbound, 'inbound'],
+    ['Outbound', outbound, 'outbound'],
+    ['Manual', manual, 'manual', `of ${MAX_MANUAL_PEERS}`],
   ];
   document.getElementById('live-stats').innerHTML = stats
     .map(([label, n, k, sub]) => `<div class="stat${k ? ' s-' + k : ''}"><div class="l">${label}</div><div class="n">${n}</div>${sub ? `<div class="s">${sub}</div>` : ''}</div>`)
@@ -301,10 +321,14 @@ async function refreshStatus() {
 }
 
 // Shared by the status poll and the live block event, so whichever learns of
-// a new height first can show it. Never moves the number backwards: the two
-// sources race on every block, and the poll can be answering with the
-// previous height at the moment the event arrives with the new one.
-function setBlockHeight(height) {
+// a new height first can show it. The newer news wins: the poll can be
+// answering with the previous height at the moment the event arrives with
+// the new one, so an answer asked for before the last event is not taken.
+// Only Core's own count, asked for later, may set the number back (a reorg,
+// a node set back); an event is the block this app recorded last, and may
+// be older than Core's tip.
+let heightAt = 0;
+function setBlockHeight(height, { at = Date.now(), fromCore = false } = {}) {
   const heightEl = document.getElementById('block-height-number');
   // The height is Core's own getblockcount, so it is there from the first
   // status response - it does not wait for a block. Null means Core did not
@@ -319,7 +343,9 @@ function setBlockHeight(height) {
     }
     return;
   }
-  if (lastKnownHeight != null && height < lastKnownHeight) return;
+  if (at < heightAt) return;
+  if (!fromCore && lastKnownHeight != null && height < lastKnownHeight) return;
+  heightAt = at;
 
   heightEl.classList.remove('waiting');
   heightEl.textContent = height.toLocaleString('en-US');
@@ -378,6 +404,9 @@ function applyBlockUpdate(race) {
 
   const isNewRace = lastRaceId !== null && race.id !== lastRaceId;
   lastRaceId = race.id;
+  // The peer list fetches the block card's block, its star and its wave at
+  // once rather than at its next poll: one moment for the head and the card.
+  if (race.blockHash) window.dispatchEvent(new CustomEvent('peerlab:block', { detail: race.blockHash }));
   if (!isNewRace) return;
 
   refreshPeers();
@@ -411,6 +440,10 @@ function keepStar(p) {
 // other. In the manual list the lock sits in the first slot.
 function actionsCell(p, { lock = '' } = {}) {
   const placeholder = `<span class="action-slot" aria-hidden="true"></span>`;
+  // A read-only copy refuses every change to Core's peers (READ_ONLY in
+  // dashboard-server.js), so it offers none: the lock alone, which only
+  // marks the row in this app's own table.
+  if (readOnly) return (p.trusted && lock ? `<span class="action-slot lock-slot">${lock}</span>` : placeholder) + placeholder;
 
   // Three kinds of peer have nothing this app can do to them, and all three
   // now look the same here: an empty slot.
@@ -435,7 +468,8 @@ function actionsCell(p, { lock = '' } = {}) {
   // A peer that can never deliver a block first ("never first") would only
   // hold a manual slot the rotation then has to free again; a disguised one
   // is not to be trusted with it.
-  const disguised = p.kind === 'Disguised' || p.lion || kindRuleIndex(p.client) === MISSPELT_RULE;
+  // The peers service's word where it has one, the name rules otherwise.
+  const disguised = p.lion || (p.kind ? p.kind === 'Disguised' : kindRuleIndex(p.client) === MISSPELT_RULE);
   const primary = ((p.sourceObscured || p.localUmbrelPeer || p.privateNetwork || disguised || (neverFirstReason(p) && !p.first))
       ? placeholder
       : `<button class="secondary action-slot" data-action="add-manual" data-address="${escapeHtml(p.address)}">Add as Manual</button>`);
@@ -480,14 +514,21 @@ function glide() {
 // Folding in place (10.11.2026): what was tapped stays where it is on the
 // screen. What opens rolls out downwards and what closes rolls up, gently,
 // and the page never jumps - not to bring something into view, not because
-// the page got shorter at its end. Every fold goes through here: a card, a
-// peer's card, "Show all", a "How it works", so they all behave alike.
+// the page got shorter at its end. Every fold on the page goes through here,
+// the peer list's too (window.peerLab.foldInPlace): a card, a peer's panel,
+// "Show all", a "How it works", so they all behave alike and share one
+// runway and one count of folds under way.
 //
-//   anchor  what stays put (what was tapped, or what is above the change)
-//   box     what grows or shrinks
+//   anchor  what stays put (what was tapped, or what is above the change),
+//           or a function finding it again: a list rebuilt by the fold
+//           replaces the button that was tapped
+//   box     what grows or shrinks, the same
 //   set     puts the page in the open (true) or closed (false) state
 const FOLD_MS = 300;
 let folding = 0;
+// Run when the last fold under way is over: a refresh that came in while it
+// rolled waited for it (here and in the peer list, which adds its own).
+const afterFolds = [() => flushDeferredRenders()];
 // Room below the page's end while something shrinks there: a page that got
 // shorter under the reader would otherwise pull everything down with it. It
 // goes as soon as the reader scrolls up far enough not to need it.
@@ -503,15 +544,19 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 function foldInPlace({ anchor, box, set, open }) {
-  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches || !box || !box.animate;
-  const top0 = anchor.getBoundingClientRect().top;
+  const find = (x) => (typeof x === 'function' ? x() : x);
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const a0 = find(anchor);
+  if (!a0) { set(open); return; }
+  const top0 = a0.getBoundingClientRect().top;
   // To where, not by how much: Safari reports a scroll a frame late, and
   // moving by the difference moved twice and swung back and forth.
   const pin = () => {
     // A row redrawn under the fold is gone from the page and says it is at
     // the top: following it would throw the reader up by a screen.
-    if (!anchor.isConnected) return;
-    const want = anchor.getBoundingClientRect().top + window.scrollY - top0;
+    const a = find(anchor);
+    if (!a || !a.isConnected) return;
+    const want = a.getBoundingClientRect().top + window.scrollY - top0;
     if (Math.abs(window.scrollY - want) >= 0.5) window.scrollTo(0, want);
   };
   folding += 1;
@@ -520,8 +565,9 @@ function foldInPlace({ anchor, box, set, open }) {
   // browser to pull everything down. When the fold is over, only what the
   // reader still needs stays.
   const lent = runway;
-  const h0 = box ? box.getBoundingClientRect().height : 0;
-  if (box) setRunway(lent + h0);
+  const b0 = find(box);
+  const h0 = b0 ? b0.getBoundingClientRect().height : 0;
+  setRunway(lent + h0);
   const giveBack = () => {
     const end = document.documentElement.scrollHeight - runway;
     setRunway(Math.max(lent, window.scrollY + window.innerHeight - end));
@@ -531,8 +577,7 @@ function foldInPlace({ anchor, box, set, open }) {
   // page by the top of the window instead.
   const done = () => { pin(); giveBack(); pin(); requestAnimationFrame(() => {
     pin(); folding -= 1;
-    // A refresh that came in while it rolled waited for it.
-    if (!folding) setTimeout(flushDeferredRenders, 0);
+    if (!folding) for (const f of afterFolds) setTimeout(f, 0);
   }); };
   // Fitted before it is measured: re-rendered rows are cards only once
   // fitTables has run, and the end of the roll would be off by that.
@@ -540,17 +585,18 @@ function foldInPlace({ anchor, box, set, open }) {
   // A fold that fails half way must not leave the page thinking it is
   // still folding: the runway and the place-keeping would stay off.
   try { settle(open); } catch (err) { folding -= 1; throw err; }
-  const h1 = box ? box.getBoundingClientRect().height : 0;
+  const b1 = find(box);
+  const h1 = b1 ? b1.getBoundingClientRect().height : 0;
   // A whole list of peers is tens of thousands of pixels: rolled in a third
   // of a second that rushes past at a screen per frame. That opens and shuts
   // in place at once, the rows fading in.
   const huge = Math.abs(h1 - h0) > window.innerHeight * 1.5;
-  if (huge && open && !still && box.animate) box.animate([{ opacity: 0.25 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' });
-  if (still || huge || Math.abs(h1 - h0) < 2) { pin(); done(); return; }
+  if (huge && open && !still && b1 && b1.animate) b1.animate([{ opacity: 0.25 }, { opacity: 1 }], { duration: 220, easing: 'ease-out' });
+  if (still || huge || !b1 || !b1.animate || Math.abs(h1 - h0) < 2) { pin(); done(); return; }
   // Closing rolls up what is still there: back to open for the animation,
   // closed at its end.
   if (!open) settle(true);
-  const anim = box.animate([{ height: `${h0}px`, overflow: 'hidden' }, { height: `${h1}px`, overflow: 'hidden' }],
+  const anim = find(box).animate([{ height: `${h0}px`, overflow: 'hidden' }, { height: `${h1}px`, overflow: 'hidden' }],
     { duration: FOLD_MS, easing: open ? 'cubic-bezier(.2,.7,.3,1)' : 'cubic-bezier(.5,0,.3,1)' });
   let frame = requestAnimationFrame(function follow() { pin(); frame = requestAnimationFrame(follow); });
   anim.onfinish = anim.oncancel = () => {
@@ -591,8 +637,14 @@ async function refreshPeers() {
 // buttons that act on it
 // - the same buttons as ever, handled by the click handler below.
 let rankingByAddress = new Map();
+// A read-only test copy (READ_ONLY=1, from /api/status): no button that
+// changes Core's peers.
+let readOnly = false;
+// Peers with an action under way. The list is redrawn by the other script
+// while the request runs, with fresh buttons: they are drawn disabled, and a
+// click on one is refused here as well, so no action goes out twice.
+const pendingPeers = new Set();
 window.peerLab = {
-  get maxManual() { return MAX_MANUAL_PEERS; },
   peer: (address) => rankingByAddress.get(address) || null,
   // Manual peers that are not connected: they still hold their slot, and the
   // list shows them so they can be unlocked or removed.
@@ -607,14 +659,33 @@ window.peerLab = {
   // How many peers take new blocks from this node first.
   fedCount: () => (lastPeerRanking || []).filter((p) => p.live && p.hbFrom).length,
   foldsOnTap,
+  foldTitle,
+  // The peer list's counts of connected peers per group, for the tiles.
+  liveCounts: (counts) => { listCounts = counts; drawTiles(counts); },
+  foldInPlace,
+  flagOf: (cc) => flagOf(cc),
+  fmtDuration: (ms) => fmtDuration(ms),
+  fmtMs: (ms) => fmtMs(ms),
+  countryName: (cc) => countryName(cc),
+  folding: () => folding > 0,
+  // Called when the last fold under way is over.
+  afterFolds: (f) => { afterFolds.push(f); },
+  acting: () => actionsInFlight > 0,
+  // Disconnected or removed here a moment ago: not in the list any more.
+  gone: (address) => justGone.has(address),
+  // The peer list's part of Esc: closes something and says true, or false.
+  onEscape: (step) => { escapeSteps.push(step); },
   actionsHtml: (address) => {
     const p = rankingByAddress.get(address);
-    return p ? actionsCell(p, { lock: p.trusted ? keepStar(p) : '' }) : '';
+    if (!p) return '';
+    const html = actionsCell(p, { lock: p.trusted ? keepStar(p) : '' });
+    return pendingPeers.has(address) ? html.replace(/<button /g, '<button disabled ') : html;
   },
 };
 
-// Flags as the peer list draws them: regional-indicator letters from the country
-// code, no image files; Tor an onion, I2P a globe.
+// A flag from the two-letter country code: regional-indicator letters, no
+// image files; unknown or missing codes get none. Tor an onion, I2P a globe.
+// The peer list draws its flags with these too (window.peerLab).
 const HIDDEN_FLAG = { TOR: '\u{1F9C5}', I2P: '\u{1F310}' };
 const flagOf = (cc) => (/^[A-Z]{2}$/.test(cc || '') ? String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)) : '');
 let countryNames = null;
@@ -742,16 +813,23 @@ document.addEventListener('selectionchange', () => {
 // "never first", and gets no "Add as Manual". The peer list marks the same
 // peers with ⊘.
 function neverFirstReason(p) {
-  const chain = otherChainShown(p) ? `it is on a chain of its own (${otherChainShown(p)}), not yours` : null;
   const own = cannotRelayReason(p.client) || (p.offersNothing ? 'it offers no services' : null);
-  // The peers service's word where it has one: a "wallet" that offers blocks is a
-  // disguise that may well pass them on, whatever its name says.
-  if (p.kind) return p.noRelay ? own || 'its software passes no blocks on' : chain;
+  // The peers service's word where it has one, for a connected peer - the
+  // same word the peer list shows: a "wallet" that offers blocks is a
+  // disguise that may well pass them on, whatever its name says, and the
+  // chain is the one it found.
+  if (p.kind) {
+    if (p.fork) return `it is on a chain of its own (${p.fork}), not yours`;
+    return p.noRelay ? own || 'its software passes no blocks on' : null;
+  }
+  // Without it - not connected, or the peers service is down - by name and
+  // service bits, as recorded.
+  const chain = otherChainShown(p) ? `it is on a chain of its own (${otherChainShown(p)}), not yours` : null;
   return own || chain;
 }
 
-// A row's buttons show when the row is opened - a tap, like a row in Peer
-// Map - or, with a mouse, while the pointer is over it. Four hundred rows
+// A row's buttons show when the row is opened - a tap, like a row in the
+// peer list - or, with a mouse, while the pointer is over it. Four hundred rows
 // with two buttons each was a wall of red and blue on a phone (28.10.2026).
 // One row open at a time; it is known by table and peer, so a refresh that
 // rebuilds the rows keeps it open.
@@ -978,9 +1056,10 @@ for (const box of document.querySelectorAll('.panel details.how')) {
 // Traffic
 
 // Grid labels are round numbers, so they get no decimals: "15 GB", not "15.00 GB".
+// Steps of 1000, like the totals and every other byte count on the page.
 function axisBytes(v, unit) {
   if (v === 0) return '0';
-  const name = { 1: 'B', 1024: 'KB', [1024 ** 2]: 'MB', [1024 ** 3]: 'GB', [1024 ** 4]: 'TB' }[unit] || 'B';
+  const name = { 1: 'B', 1000: 'KB', [1000 ** 2]: 'MB', [1000 ** 3]: 'GB', [1000 ** 4]: 'TB' }[unit] || 'B';
   const n = v / unit;
   return `${Number.isInteger(n) ? n : n.toFixed(1)} ${name}`;
 }
@@ -994,8 +1073,8 @@ function axisBytes(v, unit) {
 function trafficChartSvg(days, W) {
   const H = W < 600 ? 170 : 220, top = 14, base = H - 20;
   const max = Math.max(1, ...days.map((d) => Math.max(d.sent || 0, d.recv || 0)));
-  // A round step for the grid: 1, 2 or 5 times a power of 1024-based units.
-  const unit = 1024 ** Math.max(0, Math.floor(Math.log(max) / Math.log(1024)));
+  // A round step for the grid: 1, 2 or 5 times a unit.
+  const unit = 1000 ** Math.max(0, Math.floor(Math.log(max) / Math.log(1000)));
   const raw = max / unit / 3;
   const pow = 10 ** Math.floor(Math.log10(raw || 1));
   const step = [1, 2, 5, 10].map((m) => m * pow).find((m) => m >= raw) * unit;
@@ -1106,7 +1185,21 @@ document.getElementById('rotation-log-toggle').addEventListener('click', (e) => 
 // buttons, links, fields, the peer rows, a fold inside the card, the map.
 // Selecting text folds nothing, and neither does a tap on something a redraw
 // has just taken off the page.
-const OWN_TAP = 'a, button, input, select, textarea, label, summary, details, [role="button"], tbody, svg, .map-wrap, .unplaced';
+const OWN_TAP = 'a, button, input, select, textarea, label, summary, details, .fold-title, [role="button"], tbody, svg, .map-wrap, .unplaced';
+// A card's title folds it, through a real button inside the heading: the
+// heading stays a heading to a screen reader, and the button is reached with
+// Tab and pressed with Enter or Space like any other. Returns the button, for
+// its aria-expanded.
+function foldTitle(title) {
+  title.classList.add('fold-title');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'fold-btn';
+  btn.append(...title.childNodes);
+  title.append(btn);
+  return btn;
+}
+
 function foldsOnTap(card, flip) {
   card.addEventListener('click', (e) => {
     if (!card.contains(e.target)) return;
@@ -1128,16 +1221,14 @@ for (const card of document.querySelectorAll('main > section.panel')) {
   const title = card.querySelector(':scope > h2');
   if (!title) continue;
   const id = card.id || title.firstChild.textContent.trim();
-  title.classList.add('fold-title');
-  title.tabIndex = 0;
-  title.setAttribute('role', 'button');
+  const btn = foldTitle(title);
   const show = () => {
     foldSums();
     card.classList.toggle('folded', folded.has(id));
-    title.setAttribute('aria-expanded', String(!folded.has(id)));
+    btn.setAttribute('aria-expanded', String(!folded.has(id)));
   };
   const flip = (e) => {
-    if (e.target.closest('button, a, input')) return;
+    if (e.target.closest('a, input, button:not(.fold-btn)')) return;
     // What is on screen: a card opened for a peer link is open, whatever the
     // stored state says.
     const opening = card.classList.contains('folded');
@@ -1152,7 +1243,6 @@ for (const card of document.querySelectorAll('main > section.panel')) {
     if (opening) window.dispatchEvent(new Event('resize')); // the traffic chart measures its width
   };
   title.addEventListener('click', flip);
-  title.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(e); } });
   foldsOnTap(card, flip);
   show();
 }
@@ -1180,7 +1270,7 @@ function foldSums() {
 function manualAddBusy(busy, message) {
   const resultEl = document.getElementById('manual-add-result');
   document.getElementById('manual-test-button').disabled = busy;
-  document.querySelector('#manual-add-form button[type=submit]').disabled = busy;
+  document.querySelector('#manual-add-form button[type=submit]').disabled = busy || readOnly;
   resultEl.className = busy ? 'hint' : resultEl.className;
   if (message != null) resultEl.textContent = message;
 }
@@ -1365,6 +1455,11 @@ document.body.addEventListener('click', async (e) => {
     return;
   }
   const isPeerOrPoolAction = PEER_ACTIONS.has(action) || POOL_ACTIONS.has(action);
+  const peerAction = PEER_ACTIONS.has(action) && address;
+  if (peerAction) {
+    if (pendingPeers.has(address)) return;
+    pendingPeers.add(address);
+  }
   const originalLabel = btn.textContent;
   if (isPeerOrPoolAction) {
     btn.disabled = true;
@@ -1442,6 +1537,7 @@ document.body.addEventListener('click', async (e) => {
       'error',
     );
   } finally {
+    if (peerAction) pendingPeers.delete(address);
     if (isPeerOrPoolAction) {
       actionsInFlight -= 1;
       if (btn.isConnected) {
@@ -1771,21 +1867,27 @@ startRefreshLoop();
 startEventStream();
 
 
-// Esc closes what a click opened: the reset question, then the storage card,
-// as in a desktop app.
+// Esc closes what a click opened, one thing per press, as in a desktop app:
+// the reset question, an open pool row, what the peer list has open (a
+// peer's panel, then its filters), then the storage card. The one handler on
+// the page, so one press never closes two things.
+const escapeSteps = [];
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape' || (e.target.closest && e.target.closest('input, textarea, select'))) return;
+  const confirm = [...document.querySelectorAll('.reset-confirm')].find((c) => !c.hidden);
+  if (confirm) {
+    confirm.querySelector('[id$="-no"]')?.click();
+    e.preventDefault();
+    return;
+  }
   if (openRow) {
     openRow = null;
     markOpenRow();
     e.preventDefault();
     return;
   }
-  const confirm = [...document.querySelectorAll('.reset-confirm')].find((c) => !c.hidden);
-  if (confirm) {
-    confirm.querySelector('[id$="-no"]')?.click();
-    e.preventDefault();
-    return;
+  for (const step of escapeSteps) {
+    if (step()) { e.preventDefault(); return; }
   }
   const storage = document.getElementById('storage-card');
   if (storage && storage.open) { storage.open = false; e.preventDefault(); }

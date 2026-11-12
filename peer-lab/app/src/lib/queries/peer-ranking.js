@@ -120,7 +120,6 @@ function peerRankingSql() {
          -- Core's network for the live session, falling back to the most
          -- recent closed one so an offline manual peer keeps its label.
          COALESCE(os.network, latest.network) AS coreNetwork,
-         os.started_at AS liveStartedAt,
          os.min_ping_ms AS liveMinPingMs,
          os.last_ping_ms AS liveLastPingMs,
          os.hb_to AS liveHb,

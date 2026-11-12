@@ -10,7 +10,6 @@ function good(overrides = {}) {
   return {
     dashboardPort: 8788,
     maxManualPeers: 8,
-    minEligibleForJudgement: 50,
     newManualGraceBlocks: 50,
     manualPerRegion: 1,
     offlineGraceHours: 1,
@@ -58,7 +57,7 @@ test('more manual peers than Core will hold is refused', () => {
 });
 
 test('counts must be whole numbers, rates need not be', () => {
-  assert.ok(checkConfig(good({ minEligibleForJudgement: 50.5 })).some((p) => /whole number/.test(p)));
+  assert.ok(checkConfig(good({ newManualGraceBlocks: 50.5 })).some((p) => /whole number/.test(p)));
 });
 
 test('every problem is reported, not just the first', () => {

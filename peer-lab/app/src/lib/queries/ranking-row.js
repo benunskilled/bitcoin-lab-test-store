@@ -53,15 +53,6 @@ function networkFromCore(network) {
   return CORE_NETWORK_NAMES[String(network || '').toLowerCase()] || null;
 }
 
-// A subver like "/electrs:0.11.1/" -> "electrs" - just enough to name which
-// local app a same-host peer connection belongs to.
-function localAppNameFromSubver(subver) {
-  if (!subver) return null;
-  const stripped = String(subver).replace(/^\/+|\/+$/g, '');
-  const name = stripped.split(':')[0];
-  return name || null;
-}
-
 function statusFor(r, trusted) {
   const live = Boolean(r.liveDirection);
   if (trusted && live) return 'MANUAL LIVE';
@@ -146,7 +137,6 @@ function mapRankingRow(now, graceFrom = 0, liveTip = 0) {
       // slots by (peer-rotation/spread.js), and what a phone card shows beside
       // the address. Never for an address that is not the peer's own.
       where: !sourceObscured && !localUmbrelPeer && !proxiedPrivatePeer ? whereOf(r.address) : null,
-      localAppName: localUmbrelPeer ? localAppNameFromSubver(r.client) : null,
       trusted,
       trustedLabel: r.trustedLabel,
       // When this address entered our own trusted_peer table. Null for a peer
@@ -186,7 +176,6 @@ function mapRankingRow(now, graceFrom = 0, liveTip = 0) {
       // hard fork. Such a peer cannot deliver a block of this chain. Peer
       // Map's forkOf says the same.
       otherChain: otherChainOf(r.services, r.liveDirection ? r.syncedHeaders : null, liveTip),
-      currentSessionMs: r.liveDirection ? now - r.liveStartedAt : null,
       // How long a trusted-but-not-currently-live peer has been offline -
       // Core reconnects manuals on its own, but that can fail silently
       // (peer went dark, network hiccup, slot contention) and a peer that's
@@ -203,10 +192,6 @@ function mapRankingRow(now, graceFrom = 0, liveTip = 0) {
       lastPingMs: r.liveLastPingMs,
       sessionsCount: r.sessionsCount,
       status: statusFor(r, trusted),
-      // Connection-type-only status, ignoring the manual/trusted override -
-      // used where "MANUAL LIVE" would just be redundant noise (e.g. the
-      // Outbound Peers panel, which already implies live).
-      connectionStatus: r.liveDirection ? (r.liveConnectionType || r.liveDirection).toUpperCase() : 'OFFLINE',
     };
   };
 }

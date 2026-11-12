@@ -18,7 +18,8 @@
  * it at all.
  *
  * Needs bitcoind on PATH. Skipped, loudly but without failing, when there is
- * none, so `npm test` on a laptop stays green; CI installs one and means it.
+ * none, so `npm test` on a laptop stays green. CI installs one and sets
+ * REQUIRE_BITCOIND=1, and then a missing bitcoind fails.
  *
  *   node test/integration/regtest.js
  *   BITCOIND=/path/to/bitcoind node test/integration/regtest.js
@@ -171,7 +172,7 @@ async function main() {
     log('This is the only test that checks the app against real Bitcoin Core rather');
     log('than against its own mocks. Install Core, or set BITCOIND, and run it.');
     log('');
-    return 0;
+    return process.env.REQUIRE_BITCOIND === '1' ? 1 : 0;
   }
   log(`bitcoind: ${probe.stdout.split('\n')[0]}`);
 
@@ -462,7 +463,8 @@ async function main() {
     await peerProfiler.pollOnce();
     // Enough blocks for a judgement. Every one comes from the miner, so neither
     // helper is ever first - both are "0 of N".
-    const minEligible = config.minEligibleForJudgement;
+    // Fifty blocks: enough for a record that is no longer noise.
+    const minEligible = 50;
     for (let i = 0; i < minEligible + 5; i += 1) {
       const h = cli(NODES.miner, 'generatetoaddress', '1', minerAddress);
       const hash = Array.isArray(h) ? h[0] : h;

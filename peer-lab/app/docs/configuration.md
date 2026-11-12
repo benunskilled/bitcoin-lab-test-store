@@ -8,7 +8,7 @@ To customise the app, set environment variables in your Docker Compose configura
 
 Where both a `BITCOIN_*` variable and an `APP_BITCOIN_*` equivalent exist, the `BITCOIN_*` value takes precedence. Slot Fill and Stratum Race are switched on in the dashboard.
 
-Apply shared settings consistently to the services that use them, then recreate the affected containers. See [docker-compose.dev.yml](../docker-compose.dev.yml) for a Compose example and [src/lib/config.js](../src/lib/config.js) for the configuration source.
+Apply shared settings consistently to the services that use them, then recreate the affected containers. See [compose.dev.yml](../../compose.dev.yml) for a Compose example and [src/lib/config.js](../src/lib/config.js) for the configuration source.
 
 ## Bitcoin Core
 
@@ -18,7 +18,7 @@ Apply shared settings consistently to the services that use them, then recreate 
 | `BITCOIN_RPC_PORT` / `APP_BITCOIN_RPC_PORT` | RPC port | `8332` |
 | `BITCOIN_RPC_USER` / `APP_BITCOIN_RPC_USER` | RPC username | - |
 | `BITCOIN_RPC_PASS` / `APP_BITCOIN_RPC_PASS` | RPC password | - |
-| `BITCOIN_NETWORK` / `APP_BITCOIN_NETWORK` | Network label shown in the header | `mainnet` |
+| `BITCOIN_NETWORK` / `APP_BITCOIN_NETWORK` | Which chain Core runs: `mainnet`, `testnet`, `signet` or `regtest` | `mainnet` |
 | `BITCOIN_ZMQ_HOST` / `APP_BITCOIN_NODE_IP` | ZMQ host, when it differs from the RPC host | RPC host |
 | `BITCOIN_ZMQ_HASHBLOCK_PORT` / `APP_BITCOIN_ZMQ_HASHBLOCK_PORT` | ZMQ `pubhashblock` port | `28334` |
 | `BITCOIN_ZMQ_HASHBLOCK_URL` | Full ZMQ URL, overriding host and port together | - |
@@ -34,14 +34,13 @@ Apply shared settings consistently to the services that use them, then recreate 
 | `DASHBOARD_PORT` | Dashboard HTTP port *inside the container* | `8788` |
 | `LOG_LEVEL` | `error` / `warn` / `info` / `debug` | `info` |
 
-On Umbrel, the dashboard is available at `<your-umbrel>:8790`. The default `8788` is its internal container port.
+On Umbrel, the dashboard is available at `<your-umbrel>:8796`. The default `8788` is its internal container port.
 
 ## Peer measurement and Slot Fill
 
 | Variable | Purpose | Default |
 |---|---|---|
 | `MAX_MANUAL_PEERS` | Maximum size of the saved manual selection; allowed range: 1–8 | `8` |
-| `MIN_ELIGIBLE_FOR_JUDGEMENT` | Blocks an outbound peer must have been connected for to count as tested in the Outbound Peers line | `50` |
 | `NEW_MANUAL_PEER_GRACE_BLOCKS` | Blocks a new manual peer is safe from being replaced by a peer added by hand | `50` |
 | `MANUAL_PER_REGION` | Outbound connections, Core's own included, below which a region (continent, Tor, I2P) counts as missing and may be filled from Core's "new" table | `1` |
 | `PEER_POLL_INTERVAL_MS` | Peer-profiler session poll interval | `15000` |
@@ -57,7 +56,7 @@ The peer-profiler interval controls connection bookkeeping. Block observations a
 | `OFFLINE_GRACE_HOURS` | Hours a manual peer that never delivered a block first may stay offline before it loses its slot | `1` |
 | `OFFLINE_GRACE_DELIVERED_HOURS` | The same for a manual peer that delivered at least one block first | `24` |
 
-A padlocked manual peer that Core has connected to at least once never loses its slot to being offline. See [manual slots](manual-slots.md).
+A locked manual peer that Core has connected to at least once never loses its slot to being offline.
 
 ## Stratum Race
 

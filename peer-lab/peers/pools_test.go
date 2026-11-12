@@ -21,7 +21,7 @@ func TestPoolNodes(t *testing.T) {
 		// A name in brackets does not make an ordinary node a pool's.
 		{"203.0.113.9:8333", "/Satoshi:31.1.0/", "Node (Core)", "", ""},
 	} {
-		p := convert([]rawPeer{{ID: 1, Addr: c.addr, ConnectionType: "inbound", Inbound: true, Subver: c.subver, Version: 70016}})[0]
+		p := convert([]rawPeer{{Addr: c.addr, ConnectionType: "inbound", Inbound: true, Subver: c.subver, Version: 70016}})[0]
 		if p.Kind != c.kind || p.Pool != c.pool || !strings.HasPrefix(p.About, c.about) || (c.about != "" && strings.Contains(p.About, "This address")) {
 			t.Errorf("%s %s: got %q %q %q", c.addr, c.subver, p.Kind, p.Pool, p.About)
 		}
@@ -31,7 +31,7 @@ func TestPoolNodes(t *testing.T) {
 // A Disguised peer on a pool's address keeps what it is: only pool and
 // node kinds take the pool's name.
 func TestPoolNodeKeepsDisguised(t *testing.T) {
-	p := convert([]rawPeer{{ID: 1, Addr: "66.85.130.202:8333", ConnectionType: "inbound", Inbound: true, Subver: "/bitcoinj:0.16.5/Bitcoin Wallet:10.26/", Version: 70016, ServicesNames: []string{"NETWORK", "WITNESS"}}})[0]
+	p := convert([]rawPeer{{Addr: "66.85.130.202:8333", ConnectionType: "inbound", Inbound: true, Subver: "/bitcoinj:0.16.5/Bitcoin Wallet:10.26/", Version: 70016, ServicesNames: []string{"NETWORK", "WITNESS"}}})[0]
 	if p.Pool != "" {
 		t.Errorf("got pool %q on %q", p.Pool, p.Kind)
 	}
@@ -39,7 +39,7 @@ func TestPoolNodeKeepsDisguised(t *testing.T) {
 
 // The proof goes to the panel, apart from the short line the list shows.
 func TestPoolProof(t *testing.T) {
-	p := convert([]rawPeer{{ID: 1, Addr: "3.228.156.48:33764", ConnectionType: "inbound", Inbound: true, Subver: "/ckp2p:2.0/", Version: 70016}})[0]
+	p := convert([]rawPeer{{Addr: "3.228.156.48:33764", ConnectionType: "inbound", Inbound: true, Subver: "/ckp2p:2.0/", Version: 70016}})[0]
 	if p.PoolProof != "This address hands out AtlasPool's mining jobs (AtlasPool/IAD)" {
 		t.Errorf("got %q", p.PoolProof)
 	}
@@ -52,7 +52,7 @@ func TestPoolProof(t *testing.T) {
 // A pool node no rule describes still gets a line.
 func TestUndescribedKindsGetALine(t *testing.T) {
 	for _, ua := range []string{"/pydroid-pool:3/", "/p2p-watcher:0.1.0/"} {
-		p := convert([]rawPeer{{ID: 1, Addr: "203.0.113.9:8333", ConnectionType: "inbound", Inbound: true, Subver: ua, Version: 70016}})[0]
+		p := convert([]rawPeer{{Addr: "203.0.113.9:8333", ConnectionType: "inbound", Inbound: true, Subver: ua, Version: 70016}})[0]
 		if p.About == "" {
 			t.Errorf("%s (%s): no line", ua, p.Kind)
 		}
@@ -61,7 +61,7 @@ func TestUndescribedKindsGetALine(t *testing.T) {
 
 // A known block relay keeps its pill and says whose it is.
 func TestRelayNode(t *testing.T) {
-	p := convert([]rawPeer{{ID: 1, Addr: "64.20.34.46:40860", ConnectionType: "inbound", Inbound: true, Version: 70016}})[0]
+	p := convert([]rawPeer{{Addr: "64.20.34.46:40860", ConnectionType: "inbound", Inbound: true, Version: 70016}})[0]
 	if p.Kind != noAgentKind || p.About != "M45Core's block relay" || p.Tell != "M45Core block relay" || p.PoolProof != "This address is M45Core.com, BTCFlux's block relay" {
 		t.Errorf("got %q %q %q %q", p.Kind, p.About, p.Tell, p.PoolProof)
 	}
@@ -92,7 +92,7 @@ func TestViaBitpeer(t *testing.T) {
 		{"/Satoshi:0.19.0.1/", 70016, []string{"WITNESS"}, ""},
 		{"/Satoshi:0.19.1/", 70015, []string{"WITNESS"}, ""},
 	} {
-		p := convert([]rawPeer{{ID: 1, Addr: "54.228.82.138:40000", ConnectionType: "inbound", Inbound: true, Subver: c.subver, Version: c.version, ServicesNames: c.services}})[0]
+		p := convert([]rawPeer{{Addr: "54.228.82.138:40000", ConnectionType: "inbound", Inbound: true, Subver: c.subver, Version: c.version, ServicesNames: c.services}})[0]
 		if p.Pool != c.pool || (c.pool != "" && (p.Kind != "Pool node" || p.PoolProof != "Found by 0xB10C, b10c.me" || !strings.Contains(p.About, "bitpeer"))) {
 			t.Errorf("%s %d %v: got %q %q %q", c.subver, c.version, c.services, p.Kind, p.Pool, p.About)
 		}

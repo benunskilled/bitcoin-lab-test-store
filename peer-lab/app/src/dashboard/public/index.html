@@ -42,14 +42,11 @@
     <p class="banner banner-demo" id="demo" hidden>Demo data - this page is not connected to a node.</p>
     <p class="banner banner-error" id="error" hidden></p>
     <div class="banner banner-paused" id="paused" hidden>
-      <span>Paused after 30 minutes without activity - Bitcoin Core is not being asked for peers.</span>
+      <span>Paused after 30 minutes without activity - the page is not updating.</span>
       <button class="btn" id="resume">Resume</button>
     </div>
 
-    <div class="filters" role="group" aria-label="Show connection types">
-      <button class="chip" data-group="inbound" aria-pressed="true" hidden><span class="swatch"></span>Inbound <b data-count="inbound">0</b></button>
-      <button class="chip" data-group="outbound" aria-pressed="true" hidden><span class="swatch"></span>Outbound <b data-count="outbound">0</b></button>
-      <button class="chip" data-group="manual" aria-pressed="true" hidden><span class="swatch"></span>Manual <b data-count="manual">0</b></button>
+    <div class="filters" role="group" aria-label="Active filters">
       <span class="place-filter" id="placeFilter" hidden>
         Showing <b id="placeFilterName"></b>
         <button class="linkish" id="placeFilterClear" aria-label="Clear location filter">×</button>
@@ -149,11 +146,9 @@
     <div class="tables" id="tables" aria-busy="true"><section class="card group-card skeleton-card"><div class="group-head"><h2>Inbound</h2></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div></section><section class="card group-card skeleton-card"><div class="group-head"><h2>Outbound</h2></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div></section><section class="card group-card skeleton-card"><div class="group-head"><h2>Manual</h2></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div></section></div>
 
     <!--
-      Its own section, right under the panel it writes into, next to Slot Fill:
-      the two ways a peer gets into the manual slots. It used to live inside
-      Live Peer Ranking, where it looked like a filter for that
-      table rather than what it is: the way you add a peer you found somewhere
-      else entirely.
+      Its own section, under the peer list and next to Slot Fill: the two ways
+      a peer gets into the manual slots. Here, not in the list, because it is
+      the way to add a peer found somewhere else entirely.
 
       Test answers "is anything listening there, and on which port" and changes
       nothing at all - no row, no addnode, no disconnected session.

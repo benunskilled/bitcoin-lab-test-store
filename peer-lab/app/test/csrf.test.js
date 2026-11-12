@@ -89,8 +89,8 @@ test('behind a proxy that rewrites Host, the forwarded host is accepted as the o
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Origin: 'http://umbrel.local:8790',
-      'X-Forwarded-Host': 'umbrel.local:8790',
+      Origin: 'http://umbrel.local:8796',
+      'X-Forwarded-Host': 'umbrel.local:8796',
     },
     body: JSON.stringify({ enabled: false }),
   });

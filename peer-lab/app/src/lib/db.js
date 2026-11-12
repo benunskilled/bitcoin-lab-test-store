@@ -888,9 +888,8 @@ function rebuildRelayStats() {
  * found the hard way should not have to be found again for that.
  *
  * The manual set survives, and two things make that true rather than merely
- * nominal. A manual peer at 0 of 0 blocks sits inside the new-peer grace and
- * inside MIN_ELIGIBLE_FOR_JUDGEMENT, so no challenger displaces it while the
- * new record builds. But a manual peer that happens to be offline is judged by
+ * nominal. A manual peer at 0 of 0 blocks sits inside the new-peer grace, so
+ * no challenger displaces it while the new record builds. But a manual peer that happens to be offline is judged by
  * a different rule - how long it has been away - and that rule reads two
  * things a plain wipe destroys:
  *

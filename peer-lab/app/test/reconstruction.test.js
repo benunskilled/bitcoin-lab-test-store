@@ -142,28 +142,6 @@ test('only the snapshot of the block right before is compared with', () => {
   assert.equal(relay.reconstructionOf(p3, { height: 104 }, 4_100_000), null);
 });
 
-test('the day and the week count each kind and averages what was missing when asked', () => {
-  db.instance.prepare(`DELETE FROM relay_observation`).run();
-  db.instance.prepare(`DELETE FROM relay_race`).run();
-  const now = 1_800_000_000_000;
-  const add = (i, recon, bytes, at = now - i * 600_000) => db.instance
-    .prepare(`INSERT INTO relay_race (block_hash, detected_at, recon, recon_missing_bytes) VALUES (?, ?, ?, ?)`)
-    .run(`h${i}`, at, recon, bytes);
-  assert.equal(blocks.reconstructionWeek(now), null);
-  add(1, 'mempool', 0);
-  add(2, 'asked', 30000);
-  add(3, 'asked', 50000);
-  add(4, 'full', null);
-  add(5, null, null); // not told: left out
-  add(6, 'asked', 999999, now - 8 * 24 * 3600 * 1000); // older than a week
-  assert.deepEqual(blocks.reconstructionWeek(now), { blocks: 4, mempool: 1, asked: 2, full: 1, askedAvgBytes: 40000 });
-  // The day holds the four within the last hours, not the one from last week.
-  assert.deepEqual(blocks.reconstructionDay(now), { blocks: 4, mempool: 1, asked: 2, full: 1, askedAvgBytes: 40000 });
-  add(7, 'mempool', 0, now - 2 * 24 * 3600 * 1000);
-  assert.equal(blocks.reconstructionDay(now + 60_000).blocks, 4);
-  assert.equal(blocks.reconstructionWeek(now + 60_000).blocks, 5);
-});
-
 test('the block size comes from the getblock the pool attribution reads anyway', async () => {
   const rpc = require('../src/lib/rpc');
   const saved = { getBlock: rpc.getBlock, getRawTransaction: rpc.getRawTransaction };
@@ -205,5 +183,4 @@ test('an unclear block is left out of the shares, like one that was not told', (
   add(2, 'asked', 20000);
   add(3, 'unclear', null);
   assert.deepEqual(blocks.reconstructionLast(), { blocks: 2, mempool: 1, asked: 1, full: 0, askedAvgBytes: 20000 });
-  assert.equal(blocks.reconstructionDay().blocks, 2);
 });

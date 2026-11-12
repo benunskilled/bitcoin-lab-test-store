@@ -6,8 +6,8 @@ const assert = require('node:assert/strict');
 const { blockHashFromZmq } = require('../src/lib/hashblock-subscriber');
 
 // The pair below is not invented. It was produced on 2026-09-02 by running the
-// dev stack on regtest: test/regtest-generate.sh mined the block, and the
-// relay profiler wrote the second string into relay_race.
+// dev stack on regtest: generatetoaddress mined the block, and the relay
+// profiler wrote the second string into relay_race.
 const MINED = '01b72612e25c16c9dd3f260f02ff54e8e207ca44e1e320ab2986fa6a5621763c';
 const RECORDED_BEFORE_THE_FIX = '3c7621566afa8629ab20e3e144ca07e2e854ff020f263fddc9165ce21226b701';
 

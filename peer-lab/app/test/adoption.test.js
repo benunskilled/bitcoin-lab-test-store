@@ -126,6 +126,30 @@ test('a read-only copy mirrors Core: a manual peer Core dropped leaves, a new on
   }
 });
 
+test('a read-only copy sends no addnode of its own, even past the RPC guard', async () => {
+  // rpc.js refuses addnode in a read-only copy already. These two paths
+  // decide not to ask at all: a remove still pending from before, and the
+  // restore of a peer Core has forgotten.
+  const config = require('../src/lib/config');
+  const peerSync = require('../src/lib/peer-sync');
+  db.instance.prepare(`INSERT INTO meta (key, value) VALUES ('pending_addnode_removal', ?)`)
+    .run(JSON.stringify({ '198.51.100.31:8333': Date.now() }));
+  db.instance.prepare(`INSERT INTO trusted_peer (address, label, kept, created_at) VALUES ('203.0.113.9:8333', NULL, 0, 1)`).run();
+  const sent = [];
+  mock.method(rpc, 'getAddedNodeInfo', async () => [{ addednode: '198.51.100.31:8333' }]);
+  mock.method(rpc, 'addNode', async (a, c) => { sent.push(`${c} ${a}`); });
+  config.readOnly = true;
+  try {
+    const { addedNodes } = await adoptExternalManualPeers();
+    await peerSync.syncTrustedToAddnode(addedNodes);
+    await peerSync.syncTrustedToAddnode([]);
+    assert.deepEqual(sent, []);
+  } finally {
+    config.readOnly = false;
+    db.instance.exec(`DELETE FROM meta WHERE key = 'pending_addnode_removal'`);
+  }
+});
+
 test('the real app keeps a manual peer Core has forgotten (it re-adds it after a Core restart)', async () => {
   db.instance.prepare(`INSERT INTO trusted_peer (address, label, kept, created_at) VALUES ('203.0.113.1:8333', NULL, 0, 1)`).run();
   mock.method(rpc, 'getAddedNodeInfo', async () => []);

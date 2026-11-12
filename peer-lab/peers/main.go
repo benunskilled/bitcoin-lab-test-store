@@ -259,11 +259,17 @@ func newHandler(src *source, dash *dashboardClient) http.Handler {
 	// behind. Requests that come while one is under way wait for that one.
 	fetch := &sharedFetch{}
 	mux.HandleFunc("GET /api/peers", func(w http.ResponseWriter, r *http.Request) {
+		// ?block=<hash>: the page has just heard of this block (dashboard.go,
+		// latest). Only a hash is taken, nothing else.
+		want := r.URL.Query().Get("block")
+		if !isBlockHash(want) {
+			want = ""
+		}
 		call := fetch.join(func() snapshot {
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 			snap := src.get(ctx)
-			snap.LastBlock = dash.latest(ctx)
+			snap.LastBlock = dash.latest(ctx, want)
 			return snap
 		})
 		var snap snapshot
@@ -277,12 +283,41 @@ func newHandler(src *source, dash *dashboardClient) http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		json.NewEncoder(w).Encode(snap)
 	})
-	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		// no-cache for everything, world.json included: it changes between
-		// releases, and a day-long cache kept showing the old map after an update.
-		w.Header().Set("Cache-Control", "no-cache")
-		files.ServeHTTP(w, r)
+	// The dashboard's question, container to container: what kind of
+	// software each peer runs, for the ranking. Three fields a peer, not the
+	// whole list with places and the block card - which would have the block
+	// card ask the dashboard in turn.
+	mux.HandleFunc("GET /api/kinds", func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+		type kind struct {
+			Addr        string `json:"addr"`
+			Kind        string `json:"kind"`
+			NoRelay     bool   `json:"no_relay,omitempty"`
+			LinkingLion bool   `json:"linking_lion,omitempty"`
+			Fork        string `json:"fork,omitempty"`
+		}
+		snap := src.get(ctx)
+		out := struct {
+			Peers []kind `json:"peers"`
+		}{Peers: make([]kind, 0, len(snap.Peers))}
+		for _, p := range snap.Peers {
+			out.Peers = append(out.Peers, kind{p.Addr, p.Kind, p.NoRelay, p.LinkingLion, p.Fork})
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Cache-Control", "no-store")
+		json.NewEncoder(w).Encode(out)
 	})
+	// The two files the page loads from here, and nothing else: no index, no
+	// directory listing. no-cache for both, world.json included: it changes
+	// between releases, and a day-long cache kept showing the old map after
+	// an update.
+	for _, name := range []string{"/app.js", "/world.json"} {
+		mux.HandleFunc("GET "+name, func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Cache-Control", "no-cache")
+			files.ServeHTTP(w, r)
+		})
+	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
@@ -291,7 +326,8 @@ func newHandler(src *source, dash *dashboardClient) http.Handler {
 		// base-uri and form-action have no fallback: default-src does not cover
 		// them, so without these two an injected <base> could re-point every
 		// relative URL on the page, and an injected form could post off-site.
-		// The dashboard has neither a <base> nor a form, so both are 'none'.
+		// The page has no <base>, and its two forms send by fetch, so both are
+		// 'none'. The dashboard sends the same policy with the page itself.
 		h.Set("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'")
 		gzipped(mux).ServeHTTP(w, r)
 	})
@@ -476,6 +512,19 @@ func (f *sharedFetch) join(fn func() snapshot) *fetchCall {
 		close(c.done)
 	}()
 	return c
+}
+
+// isBlockHash is 64 hex digits, and nothing else.
+func isBlockHash(s string) bool {
+	if len(s) != 64 {
+		return false
+	}
+	for _, c := range s {
+		if !(c >= '0' && c <= '9' || c >= 'a' && c <= 'f') {
+			return false
+		}
+	}
+	return true
 }
 
 // acceptsGzip reads Accept-Encoding as a list: "gzip" or "*" counts, unless

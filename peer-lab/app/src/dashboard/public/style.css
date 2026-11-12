@@ -239,13 +239,12 @@ code { font-size: 12px; background: var(--panel-2); border: 1px solid var(--bord
 th button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
-.chip[data-group="manual"] .swatch, .s-manual { background: var(--manual); }
-.chip[data-group="inbound"] .swatch, .s-inbound { background: var(--inbound); }
-.chip[data-group="outbound"] .swatch, .s-outbound { background: var(--outbound); }
+.s-manual { background: var(--manual); }
+.s-inbound { background: var(--inbound); }
+.s-outbound { background: var(--outbound); }
 
 .place-filter { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); margin-left: 4px; }
 .place-filter b { color: var(--text); font-weight: 600; }
-td .about { font-size: 12px; color: var(--muted); white-space: pre-line; }
 .linkish { border: 0; background: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 4px 6px; }
 .linkish:hover { color: var(--text); }
 
@@ -378,7 +377,6 @@ table.peers.aligned { table-layout: fixed; }
 .peers.aligned td { overflow: hidden; text-overflow: ellipsis; }
 /* Laid out, the kind's line may use the whole column; measured, it keeps
    its cap, so one long line does not cost every table a column. */
-.peers.aligned small.ua { max-width: none; }
 .peers th, .peers td { padding: 9px 12px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--border); }
 .peers tbody tr:not(.delivered-now):hover td { background: #17202a; }
 .peers th:first-child, .peers td:first-child { padding-left: 20px; }
@@ -415,8 +413,6 @@ table.peers.aligned { table-layout: fixed; }
 .cards.cards table tr { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 14px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
 .cards.cards table tr:last-child { border-bottom: 0; }
 .cards.cards table tr td { display: block; padding: 0; border: 0; max-width: 100%; min-width: 0; background: none; }
-.cards.cards table tr td.k-kind .ua { white-space: normal; }
-.cards.cards table tr td.k-kind .about { white-space: pre-line; }
 .cards.cards table tr td.k-ping::before,
 .cards.cards table tr td.k-conntime::before {
   content: attr(data-label); margin-right: 5px;
@@ -465,7 +461,6 @@ table.peers.aligned { table-layout: fixed; }
 .kinds.chips.pool-picks.one-line > * { flex: none; }
 .pool-picks .picks-label { font-size: 12px; color: var(--muted); margin-right: 2px; }
 .kinds.chips.pool-picks .kind-pick { background: transparent; font-size: 11.5px; padding: 1px 8px; }
-.ua .pool-name { color: var(--text); }
 
 /* Rows: two lines each. */
 .peers td { vertical-align: middle; }
@@ -500,9 +495,7 @@ table.peers.aligned { table-layout: fixed; }
 .peers .kind-head > .kind { margin-left: 0; min-width: 0; }
 .peers .hb { flex: none; font-size: 13px; line-height: 1; cursor: help; }
 /* The grey lines under the pill start where the pill does, past the marks' slot (32px + 6px gap). */
-.peers td.k-kind > small, .peers td.k-kind > .about { padding-left: 38px; }
-.peers td.k-kind > small.ua { max-width: 318px; }
-.peers small.ua { max-width: 280px; margin-top: 2px; font-family: inherit; word-break: normal; color: var(--muted); }
+.peers td.k-kind > small { padding-left: 38px; }
 /* The software a peer names tells peers apart: as bright as the operator. */
 .peers .net { display: inline-block; font-size: 11px; color: var(--muted); border: 1px solid var(--border); border-radius: 5px; padding: 0 5px; margin-right: 4px; }
 /* The kind of outbound connection wears the outbound colour.
@@ -542,7 +535,7 @@ table.peers.aligned { table-layout: fixed; }
 /* On a card the marks need no fixed slot: an empty one would only take room from the place name. */
 .cards.cards table tr td.k-kind .kind-head { display: inline-flex; }
 .cards.cards table tr td.k-kind .hb-marks:empty { display: none; }
-.cards.cards table tr td.k-kind > small, .cards.cards table tr td.k-kind > .about { grid-column: 1 / -1; padding-left: var(--card-indent); }
+.cards.cards table tr td.k-kind > small { grid-column: 1 / -1; padding-left: var(--card-indent); }
 .cards.cards table tr { --card-indent: 39px; }
 .cards.cards table tr td.k-peer .who .flag { display: inline-block; width: 22px; margin-right: 7px; text-align: center; }
 
@@ -607,8 +600,6 @@ button.chip.syncing { cursor: pointer; }
 .peers tr.open .chev { transform: rotate(90deg); }
 .chev:focus-visible { outline: 2px solid var(--muted); outline-offset: 2px; border-radius: 3px; }
 @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
-td .about.short { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-td .about.clip { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* --- Feel (28.10.2026) --- */
 /* Small links get a finger-sized target without looking any bigger. */
@@ -669,13 +660,11 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 
 /* A phone card: place, address and pill, the same height for every peer.
    What Core saw is in the panel there (28.10.2026). */
-.cards.cards table tr td.k-kind small.ua { display: none; }
 /* The kind cell's grey line (cardLine): on a wide table always, one line
    under the pill; on a phone card only with a filter on. */
 .peers small.card-line { display: block; max-width: 318px; margin-top: 2px; padding-left: 38px; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cards.cards table tr td.k-kind > small.card-line.unfiltered { display: none; }
 .cards.cards table tr td.k-kind > small.card-line { display: block; max-width: none; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cards.cards table tr td.k-kind > .about { display: none; }
 
 /* Every card folds to its title on a tap and stays so on this device; open
    unless the reader closed it (28.10.2026). The chevron is the same as
@@ -688,7 +677,12 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 }
 .folded .fold-title::before { transform: rotate(-45deg); }
 .fold-title:hover::before { border-color: var(--text); }
-.fold-title:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.fold-title:has(> .fold-btn:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+/* The button that folds a card, inside its heading: it looks like the
+   heading's own text and lays out like it, the chevron beside it. Strong
+   enough to undo the panels' button look. */
+.fold-title > button.fold-btn { all: unset; display: inline-flex; align-items: center; flex-wrap: inherit; gap: inherit; min-width: 0; }
+.fold-title > button.fold-btn:hover { filter: none; }
 .group-card.folded { padding-bottom: 14px; }
 .group-card.folded > :not(.group-head),
 .group-card.folded .group-head > :not(h2, .head-count) { display: none; }
@@ -841,19 +835,13 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
   border-radius: 10px;
   padding: 18px 20px;
 }
-/* The panels re-render every few seconds and keepPlace in app.js holds the
-   reader's place. Browsers anchor the scroll position on their own too (Chrome,
-   Firefox, Safari from 27), and two corrections for one change throw the reader
-   somewhere else - so nothing on the page takes part in anchoring. */
 .card.panel h2 {
   margin: 0 0 14px;
   font-size: 15px;
   color: var(--text);
 }
-/* Collapsible section - only Storage, closed by default. The other panels
-   never get long and stay open; the long list (Live Peer Ranking) has its own
-   top-10 toggle. The arrow is drawn as a chevron: the old 11px glyph read as
-   a dot. */
+/* Data & Settings: a <details>, closed by default. The arrow is drawn as a
+   chevron: an 11px glyph read as a dot. */
 details.card.panel summary {
   cursor: pointer;
   list-style: none;
@@ -1277,9 +1265,8 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
 }
 /* Values end in an ellipsis rather than spill into the next cell; the buttons
    are left alone, so their focus ring is not cut off. */
-.panel .cards.cards table tr td:not(.row-actions) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.panel .cards.cards table tr td:first-child, .panel .cards.cards table tr td[data-col="col-address"], .panel .cards.cards table tr td[data-col="col-actions"], .panel .cards.cards table tr td[data-label=""] { grid-column: 1 / -1; }
-.panel .cards.cards table tr td[data-col="col-client"] { grid-column: span 2; color: var(--muted); }
+.panel .cards.cards table tr td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel .cards.cards table tr td:first-child, .panel .cards.cards table tr td[data-col="col-address"], .panel .cards.cards table tr td[data-label=""] { grid-column: 1 / -1; }
 /* Cards are measured by their own width, not the screen's. */
 .panel .table-wrap.cards { container: cards / inline-size; }
 /* The pools likewise: wins, win %, avg in one row; enabled and remove under it. */
@@ -1287,7 +1274,7 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
 .panel .cards.cards #pool-table tr td[data-label=""]:last-child { grid-column: auto; }
 /* The Remove button keeps its whole border: the cell is narrow at 320 px. */
 .panel .cards.cards #pool-table tr td:last-child { overflow: visible; }
-.panel .cards.cards table tr td[data-label]:not([data-label=""]):not(:first-child):not([data-col="col-address"]):not([data-col="col-client"]):not([data-col="col-status"]):not([data-col="col-actions"])::before {
+.panel .cards.cards table tr td[data-label]:not([data-label=""]):not(:first-child):not([data-col="col-address"])::before {
   content: attr(data-label); display: block; margin-bottom: 2px;
   color: var(--muted); font-size: 10px; letter-spacing: .05em; text-transform: uppercase;
 }
@@ -1383,11 +1370,11 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
      so it is clear there is something to do without a wall of red and blue;
      under the pointer they take their colour (28.10.2026). Hidden entirely
      they read as missing. */
-  .panel .table-wrap:not(.cards) tr.can-act:not(:hover, .open, :focus-visible, :has(:is(button, input):focus-visible)) :is(td.row-actions > button, td:last-child > button.danger) {
+  .panel .table-wrap:not(.cards) tr.can-act:not(:hover, .open, :focus-visible, :has(:is(button, input):focus-visible)) :is(td:last-child > button.danger) {
     color: var(--muted); background: transparent; border-color: var(--border);
   }
   .panel .table-wrap:not(.cards) tr.can-act:not(:hover, .open, :focus-visible, :has(:is(button, input):focus-visible)) td.pool-enabled > label { opacity: .5; }
-  .panel .table-wrap:not(.cards) tr.can-act :is(td.row-actions > button, td:last-child > button.danger, td.pool-enabled > label) { transition: color .12s ease, background-color .12s ease, border-color .12s ease, opacity .12s ease; }
+  .panel .table-wrap:not(.cards) tr.can-act :is(td:last-child > button.danger, td.pool-enabled > label) { transition: color .12s ease, background-color .12s ease, border-color .12s ease, opacity .12s ease; }
 }
 .panel .cards.cards tr.can-act { position: relative; padding-right: 30px; }
 .panel .cards.cards tr.can-act::after {
@@ -1397,10 +1384,10 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
 .panel .cards.cards tr.can-act.open::after { transform: rotate(45deg); }
 .panel .cards.cards tr.can-act.open { background: rgba(255, 255, 255, .035); }
 .panel .cards.cards #pool-table tr.can-act:not(.open) :is(td:last-child, td.pool-enabled) { display: none; }
-.panel .cards.cards tr.can-act.open :is(td.row-actions > button, td:last-child > button) { animation: fade-in .18s ease-out; }
+.panel .cards.cards tr.can-act.open :is(td:last-child > button) { animation: fade-in .18s ease-out; }
 @media (prefers-reduced-motion: reduce) {
   .panel .cards.cards tr.can-act::after { transition: none; }
-  .panel .cards.cards tr.can-act.open :is(td.row-actions > button, td:last-child > button) { animation: none; }
+  .panel .cards.cards tr.can-act.open :is(td:last-child > button) { animation: none; }
 }
 /* Before the first answer, grey rows stand where the peers will be, about
    as tall as they will be: the page does not grow by a screen at once when
@@ -1430,7 +1417,7 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
 }
 .card.panel.folded h2.fold-title::before { transform: rotate(-45deg); }
 .card.panel h2.fold-title:hover::before { border-color: var(--text); }
-.card.panel h2.fold-title:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.card.panel h2.fold-title:has(> .fold-btn:focus-visible) { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
 .card.panel h2.fold-title .hint { margin-left: 0; }
 .card.panel.folded > :not(h2) { display: none; }
 .card.panel.folded h2 { margin-bottom: 0; }
@@ -1441,13 +1428,10 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
   .panel .cards.cards #pool-table tr { grid-template-columns: minmax(0, .7fr) minmax(0, 1fr) minmax(0, 1.4fr); }
   .panel .cards.cards #pool-table td[data-label="Avg"] { display: none; }
 }
-/* In a table a row without a button is not something to click. */
-.panel .table-wrap:not(.cards) tr.can-act:not(:has(td.row-actions > button)) { cursor: default; }
-/* The three group chips are hidden on this page (the tiles say their numbers);
-   the row is there only while a place or kind filter is on. */
+/* The filter row is there only while a place or kind filter is on. */
 .filters:not(:has(> :not([hidden]))) { display: none; }
-/* The same head as every box on the page (map/style.css, 12.11.2026). Here,
-   after the base rules above, so they win. */
+/* The same head as every other card on the page. Here, after the base rules
+   above, so they win. */
 .card.panel { padding-top: 16px; }
 .card.panel.folded, details.card.panel:not([open]) { padding-bottom: 16px; }
 .card.panel > h2.fold-title, details.card.panel > summary { min-height: 30px; }

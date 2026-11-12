@@ -16,7 +16,6 @@ import (
 // connection_type and network exist since Core 0.21; transport_protocol_type
 // since 26.0 (absent on older nodes, which is fine - it is display only).
 type rawPeer struct {
-	ID             int64    `json:"id"`
 	Addr           string   `json:"addr"`
 	Network        string   `json:"network"`
 	ConnectionType string   `json:"connection_type"`
@@ -127,7 +126,6 @@ func homeOf(raw []rawPeer) *Home {
 
 // Peer is what the dashboard receives.
 type Peer struct {
-	ID       int64   `json:"id"`
 	Addr     string  `json:"addr"`
 	Network  string  `json:"network"`
 	Group    string  `json:"group"` // manual | inbound | outbound
@@ -392,7 +390,7 @@ func convertAt(raw []rawPeer, now time.Time) []Peer {
 		}
 		kind, relays := classify(r.Subver)
 		p := Peer{
-			ID: r.ID, Addr: r.Addr, Network: r.Network, Group: g, Type: r.ConnectionType,
+			Addr: r.Addr, Network: r.Network, Group: g, Type: r.ConnectionType,
 			Subver: r.Subver, Kind: kind, About: aboutOf(r.Subver), NoRelay: !relays,
 			ConnTime: r.ConnTime, Transport: r.Transport, HBTo: r.HBTo, HBFrom: r.HBFrom,
 			BytesSent: r.BytesSent, BytesRecv: r.BytesRecv,

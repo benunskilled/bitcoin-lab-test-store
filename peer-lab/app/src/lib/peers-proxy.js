@@ -2,17 +2,19 @@
 
 const http = require('node:http');
 
-// The map is an internal, read-only module. Never forward cookies, credentials,
-// browser-controlled hosts, or mutations to it. Dashboard writes retain their
-// original source and CSRF checks because there is no proxy in front of them.
+// The peers service is internal and read-only: the page loads its script,
+// its map and its peer list from it under /peers/. Never forward cookies,
+// credentials, browser-controlled hosts, or mutations to it. Dashboard writes
+// keep their own source and CSRF checks, with no proxy in front of them.
+// /peers itself is no page: it leads to the page, at /.
 function proxyPeers(req, res, url, target = process.env.PEERS_URL || 'http://peers:8789') {
   if (url.pathname !== '/peers' && !url.pathname.startsWith('/peers/')) return false;
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { Allow: 'GET, HEAD' }).end();
     return true;
   }
-  if (url.pathname === '/peers') {
-    res.writeHead(308, { Location: '/peers/' + url.search }).end();
+  if (url.pathname === '/peers' || url.pathname === '/peers/') {
+    res.writeHead(308, { Location: '/' }).end();
     return true;
   }
   const upstream = new URL(target);
@@ -31,23 +33,18 @@ function proxyPeers(req, res, url, target = process.env.PEERS_URL || 'http://pee
       'content-security-policy', 'x-content-type-options', 'referrer-policy']) {
       if (reply.headers[name] !== undefined) outgoing[name] = reply.headers[name];
     }
-    // FileServer may redirect /index.html to ./; absolute redirects stay under /map.
-    const location = reply.headers.location;
-    if (location && !/^(?:[a-z]+:)?\/\//i.test(location)) {
-      outgoing.location = location.startsWith('/') ? '/peers' + location : location;
-    }
     res.writeHead(reply.statusCode, outgoing);
     reply.on('error', () => res.destroy());
     reply.pipe(res);
   });
-  const deadline = setTimeout(() => request.destroy(new Error('map timeout')), 70_000);
+  const deadline = setTimeout(() => request.destroy(new Error('peers timeout')), 70_000);
   const clear = () => clearTimeout(deadline);
   res.on('close', () => { clear(); request.destroy(); });
   request.on('error', () => {
     clear();
     if (res.headersSent) return res.destroy();
     res.writeHead(502, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end('The Peer Lab map service is unavailable. Return to the dashboard or try again shortly.');
+    res.end('The Peer Lab peers service is unavailable. Reload the page or try again shortly.');
   });
   request.end();
   return true;

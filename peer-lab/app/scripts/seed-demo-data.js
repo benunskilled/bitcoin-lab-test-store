@@ -14,11 +14,18 @@
 // "Block Height" tile show a real number instead of staying blank (that
 // tile hits live Bitcoin Core RPC, not this DB).
 //
+// The peer list and the map come from the peers service, which brings its
+// own demo peers (PEERS_DEMO=1); without it the page has no list.
+//
 // Usage: MOCK_RPC_PORT=18332 node scripts/mock-rpc-server.js &
 //        DATA_DIR=/tmp/peer-lab-demo node scripts/seed-demo-data.js
-//        DATA_DIR=/tmp/peer-lab-demo BITCOIN_RPC_HOST=127.0.0.1 \
-//          BITCOIN_RPC_PORT=18332 node src/dashboard-server.js
+//        (cd ../peers && go build -o /tmp/peers . ) && PEERS_DEMO=1 PEERS_PORT=18789 \
+//          DASHBOARD_HEALTH_URL=http://127.0.0.1:8788/api/health /tmp/peers &
+//        DATA_DIR=/tmp/peer-lab-demo BITCOIN_RPC_HOST=127.0.0.1 BITCOIN_RPC_PORT=18332 \
+//          PEERS_URL=http://127.0.0.1:18789 PEERS_HEALTH_URL=http://127.0.0.1:18789/api/health \
+//          node src/dashboard-server.js
 //        npm install --no-save playwright && node scripts/screenshot.js
+//        (it waits for the peer rows before it takes the picture)
 
 process.env.DATA_DIR = process.env.DATA_DIR || '/tmp/peer-lab-demo';
 const fs = require('fs');

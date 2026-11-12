@@ -322,43 +322,12 @@ function attributionHealth() {
   };
 }
 
-// How blocks were rebuilt over the last day and week (see
-// lib/reconstruction.js): of the blocks it could be told for, how many came
-// together from the mempool alone, how many needed missing transactions asked
-// for and what came back on average, how many were downloaded whole. null
-// before the first such block in the window.
-const RECON_DAY_MS = 24 * 60 * 60 * 1000;
-const RECON_WEEK_MS = 7 * RECON_DAY_MS;
-const reconCache = new Map();
-
-function reconstructionOver(windowMs, now = Date.now()) {
-  const head = db.instance.prepare(`SELECT MAX(id) AS id FROM relay_race WHERE recon IS NOT NULL`).get();
-  if (!head || head.id == null) return null;
-  // The window moves with the clock as well, so the key holds the minute too.
-  const key = `${head.id}:${Math.floor(now / 60000)}`;
-  const hit = reconCache.get(windowMs);
-  if (hit && hit.key === key) return hit.value;
-  const r = db.instance
-    .prepare(
-      `SELECT COUNT(*) AS blocks,
-              SUM(recon = 'mempool') AS mempool,
-              SUM(recon = 'asked') AS asked,
-              SUM(recon = 'full') AS full,
-              AVG(CASE WHEN recon = 'asked' THEN recon_missing_bytes END) AS askedAvgBytes
-         FROM relay_race WHERE recon IN ('mempool', 'asked', 'full') AND detected_at >= ?`,
-    )
-    .get(now - windowMs);
-  const value = r.blocks
-    ? { blocks: r.blocks, mempool: r.mempool, asked: r.asked, full: r.full,
-        askedAvgBytes: r.askedAvgBytes == null ? null : Math.round(r.askedAvgBytes) }
-    : null;
-  reconCache.set(windowMs, { key, value });
-  return value;
-}
-
-// The same over the last hundred blocks, the window the block card
-// calls "typical" for the route too (ROUTE_MEDIAN_BLOCKS). Of those hundred,
-// the ones that could be told; changes only with a new block.
+// How the last hundred blocks were rebuilt (see lib/reconstruction.js), the
+// window the block card calls "typical" for the route too
+// (ROUTE_MEDIAN_BLOCKS): of those it could be told for, how many came together
+// from the mempool alone, how many needed missing transactions asked for and
+// what came back on average, how many were downloaded whole. null before the
+// first such block. Changes only with a new block.
 let reconLastCache = null;
 function reconstructionLast(n = ROUTE_MEDIAN_BLOCKS) {
   const head = db.instance.prepare(`SELECT MAX(id) AS id, MAX(CASE WHEN recon IS NOT NULL THEN id END) AS told FROM relay_race`).get();
@@ -386,10 +355,7 @@ function reconstructionLast(n = ROUTE_MEDIAN_BLOCKS) {
   return value;
 }
 
-const reconstructionDay = (now) => reconstructionOver(RECON_DAY_MS, now);
-const reconstructionWeek = (now) => reconstructionOver(RECON_WEEK_MS, now);
-
 module.exports = {
-  reconstructionDay, reconstructionWeek, reconstructionLast,
+  reconstructionLast,
   latestBlock, blockDetail, routeMedian, hopPings, deliveredEver, attributionHealth, ATTRIBUTION_WINDOW_MS,
 };

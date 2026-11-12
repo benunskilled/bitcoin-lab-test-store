@@ -193,7 +193,6 @@ test('an unknown API route is a 404, not a crash', async () => {
 test('GET /api/status reports the peer counts and the manual cap', async () => {
   const { status, body } = await api('/api/status');
   assert.equal(status, 200);
-  assert.equal(typeof body.network, 'string');
   assert.equal(typeof body.live.total, 'number');
   assert.equal(typeof body.live.inbound, 'number');
   assert.equal(typeof body.live.outbound, 'number');
@@ -332,7 +331,15 @@ test('serveStatic refuses to walk out of the public directory', async () => {
 // for one and not the other is a rule nobody can reason about.
 
 const EXPECTED_CSP =
-  "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'self'";
+  "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'none'";
+
+test('the CSP is the peers service\'s, character for character', () => {
+  const mainGo = process.env.PEERS_DIR
+    ? path.join(process.env.PEERS_DIR, 'main.go')
+    : path.join(__dirname, '..', '..', 'peers', 'main.go');
+  const goCsp = fs.readFileSync(mainGo, 'utf8').match(/"Content-Security-Policy", "([^"]+)"/)[1];
+  assert.equal(EXPECTED_CSP, goCsp);
+});
 
 function assertSecured(res, what) {
   assert.equal(res.headers.get('content-security-policy'), EXPECTED_CSP, `${what} must carry the CSP`);

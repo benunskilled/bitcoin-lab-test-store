@@ -2,9 +2,9 @@ name: Peer Lab CI
 on:
   push:
     branches: ['**']
-    paths: ['peer-lab/**', '.github/workflows/peer-lab.yml']
+    paths: ['peer-lab/**', 'bltest-peerlab/**', '.github/workflows/peer-lab.yml']
   pull_request:
-    paths: ['peer-lab/**', '.github/workflows/peer-lab.yml']
+    paths: ['peer-lab/**', 'bltest-peerlab/**', '.github/workflows/peer-lab.yml']
   workflow_dispatch: {}
   workflow_call: {}
 permissions:
@@ -46,10 +46,78 @@ jobs:
         working-directory: peer-lab/app
       - run: go build -o "$RUNNER_TEMP/peers" .
         working-directory: peer-lab/peers
-      - run: PEERS_BINARY="$RUNNER_TEMP/peers" node scripts/smoke-peer-lab.js
+      # Playwright only here, never in the app's dependencies: the services
+      # need no browser. Pinned, like everything else this workflow fetches.
+      - run: npm install --no-save --no-audit --no-fund playwright@1.63.0 && npx playwright install --with-deps chromium
         working-directory: peer-lab/app
+      - run: PEERS_BINARY="$RUNNER_TEMP/peers" SMOKE_BROWSER=1 node scripts/smoke-peer-lab.js
+        working-directory: peer-lab/app
+  # The store reads these files as YAML; one that does not parse hides the
+  # app from the store without a word (an apostrophe in a single-quoted
+  # description did, 12.11.2026).
+  store:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - run: ruby -ryaml -e 'ARGV.each { |f| YAML.load_file(f); puts "ok #{f}" }' peer-lab/umbrel/bltest-peerlab/*.yml bltest-peerlab/*.yml umbrel-app-store.yml
+  # Everything above proves the code does what it was written to do, against
+  # its own mocks. This proves Bitcoin Core reports what the code assumes:
+  # real regtest nodes, the peer that delivered a block credited with it,
+  # addnode and getaddednodeinfo, the hashblock message, and each kind of
+  # connection as getpeerinfo shows it. Core is cached, so it adds about a
+  # minute. Bump CORE_VERSION when a new Core comes to Umbrel.
+  integration:
+    runs-on: ubuntu-latest
+    name: Against real Bitcoin Core
+    env:
+      CORE_VERSION: '32.1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+      - run: npm ci --no-audit --no-fund
+        working-directory: peer-lab/app
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: peer-lab/peers/go.mod
+          cache: false
+      - name: Cache Bitcoin Core
+        id: core-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/bitcoin-core
+          key: bitcoin-core-${{ env.CORE_VERSION }}-x86_64-linux-gnu
+      - name: Fetch and verify Bitcoin Core
+        if: steps.core-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          BASE="https://bitcoincore.org/bin/bitcoin-core-${CORE_VERSION}"
+          TARBALL="bitcoin-${CORE_VERSION}-x86_64-linux-gnu.tar.gz"
+          mkdir -p ~/bitcoin-core && cd ~/bitcoin-core
+          curl -fsSLO "${BASE}/${TARBALL}"
+          curl -fsSLO "${BASE}/SHA256SUMS"
+          # Guards against a truncated or corrupted download, not against the
+          # host itself: the sums come from the same server as the file.
+          sha256sum --ignore-missing --check SHA256SUMS
+          tar -xzf "${TARBALL}" --strip-components=2 \
+            "bitcoin-${CORE_VERSION}/bin/bitcoind" "bitcoin-${CORE_VERSION}/bin/bitcoin-cli"
+          rm -f "${TARBALL}" SHA256SUMS
+      - name: The dashboard against Core
+        working-directory: peer-lab/app
+        env:
+          REQUIRE_BITCOIND: '1'
+        run: |
+          export PATH="$HOME/bitcoin-core:$PATH"
+          bitcoind -version | head -1
+          node test/integration/regtest.js
+      - name: The peers service against Core
+        working-directory: peer-lab/peers
+        run: |
+          export PATH="$HOME/bitcoin-core:$PATH"
+          go test -tags integration -run TestAgainstBitcoinCore -v -count=1 .
   image:
-    needs: [node, go]
+    needs: [node, go, store, integration]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1

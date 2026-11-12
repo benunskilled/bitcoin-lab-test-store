@@ -34,7 +34,10 @@ function refreshDemoHeartbeats() {
   const browser = await chromium.launch(launchOpts);
   const page = await browser.newPage({ viewport: { width: 1280, height: 1400 } });
   await page.goto('http://127.0.0.1:8788/', { waitUntil: 'load', timeout: 15000 });
-  await page.waitForTimeout(3000); // let the app.js polls populate the tables
+  // The peer rows come from the peers service: without it there is nothing
+  // worth a picture, and this says so rather than saving an empty page.
+  await page.waitForSelector('#tables tr[data-anchor]', { timeout: 15000 });
+  await page.waitForTimeout(1500); // the panels below fill from their own polls
   await page.screenshot({ path: OUT, fullPage: true });
   await browser.close();
   console.log('saved to', OUT);

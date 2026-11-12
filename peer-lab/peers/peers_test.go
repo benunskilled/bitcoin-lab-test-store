@@ -357,6 +357,32 @@ func TestHTTP(t *testing.T) {
 			t.Errorf("%s: HTTP %d", path, rec.Code)
 		}
 	}
+	// The dashboard's slim question: three fields a peer, nothing else.
+	{
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("GET", "/api/kinds", nil))
+		var got struct {
+			Peers []map[string]any `json:"peers"`
+		}
+		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil || len(got.Peers) == 0 {
+			t.Fatalf("kinds: %v, %d peers", err, len(got.Peers))
+		}
+		for _, p := range got.Peers {
+			for k := range p {
+				if k != "addr" && k != "kind" && k != "no_relay" && k != "linking_lion" && k != "fork" {
+					t.Errorf("kinds carries %q", k)
+				}
+			}
+		}
+	}
+	// Only the files the page loads: no directory listing, no other file.
+	for _, path := range []string{"/", "/web/", "/index.html"} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("GET", path, nil))
+		if rec.Code != 404 {
+			t.Errorf("%s: HTTP %d, want 404", path, rec.Code)
+		}
+	}
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, httptest.NewRequest("GET", "/api/peers", nil))
 	var snap snapshot
@@ -540,7 +566,7 @@ func TestMinFee(t *testing.T) {
 		{f(0.00001), 0, "none"},
 		{nil, 32, "none"},
 	} {
-		r := rawPeer{ID: 1, Addr: "203.0.113.9:8333", ConnectionType: "outbound-full-relay", Subver: "/Satoshi:31.1.0/", Version: 70016,
+		r := rawPeer{Addr: "203.0.113.9:8333", ConnectionType: "outbound-full-relay", Subver: "/Satoshi:31.1.0/", Version: 70016,
 			MinFeeFilter: c.btcPerKvB, BytesRecvPerMsg: map[string]int64{"feefilter": c.sent}}
 		p := convert([]rawPeer{r})[0]
 		got := "none"
