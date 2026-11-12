@@ -778,11 +778,11 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 @media (max-width: 600px) { .key { display: block; } }
 
 /* First/Blocks: the count in the row's own weight, its share of the recent
-   blocks faint beside it. Gone with the ping on a narrow table, where keeping it
-   cost the operator and the net; never on a phone card. */
+   blocks faint beside it. It outlasts ping and connected on a narrowing table and
+   goes with the net; never on a phone card. */
 .peers td.k-first { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .peers td.k-first .first-pct { color: var(--muted); font-size: 12px; margin-left: 4px; }
-.scroll.scroll[data-drops="2"] .k-first, .scroll.scroll[data-drops="3"] .k-first, .scroll.scroll[data-drops="4"] .k-first,
+.scroll.scroll[data-drops="3"] .k-first, .scroll.scroll[data-drops="4"] .k-first,
 .cards.cards table tr td.k-first { display: none; }
 /* The buttons for a peer, under the three blocks of its panel, at the right. */
 .pd-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; align-items: center; gap: 8px; }

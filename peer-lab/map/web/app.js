@@ -2558,7 +2558,8 @@
   // The list is ordered by that share, then by the blocks delivered first in
   // all; a peer without a record comes last. Not on a phone card.
   const FIRST_COL = {
-    key: "first", get label() { return "First/Blocks \u00b7 last " + lab().windowBlocks; }, cls: "num",
+    key: "first", label: "First/Blocks", cls: "num",
+    get title() { return "Blocks this peer delivered first, out of the blocks it was connected for. The percentage is its share of the last " + lab().windowBlocks + " blocks; the list is ordered by it."; },
     val: (p) => { const r = rankOf(p); return r && r.eligible ? -(rankPct(r) * 1e7 + r.first) : 1; },
     cell: (td, p) => {
       const r = rankOf(p);
@@ -2983,6 +2984,7 @@
           state.sort[g] = { key: c.key, dir: c.key === col.key ? -s.dir : 1 };
           renderTables();
         }));
+        if (c.title) b.title = c.title;
         th.appendChild(b);
         hr.appendChild(th);
       }
