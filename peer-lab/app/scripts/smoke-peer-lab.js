@@ -28,14 +28,19 @@ async function browserSmoke(base, peers) {
       const tiles = await page.$$eval('#live-stats .stat .n', (ns) => ns.map((n) => Number(n.textContent)));
       assert.deepEqual(tiles.slice(1), [groups.inbound, groups.outbound, groups.manual], `${width}px: the tiles count the list's peers`);
       const folded = () => page.$eval('#keyCard', (c) => c.classList.contains('folded'));
-      const was = await folded();
-      await page.click('#keyCard', { position: { x: 30, y: 8 } });
+      if (await folded()) {
+        await page.focus('#keyHead .fold-btn');
+        await page.keyboard.press('Enter');
+        await page.waitForTimeout(700);
+        assert.equal(await folded(), false, `${width}px: Enter on its title opens the card`);
+      }
+      // Not the title: the list inside the card.
+      await page.click('#keyCard .key-list li:nth-child(2)');
       await page.waitForTimeout(700);
-      assert.notEqual(await folded(), was, `${width}px: a tap on the card folds or opens it`);
-      await page.focus('#keyHead .fold-btn');
-      await page.keyboard.press('Enter');
+      assert.equal(await folded(), true, `${width}px: a tap inside the card folds it`);
+      await page.click('#keyCard', { position: { x: 300, y: 20 } });
       await page.waitForTimeout(700);
-      assert.equal(await folded(), was, `${width}px: Enter on its title turns it back`);
+      assert.equal(await folded(), false, `${width}px: and a tap on the folded card opens it`);
       await page.click('#storage-card > summary');
       await page.waitForTimeout(700);
       await page.keyboard.press('Escape');

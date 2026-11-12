@@ -138,6 +138,10 @@ async function pass() {
   const onTrial = fill.currentTrial();
   const ranking = queries.peerRanking();
   const retired = await retireOfflineManualPeers(ranking, onTrial && onTrial.address, peers, isEnabled);
+  // Switched off while the retiring waited for Core: no candidate goes in.
+  if (!isEnabled()) {
+    return { ...idle, enabled: false, retired, confirmed: settled === 'confirmed' ? 1 : 0, reverted: settled === 'reverted' ? 1 : 0 };
+  }
   // One move per pass: nothing new while a candidate is on trial.
   let started = onTrial
     ? 0

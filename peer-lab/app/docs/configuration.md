@@ -109,3 +109,7 @@ in `src/lib/config.js` and is not an environment variable.
 ## For a test copy
 
 `READ_ONLY=1` keeps a second copy of the app from changing Core's peers. `PEERS_URL` and `PEERS_HEALTH_URL` say where the peers service is; the store sets them. `SSE_MAX_AGE_MS` and `WRITE_SOURCE_DEBUG` are for development only.
+
+## Who may change Core's peers
+
+Changes to Core's peers are accepted only from Umbrel's app proxy and from the node itself. Peer Lab relies on Umbrel's login in front of the proxy; it has no login of its own.

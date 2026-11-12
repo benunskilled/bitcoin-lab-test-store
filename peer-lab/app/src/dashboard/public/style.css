@@ -8,7 +8,7 @@
   --border: #1f2a35;
   --text: #e6edf3;
   --muted: #8a99a8;
-  --faint: #5b6876;
+  --faint: #76838f; /* 4.5:1 on --panel, the floor for small text (WCAG AA) */
   --accent: #f7931a;
   --good: #3fb950;
   --bad: #f85149;

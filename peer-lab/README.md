@@ -25,6 +25,8 @@ cd peer-lab/app && npm ci && PEERS_DIR=../peers npm test
 cd ../peers && go test ./...
 ```
 
+CI also runs both against real Bitcoin Core on regtest (`REQUIRE_BITCOIND=1 node test/integration/regtest.js`, `go test -tags integration .`) and loads the page in a browser.
+
 **Publish Peer Lab test build** (GitHub Actions) runs the tests, builds the
 image for amd64 and arm64, checks that it can be pulled publicly and then
 creates `bltest-peerlab/` with the exact digest.

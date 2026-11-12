@@ -142,19 +142,21 @@
   let tickTimer = 0;
   let inFlight = false;
 
-  // Exactly one polling chain at a time. Without the inFlight guard, a tab
-  // that became visible again while a request was still running started a
-  // second chain next to the first, and every such moment added another.
   // A block the dashboard has just announced (its event stream): the block
   // card, the star and the map's wave are asked for it at once, and asked
-  // again shortly, a few times at most, until the answer has it.
-  let wantBlock = "", wantTries = 0;
+  // again shortly, a few times at most, until the answer has it. Each block
+  // once: the dashboard repeats its latest every 20 seconds, and a service
+  // without a block card would otherwise be asked four times each time.
+  let wantBlock = "", wantTries = 0, triedBlock = "";
   window.addEventListener("peerlab:block", (e) => {
-    if (!e.detail || (state.data && state.data.last_block && state.data.last_block.hash === e.detail)) return;
-    wantBlock = e.detail;
+    if (!e.detail || e.detail === triedBlock || (state.data && state.data.last_block && state.data.last_block.hash === e.detail)) return;
+    wantBlock = triedBlock = e.detail;
     wantTries = 3;
     refresh();
   });
+  // Exactly one polling chain at a time. Without the inFlight guard, a tab
+  // that became visible again while a request was still running started a
+  // second chain next to the first, and every such moment added another.
   async function refresh() {
     clearTimeout(pollTimer);
     if (inFlight || document.hidden || state.paused) return;

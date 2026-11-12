@@ -293,8 +293,10 @@ async function refreshStatus() {
   setBlockHeight(s.blockHeight, { at: askedAt, fromCore: true });
 
   // Until the peer list has its first answer, the tiles show what the
-  // profiler counted; from then on the list's own numbers (drawTiles).
-  if (!listCounts) {
+  // profiler counted; from then on the list's own numbers (drawTiles) - and
+  // the profiler's again if the list has not drawn for 45 seconds (its
+  // service down or failing), rather than numbers frozen without a word.
+  if (!listCounts || Date.now() - listCountsAt > LIST_COUNTS_MAX_AGE_MS) {
     drawTiles({ inbound: s.live.inbound, outbound: s.live.outbound - s.live.manual, manual: s.live.manual });
   }
 }
@@ -304,6 +306,8 @@ async function refreshStatus() {
 // apart, and one of them counting the short feeler and address-fetch
 // connections the list leaves out, made the tiles and the list disagree.
 let listCounts = null;
+let listCountsAt = 0;
+const LIST_COUNTS_MAX_AGE_MS = 45000;
 // The last field is the colour strip along the tile's foot, in the group's
 // own colour. Outbound leaves out the manual peers, which have a tile of
 // their own - as in the peer list, so the three groups add up to the total.
@@ -661,7 +665,7 @@ window.peerLab = {
   foldsOnTap,
   foldTitle,
   // The peer list's counts of connected peers per group, for the tiles.
-  liveCounts: (counts) => { listCounts = counts; drawTiles(counts); },
+  liveCounts: (counts) => { listCounts = counts; listCountsAt = Date.now(); drawTiles(counts); },
   foldInPlace,
   flagOf: (cc) => flagOf(cc),
   fmtDuration: (ms) => fmtDuration(ms),
@@ -1059,7 +1063,7 @@ for (const box of document.querySelectorAll('.panel details.how')) {
 // Steps of 1000, like the totals and every other byte count on the page.
 function axisBytes(v, unit) {
   if (v === 0) return '0';
-  const name = { 1: 'B', 1000: 'KB', [1000 ** 2]: 'MB', [1000 ** 3]: 'GB', [1000 ** 4]: 'TB' }[unit] || 'B';
+  const name = { 1: 'B', 1000: 'kB', [1000 ** 2]: 'MB', [1000 ** 3]: 'GB', [1000 ** 4]: 'TB' }[unit] || 'B';
   const n = v / unit;
   return `${Number.isInteger(n) ? n : n.toFixed(1)} ${name}`;
 }

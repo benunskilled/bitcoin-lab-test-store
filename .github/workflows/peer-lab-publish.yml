@@ -11,6 +11,9 @@ jobs:
     uses: ./.github/workflows/peer-lab.yml
   publish:
     needs: checks
+    # From a branch only: from a tag, the push below would make a branch of
+    # the tag's name.
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
     permissions:
       contents: write

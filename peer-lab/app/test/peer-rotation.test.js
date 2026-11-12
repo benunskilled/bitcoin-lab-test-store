@@ -253,6 +253,23 @@ test('Slot Fill switched off while a pass waits for Core: nothing more is retire
   assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM trusted_peer WHERE address = ?').get(address).n, 1);
 });
 
+test('Slot Fill switched off while a pass waits for Core: the pass stops there', async () => {
+  const address = seedOfflineTrustedPeer({ eligible: 200, first: 0, offlineHours: 5 });
+  peerRotation.setEnabled(true);
+  // The switch goes off while the pass waits for Core's answer.
+  mock.method(rpc, 'getPeerInfo', async () => { peerRotation.setEnabled(false); return []; });
+  const added = [];
+  mock.method(rpc, 'addNode', async (a, c) => { added.push(`${c} ${a}`); });
+
+  const result = await peerRotation.tick();
+
+  assert.equal(result.enabled, false);
+  assert.equal(result.retired, 0);
+  assert.equal(result.started, 0);
+  assert.deepEqual(added, [], 'no addnode, add or remove, after the switch went off');
+  assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM trusted_peer WHERE address = ?').get(address).n, 1);
+});
+
 test('a manual peer that was ever first keeps its slot through an outage that retires one that never was', async () => {
   // One block first: a day of grace. Offline for 5 - the outage that just
   // cost the other peer its slot in the test above.

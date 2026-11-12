@@ -545,7 +545,7 @@ function poolRange(raw) {
 
 // "12.3 GB" - the widget has room for a number and a unit, nothing more.
 function fmtBytesShort(bytes) {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const units = ['B', 'kB', 'MB', 'GB', 'TB'];
   let v = bytes || 0;
   let i = 0;
   while (v >= 1000 && i < units.length - 1) { v /= 1000; i += 1; }  // steps of 1000, like the page
