@@ -3,7 +3,7 @@
 // This window answers to a name, and links to Peer Map aim at Peer Map's name: clicking back and forth between the two
 // apps then reuses one window each instead of opening a new one per click. That needs the opener kept, so these links
 // carry no rel="noopener" - both windows are this Umbrel's own apps.
-window.name = 'bitcoin-lab';
+window.name = 'peer-lab';
 // On a phone or tablet Safari loads a named tab in the background and stays where it is, so a tap seemed to do nothing.
 // There the jump stays in the same tab, and Back returns.
 const TOUCH_ONLY = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
@@ -55,7 +55,8 @@ function peerMapURL(address) {
 // A peer another app pointed at, via ?peer=<address>. Marked once and scrolled
 // to, then left alone: it is a starting point, not a filter, and a row that
 // jumped under the cursor on every refresh would be its own kind of rude.
-const FOCUS_ADDRESS = new URLSearchParams(location.search).get('peer');
+// The peer list is the map script's now, and so is landing on ?peer=.
+const FOCUS_ADDRESS = null;
 let focusDone = false;
 
 async function api(path, options) {
@@ -376,6 +377,9 @@ try {
   try { history.scrollRestoration = 'auto'; } catch { /* old browser */ }
 }
 function restoreReloadY() {
+  // One script puts the reader back after a reload, and it is the page's
+  // (the map's): two of them pulled the page two ways.
+  reloadY = null;
   if (reloadY === null) return;
   if (FOCUS_ADDRESS) { reloadY = null; return; }
   const max = document.documentElement.scrollHeight - window.innerHeight;
@@ -525,7 +529,9 @@ new MutationObserver((list) => {
   // only" it no longer does, and forcing it landed the reader at the bottom.
   const reachable = y <= document.documentElement.scrollHeight - window.innerHeight;
   // A fold keeps the reader's place itself, by what was tapped (foldInPlace).
-  if (!folding && !anchored && !keepPlace() && y - window.scrollY > 100 && reachable) window.scrollTo(0, y);
+  // Keeping the reader's place while the page changes is the page's own
+  // script's job (the map's); this half only fits its tables.
+  void anchored; void reachable; void y;
   lastScrollY = window.scrollY;
   notePlace();
 }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open', 'hidden'] });
@@ -570,7 +576,7 @@ async function refreshStatus() {
   if (readOnlyBanner) readOnlyBanner.hidden = !s.readOnly;
   const rotationToggleBox = document.getElementById('rotation-toggle');
   if (rotationToggleBox && s.readOnly) rotationToggleBox.disabled = true;
-  const siblingLink = document.getElementById('sibling-link');
+  const siblingLink = document.getElementById('lab-sibling-link');
   if (siblingLink) {
     // Without Peer Map the same link leads to where it can be had: the
     // header is the one quiet place for it, not a line in the tables.
@@ -585,7 +591,7 @@ async function refreshStatus() {
   // restarting, still in IBD, a timeout) replaced a perfectly good peer
   // count with "connecting…" - reporting the app as broken when only the
   // one cosmetic value was missing.
-  const el = document.getElementById('status');
+  const el = document.getElementById('lab-status');
   const parts = [s.network, `${s.live.total} peers connected`];
   el.textContent = parts.join(' · ');
   el.prepend(liveDot);
@@ -1131,9 +1137,25 @@ async function refreshPeers() {
   const peers = await api('/api/peers/ranking');
   if (seq !== peerRequestSeq) return;
   lastPeerRanking = peers;
+  rankingByAddress = new Map(peers.map((p) => [p.address, p]));
   markArrivals(peers);
   renderPeerTables(peers);
+  window.dispatchEvent(new Event('peerlab:ranking'));
 }
+
+// The peer list on this page is drawn by the map's script. It asks here for
+// what only this half knows: a peer's record, and the buttons that act on it
+// - the same buttons as ever, handled by the click handler below.
+let rankingByAddress = new Map();
+window.peerLab = {
+  get windowBlocks() { return RECENT_WINDOW_BLOCKS || 500; },
+  get maxManual() { return MAX_MANUAL_PEERS; },
+  peer: (address) => rankingByAddress.get(address) || null,
+  actionsHtml: (address) => {
+    const p = rankingByAddress.get(address);
+    return p ? actionsCell(p, { lock: p.trusted ? keepStar(p) : '' }) : '';
+  },
+};
 
 // A peer that connected in over IPv6 through Docker's docker-proxy relay
 // (rather than a direct/NAT-preserved connection) has its real address
@@ -2231,6 +2253,7 @@ document.body.addEventListener('click', async (e) => {
     if (PEER_ACTIONS.has(action)) {
       refreshPeers();
       refreshRotation();
+      window.dispatchEvent(new Event('peerlab:acted'));
     }
     if (POOL_ACTIONS.has(action)) refreshPools();
   } catch (err) {
@@ -2580,46 +2603,7 @@ wireReset('pools');
 startRefreshLoop();
 startEventStream();
 
-// On a phone the page is many screens long. Scrolling back up shows a small
-// bar with the sections, and it goes again when the reader scrolls on down or
-// is back at the top. Peer Map has the same.
-(function jumpBar() {
-  const bar = document.createElement('nav');
-  bar.className = 'jump-bar';
-  bar.setAttribute('aria-label', 'Jump to');
-  document.body.appendChild(bar);
-  const byHeading = (text) => [...document.querySelectorAll('main .card h2')]
-    .find((h) => h.textContent.trim().startsWith(text))?.closest('.card');
-  const targets = [['\u2191 Top', null], ['Peers', 'Live Peer Ranking'], ['Slot Fill', 'Slot Fill'],
-    ['Stratum', 'Stratum Race'], ['Traffic', 'Traffic']];
-  // Traffic rather than Storage (28.10.2026): Storage is rarely needed and
-  // sits right under Traffic, at the end of the page.
-  for (const [label, heading] of targets) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = label;
-    b.addEventListener('click', () => {
-      const card = heading && byHeading(heading);
-      const y = card ? card.getBoundingClientRect().top + window.scrollY - 8 : 0;
-      window.scrollTo({ top: Math.max(0, y), behavior: glide() });
-      bar.classList.remove('shown');
-    });
-    bar.appendChild(b);
-  }
-  let lastY = window.scrollY;
-  window.addEventListener('scroll', () => {
-    const y = window.scrollY;
-    const phone = window.matchMedia('(max-width: 600px)').matches;
-    const up = y < lastY - 4;
-    const down = y > lastY + 4;
-    // With a mouse the bar sits quietly in a corner whenever the reader is
-    // far down; on a phone it comes only on the way back up.
-    bar.classList.toggle('corner', !phone);
-    if (phone ? up && y > window.innerHeight : y > window.innerHeight) bar.classList.add('shown');
-    else if (phone ? down || y < window.innerHeight / 2 : y < window.innerHeight) bar.classList.remove('shown');
-    if (up || down) lastY = y;
-  }, { passive: true });
-})();
+// The bar that jumps between sections is the page's own (the map script's).
 
 // Esc closes what a click opened: the reset question, then the storage card,
 // as in a desktop app.

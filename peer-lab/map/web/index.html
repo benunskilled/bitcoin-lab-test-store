@@ -10,8 +10,6 @@
   <meta name="theme-color" content="#0b0f14">
   <link rel="stylesheet" href="style.css">
   <script src="app.js" defer></script>
-  <link rel="stylesheet" href="/peerlab.css">
-  <script src="/peerlab.js" defer></script>
 </head>
 <body>
   <!-- Rolls across the page once when a new block lands; see pulseBlock in app.js. -->
@@ -21,14 +19,6 @@
     <a id="sibling-link" class="sibling-link" hidden target="bitcoin-lab">Bitcoin Lab &#8599;</a>
     <span class="status-pill" id="status">Loading peers…</span>
   </header>
-  <nav class="peerlab-nav" aria-label="Peer Lab">
-    <a href="/" data-view="overview">Overview</a>
-    <a href="/map/" data-view="map">Peers &amp; Map</a>
-    <a href="/#live-peer-card" data-view="live-peer-card">Delivery</a>
-    <a href="/#slot-fill" data-view="slot-fill">Slot Fill</a>
-    <a href="/#stratum-race" data-view="stratum-race">Stratum Race</a>
-    <a href="/#storage-card" data-view="storage-card">Data &amp; Settings</a>
-  </nav>
 
   <main>
     <p class="banner banner-demo" id="demo" hidden>Demo data - this instance runs with <code>PEERMAP_MOCK=1</code> and is not connected to a node.</p>

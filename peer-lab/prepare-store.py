@@ -18,8 +18,6 @@ def main():
     project = pathlib.Path(__file__).resolve().parent
     root = project.parent
     destination = root / 'bltest-peerlab'
-    if destination.exists():
-        raise SystemExit('Store entry already exists; refusing to overwrite it.')
     with tempfile.TemporaryDirectory(prefix='peerlab-release-', dir=root) as temporary:
         package = pathlib.Path(temporary) / 'bltest-peerlab'
         shutil.copytree(project / 'umbrel' / 'bltest-peerlab', package)
@@ -30,6 +28,10 @@ def main():
         if match[1] != version:
             raise SystemExit('Image tag must match the candidate manifest version.')
         subprocess.run(['sh', str(root / '.github/scripts/check-app.sh'), str(package)], check=True)
+        # A later test build replaces the entry of the one before; what the app
+        # stored is on the Umbrel, not here.
+        if destination.exists():
+            shutil.rmtree(destination)
         shutil.move(str(package), destination)
     print('Verified package created at bltest-peerlab/. Review before publishing the store update.')
 

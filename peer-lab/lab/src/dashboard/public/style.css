@@ -28,20 +28,12 @@
   --umbrel: #8b5cf6;
 }
 
-* { box-sizing: border-box; }
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 14px;
-}
 
 /* Buttons do not inherit the font on their own: without this they were Arial. */
-button { font-family: inherit; }
+.lab button{ font-family: inherit; }
 
-.topbar {
+.lab .topbar{
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -49,7 +41,7 @@ button { font-family: inherit; }
   border-bottom: 1px solid var(--border);
 }
 
-.topbar h1 {
+.lab .topbar h1{
   font-size: 18px;
   margin: 0;
   color: var(--accent);
@@ -58,31 +50,31 @@ button { font-family: inherit; }
 /* The link to the other app in the pair. Quiet on purpose: it is an offer, not
    a part of this dashboard. Hidden until the server has said whether Peer Map
    is installed: then it opens the app or, without it, its GitHub page. */
-.sibling-link {
+.lab .sibling-link{
   margin-right: auto;
   padding-left: 14px;
   font-size: 13px;
   color: var(--muted);
   text-decoration: none;
 }
-.sibling-link:hover { color: var(--text); }
+.lab .sibling-link:hover{ color: var(--text); }
 
 /* The address doubles as the way over to Peer Map; it should read as a link
    without turning the table into a wall of blue. */
-.peer-jump { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border); }
-.peer-jump:hover { color: var(--accent); text-decoration-color: var(--accent); }
+.lab .peer-jump{ color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--border); }
+.lab .peer-jump:hover{ color: var(--accent); text-decoration-color: var(--accent); }
 
 /* The peer another app pointed at. Marked, not filtered - and unlike the
    new-block tint it does not fade, so it can still be found after scrolling. */
-tr.row-focus td { background: rgba(247,147,26,.10); }
-tr.row-focus td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.lab tr.row-focus td{ background: rgba(247,147,26,.10); }
+.lab tr.row-focus td:first-child{ box-shadow: inset 3px 0 0 var(--accent); }
 
-.status-pill {
+.lab .status-pill{
   font-size: 13px;
   color: var(--muted);
 }
 
-main {
+.lab main{
   padding: 20px 24px 60px;
   display: flex;
   flex-direction: column;
@@ -93,7 +85,7 @@ main {
   margin: 0 auto;
 }
 
-.card {
+.lab .card{
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -103,9 +95,9 @@ main {
    reader's place. Browsers anchor the scroll position on their own too (Chrome,
    Firefox, Safari from 27), and two corrections for one change throw the reader
    somewhere else - so nothing on the page takes part in anchoring. */
-body { overflow-anchor: none; }
 
-.card h2 {
+
+.lab .card h2{
   margin: 0 0 14px;
   font-size: 15px;
   color: var(--text);
@@ -115,16 +107,16 @@ body { overflow-anchor: none; }
    never get long and stay open; the long list (Live Peer Ranking) has its own
    top-10 toggle. The arrow is drawn as a chevron: the old 11px glyph read as
    a dot. */
-details.card summary {
+.lab details.card summary{
   cursor: pointer;
   list-style: none;
   display: flex;
   align-items: center;
   gap: 12px;
 }
-details.card summary::-webkit-details-marker { display: none; }
-details.card summary h2 { margin: 0; flex: 1; }
-details.card summary::before {
+.lab details.card summary::-webkit-details-marker{ display: none; }
+.lab details.card summary h2{ margin: 0; flex: 1; }
+.lab details.card summary::before{
   content: '';
   flex: none;
   width: 7px;
@@ -135,21 +127,21 @@ details.card summary::before {
   transform: rotate(-45deg);
   transition: transform .15s ease;
 }
-details.card summary:hover::before { border-color: var(--text); }
-details.card[open] summary::before { transform: translateY(-2px) rotate(45deg); }
-details.card > *:not(summary) { margin-top: 14px; }
+.lab details.card summary:hover::before{ border-color: var(--text); }
+.lab details.card[open] summary::before{ transform: translateY(-2px) rotate(45deg); }
+.lab details.card > *:not(summary){ margin-top: 14px; }
 /* The panels that used to fold (Outbound, Manual, Rotation, Traffic) keep
    the spacing they had then. */
-.card.panel > h2 { margin-bottom: 0; }
-.card.panel > *:not(h2) { margin-top: 14px; }
+.lab .card.panel > h2{ margin-bottom: 0; }
+.lab .card.panel > *:not(h2){ margin-top: 14px; }
 
-.stat-grid {
+.lab .stat-grid{
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 10px;
 }
 
-.stat {
+.lab .stat{
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -158,26 +150,26 @@ details.card > *:not(summary) { margin-top: 14px; }
   overflow: hidden;
 }
 /* A colour strip along the foot of a tile: the group it counts. */
-.stat.s-inbound, .stat.s-outbound, .stat.s-manual { box-shadow: inset 0 -3px 0 var(--strip); }
-.stat.s-inbound { --strip: rgba(158,154,40,.6); }
-.stat.s-outbound { --strip: rgba(26,158,143,.6); }
-.stat.s-manual { --strip: rgba(57,135,229,.6); }
+.lab .stat.s-inbound, .lab .stat.s-outbound, .lab .stat.s-manual{ box-shadow: inset 0 -3px 0 var(--strip); }
+.lab .stat.s-inbound{ --strip: rgba(158,154,40,.6); }
+.lab .stat.s-outbound{ --strip: rgba(26,158,143,.6); }
+.lab .stat.s-manual{ --strip: rgba(57,135,229,.6); }
 
-.stat .n { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
-.stat .l { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.lab .stat .n{ font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.lab .stat .l{ font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
 
-.table-wrap { overflow-x: auto; position: relative; }
+.lab .table-wrap{ overflow-x: auto; position: relative; }
 
 /* The row carries the background, so the hover and highlight rules on cells
    paint over it. */
-.table-wrap table thead tr,
-.table-wrap table tbody tr { background: var(--panel); }
+.lab .table-wrap table thead tr,
+.lab .table-wrap table tbody tr{ background: var(--panel); }
 
 /* separate + border-spacing:0 rather than collapse - visually identical
    here, since every cell draws its own border-bottom below. */
-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.lab table{ width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
 
-th, td {
+.lab th, .lab td{
   text-align: left;
   padding: 9px 12px;
   border-bottom: 1px solid var(--border);
@@ -188,63 +180,63 @@ th, td {
    to blow up the whole table's width under auto layout, pushing every
    other column off-screen - cap these two specifically and rely on the
    title tooltip (set in app.js) for the full value instead. */
-td.cell-truncate {
+.lab td.cell-truncate{
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-th { color: var(--faint); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.lab th{ color: var(--faint); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
 
-tr:hover td { background: #17202a; }
+.lab tr:hover td{ background: #17202a; }
 /* A peer that can never deliver a block first: dimmed, and its First % cell
    says "never first" (firstPctCell). */
-tr.weak td { color: var(--muted); }
-.never { display: inline-block; vertical-align: middle; font-size: 10.5px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 5px; }
+.lab tr.weak td{ color: var(--muted); }
+.lab .never{ display: inline-block; vertical-align: middle; font-size: 10.5px; color: var(--muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 5px; }
 /* Before the client name: Disguised or LinkingLion in Peer Map's red (red is
    kept for that there too - orange is Bitcoin's and means something good
    here) (clientName). */
-.kind-tag { color: var(--muted); }
-.kind-tag.disg { color: var(--bad); }
-.lion-link { color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); }
+.lab .kind-tag{ color: var(--muted); }
+.lab .kind-tag.disg{ color: var(--bad); }
+.lab .lion-link{ color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); }
 
-.pill {
+.lab .pill{
   display: inline-block;
   padding: 2px 8px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
 }
-.pill.manual { background: rgba(57,135,229,.15); color: var(--manual); }
-.pill.inbound { background: rgba(158,154,40,.18); color: var(--inbound); }
-.pill.outbound { background: rgba(26,158,143,.15); color: var(--outbound); }
-.pill.umbrel { background: rgba(139,92,246,.15); color: var(--umbrel); }
-.pill.offline { background: rgba(138,153,168,.15); color: var(--muted); }
+.lab .pill.manual{ background: rgba(57,135,229,.15); color: var(--manual); }
+.lab .pill.inbound{ background: rgba(158,154,40,.18); color: var(--inbound); }
+.lab .pill.outbound{ background: rgba(26,158,143,.15); color: var(--outbound); }
+.lab .pill.umbrel{ background: rgba(139,92,246,.15); color: var(--umbrel); }
+.lab .pill.offline{ background: rgba(138,153,168,.15); color: var(--muted); }
 /* Software that passes no blocks on. Dimmed and labelled "never first" rather
    than recoloured: every hue in this table already means a connection type, and
    a fourth meaning on the same axis is one a colour-blind reader cannot
    separate - measured, not assumed. It is not a fault either; a wallet is doing
    what a wallet does, and the colour still says what kind of connection this is. */
-.pill.norelay { opacity: .7; }
+.lab .pill.norelay{ opacity: .7; }
 /* The manual slots' log: a peer the slot fill added is green, one added by
    hand the blue that means manual in both apps. A peer that went - offline,
    or disconnected by hand - is grey: nothing went wrong. */
-.pill.rotation-promote { background: rgba(63,185,80,.15); color: var(--good); }
-.pill.rotation-manual { background: rgba(57,135,229,.15); color: #6aa8f0; }
-.pill.rotation-retire { background: rgba(138,153,168,.15); color: var(--muted); }
-.pill.rotation-disconnect, .pill.rotation-unmanual { background: rgba(138,153,168,.15); color: var(--muted); }
+.lab .pill.rotation-promote{ background: rgba(63,185,80,.15); color: var(--good); }
+.lab .pill.rotation-manual{ background: rgba(57,135,229,.15); color: #6aa8f0; }
+.lab .pill.rotation-retire{ background: rgba(138,153,168,.15); color: var(--muted); }
+.lab .pill.rotation-disconnect, .lab .pill.rotation-unmanual{ background: rgba(138,153,168,.15); color: var(--muted); }
 
 /* The Add-a-Peer result line. "not reachable" is a perfectly good answer
    rather than an error - Test exists to produce it - so it is coloured as
    information, on its own line under the form instead of squeezed beside it
    where a full sentence had nowhere to go. */
-#manual-add-result { margin-top: 2px; }
-#manual-add-result:empty { display: none; }
-.result-ok { color: var(--good); }
-.result-error { color: var(--bad); }
+.lab #manual-add-result{ margin-top: 2px; }
+.lab #manual-add-result:empty{ display: none; }
+.lab .result-ok{ color: var(--good); }
+.lab .result-error{ color: var(--bad); }
 
 
-.inline-form {
+.lab .inline-form{
   display: flex;
   gap: 8px;
   align-items: center;
@@ -254,16 +246,16 @@ tr.weak td { color: var(--muted); }
 /* display: flex above would otherwise beat the hidden attribute: the "found
    on this Umbrel" note stayed on screen, without its text, after the pools
    were added. */
-.inline-form[hidden] { display: none; }
+.lab .inline-form[hidden]{ display: none; }
 /* A switch of a few choices, as on Peer Map's block card. */
-.rt-switch { display: inline-flex; gap: 2px; margin: 0 0 14px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; }
-.rt-switch button {
+.lab .rt-switch{ display: inline-flex; gap: 2px; margin: 0 0 14px; padding: 2px; border: 1px solid var(--border); border-radius: 999px; }
+.lab .rt-switch button{
   border: 0; background: none; color: var(--muted); font: inherit; font-size: 12px;
   padding: 3px 12px; border-radius: 999px; cursor: pointer;
 }
-.rt-switch button.on { background: #2c3b4a; color: var(--text); }
+.lab .rt-switch button.on{ background: #2c3b4a; color: var(--text); }
 
-.inline-form input {
+.lab .inline-form input{
   background: #0f151b;
   border: 1px solid var(--border);
   color: var(--text);
@@ -271,9 +263,9 @@ tr.weak td { color: var(--muted); }
   border-radius: 8px;
   font-size: 13px;
 }
-.inline-form input#pool-port { width: 90px; }
+.lab .inline-form input#pool-port{ width: 90px; }
 
-button {
+.lab button{
   background: var(--accent);
   color: #1a1200;
   border: none;
@@ -283,8 +275,8 @@ button {
   font-size: 13px;
   cursor: pointer;
 }
-button:hover { filter: brightness(1.1); }
-button.secondary {
+.lab button:hover{ filter: brightness(1.1); }
+.lab button.secondary{
   background: transparent;
   border: 1px solid var(--border);
   color: var(--text);
@@ -294,29 +286,29 @@ button.secondary {
 
 /* The storage panel. Both groups here delete data permanently, so the warning
    is a step of its own rather than a modal - it has room to say what goes. */
-.reset-group { margin: 0 0 22px; max-width: 72ch; }
-.reset-group:last-child { margin-bottom: 4px; }
-.reset-group p { margin: 0 0 10px; }
-.reset-confirm {
+.lab .reset-group{ margin: 0 0 22px; max-width: 72ch; }
+.lab .reset-group:last-child{ margin-bottom: 4px; }
+.lab .reset-group p{ margin: 0 0 10px; }
+.lab .reset-confirm{
   margin-top: 10px;
   padding: 12px 14px;
   border: 1px solid var(--bad);
   border-radius: 6px;
 }
-.reset-confirm p.warn { margin: 0 0 10px; font-size: 13px; color: var(--bad); }
-.reset-confirm button { margin-right: 8px; }
+.lab .reset-confirm p.warn{ margin: 0 0 10px; font-size: 13px; color: var(--bad); }
+.lab .reset-confirm button{ margin-right: 8px; }
 
-.hint { font-size: 12px; color: var(--muted); }
+.lab .hint{ font-size: 12px; color: var(--muted); }
 
 /* A checkbox with its label; the box itself is drawn as a switch further down. */
-.switch-label {
+.lab .switch-label{
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 13px;
   cursor: pointer;
 }
-.switch-label input[type="checkbox"] { cursor: pointer; }
+.lab .switch-label input[type="checkbox"]{ cursor: pointer; }
 
 /* What the switch above does, in the fewest words that still say it. Under the
    toggle rather than beside it: wedged in as a flex sibling of the label this
@@ -324,40 +316,40 @@ button.secondary {
    the row blank. A readable measure, and short sentences broken out as steps -
    one long paragraph with three asides in it is documentation, and this is a
    label on a switch. */
-.rotation-hint {
+.lab .rotation-hint{
   margin: 0 0 16px;
   font-size: 12px;
   line-height: 1.55;
   color: var(--muted);
 }
-.rotation-hint p { margin: 0; }
+.lab .rotation-hint p{ margin: 0; }
 /* Zero margin was fine while one paragraph sat above the list and one below.
    With two below, they ran together into a single wall of text. */
-.rotation-hint p + p { margin-top: 8px; }
-.rotation-hint ul { margin: 4px 0 8px; padding-left: 18px; }
-.rotation-hint li { margin: 2px 0; }
+.lab .rotation-hint p + p{ margin-top: 8px; }
+.lab .rotation-hint ul{ margin: 4px 0 8px; padding-left: 18px; }
+.lab .rotation-hint li{ margin: 2px 0; }
 /* The rules in full wait behind "How it works": read once, not on every
    visit (28.10.2026). */
-.how { margin-top: 6px; }
-.panel-note p { margin: 0; }
-.panel-note .how { margin-top: 0; }
-.how summary { display: inline-flex; align-items: center; gap: 6px; padding: 6px 0; cursor: pointer; list-style: none; color: var(--text); }
-.how summary::-webkit-details-marker { display: none; }
-.how summary::after { content: ""; width: 5px; height: 5px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: translateY(-2px) rotate(45deg); transition: transform .15s ease; }
-.how[open] summary::after { transform: translateY(1px) rotate(-135deg); }
-.how[open] > :not(summary) { animation: lab-in .18s ease-out; }
-@media (prefers-reduced-motion: reduce) { .how summary::after { transition: none; } .how[open] > :not(summary) { animation: none; } }
+.lab .how{ margin-top: 6px; }
+.lab .panel-note p{ margin: 0; }
+.lab .panel-note .how{ margin-top: 0; }
+.lab .how summary{ display: inline-flex; align-items: center; gap: 6px; padding: 6px 0; cursor: pointer; list-style: none; color: var(--text); }
+.lab .how summary::-webkit-details-marker{ display: none; }
+.lab .how summary::after{ content: ""; width: 5px; height: 5px; border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: translateY(-2px) rotate(45deg); transition: transform .15s ease; }
+.lab .how[open] summary::after{ transform: translateY(1px) rotate(-135deg); }
+.lab .how[open] > :not(summary){ animation: lab-in .18s ease-out; }
+@media (prefers-reduced-motion: reduce) { .lab .how summary::after{ transition: none; } .lab .how[open] > :not(summary){ animation: none; } }
 
-.rotation-log-table .col-time { width: 14%; }
-.rotation-log-table .col-rot-action { width: 14%; }
-.rotation-log-table .col-address { width: 26%; }
+.lab .rotation-log-table .col-time{ width: 14%; }
+.lab .rotation-log-table .col-rot-action{ width: 14%; }
+.lab .rotation-log-table .col-address{ width: 26%; }
 /* The note can be a sentence. Kept
    on one line it made this table about 900px wide, and as fitTables decides
    for all tables together, a laptop window of that width turned every panel
    into cards. It wraps instead - not cut with an ellipsis, as a tablet has
    no hover to show the rest. */
-.rotation-log-table td:last-child { white-space: normal; min-width: 12em; }
-.trophy { margin-left: 4px; } /* pool that won the single most recent race */
+.lab .rotation-log-table td:last-child{ white-space: normal; min-width: 12em; }
+.lab .trophy{ margin-left: 4px; } /* pool that won the single most recent race */
 
 /* Side by side, not stacked - stacking would double every row's height just
    to fit two buttons, which makes a wide table tiring to scan. Fits because
@@ -365,9 +357,9 @@ button.secondary {
    for it turns into cards instead. */
 /* A real table cell, so it grows with a two-line row and its border lines up;
    the slots sit in it side by side. */
-.row-actions { white-space: nowrap; }
-td.row-actions > * { display: inline-flex; vertical-align: middle; }
-td.row-actions > * + * { margin-left: 6px; }
+.lab .row-actions{ white-space: nowrap; }
+.lab td.row-actions > *{ display: inline-flex; vertical-align: middle; }
+.lab td.row-actions > * + *{ margin-left: 6px; }
 
 /* Each action cell renders a fixed two-slot layout (primary action, then
    Disconnect) with an empty placeholder - never an omitted element - for
@@ -376,25 +368,25 @@ td.row-actions > * + * { margin-left: 6px; }
    every row's slots starting at the same position regardless of which
    label (or none) occupies the first one. Font and padding come from the
    row-button rule further down. */
-.action-slot {
+.lab .action-slot{
   display: flex;
   align-items: center;
   justify-content: center;
   min-width: 78px;
   box-sizing: border-box;
 }
-span.action-slot { visibility: hidden; } /* reserves the height, shows nothing */
+.lab span.action-slot{ visibility: hidden; } /* reserves the height, shows nothing */
 /* An empty slot has no line of text, so it reserved the padding alone: a row
    with nothing to do (a local Umbrel app) was lower than the rest. A space
    gives it the button's line. */
-span.action-slot:empty::before { content: "\00a0"; }
+.lab span.action-slot:empty::before{ content: "\00a0"; }
 /* The first slot holds "Remove" in one row and "Add as Manual" in the next,
    so it is as wide as the longer one - otherwise Disconnect beside it jumps
    from row to row. In the Manual table it holds the lock, at its right edge,
    so Remove there stands under Disconnect too. */
-.row-actions > .action-slot:first-child { min-width: 112px; }
-span.action-slot.lock-slot { visibility: visible; justify-content: flex-end; background: none; border-color: transparent; }
-.lock-slot .keep-star { padding: 0; }
+.lab .row-actions > .action-slot:first-child{ min-width: 112px; }
+.lab span.action-slot.lock-slot{ visibility: visible; justify-content: flex-end; background: none; border-color: transparent; }
+.lab .lock-slot .keep-star{ padding: 0; }
 
 /* Manual Peers: unused capacity (below the app's manual-connection cap)
    rendered as actual empty rows at the bottom of the table, not just a
@@ -403,7 +395,7 @@ span.action-slot.lock-slot { visibility: visible; justify-content: flex-end; bac
    as every other row, just dashes in each column like any other empty
    cell in this app (see truncatedCell etc.) - a dashed box around the row
    read as much heavier/busier than the empty state warranted. */
-tr.empty-slot td { color: var(--muted); }
+.lab tr.empty-slot td{ color: var(--muted); }
 
 /* Live Peer Ranking, Outbound Peers, and Manual Peers all render the exact
    same column set in the exact same order (see the shared .col-* classes
@@ -411,7 +403,7 @@ tr.empty-slot td { color: var(--muted); }
    fixed layout with matching widths per column is what makes Address,
    Actions etc. actually line up vertically across the three panels instead
    of each table silently sizing its own columns from its own content. */
-table.peer-table {
+.lab table.peer-table{
   table-layout: fixed;
   /* Without a floor, table-layout:fixed + width:100% means the columns shrink
      with the window instead of the wrapper scrolling: .table-wrap's overflow-x
@@ -424,18 +416,18 @@ table.peer-table {
 /* The scroll containers are reachable by keyboard - at narrow widths they are
    the only way to see the right-hand columns, and a div that scrolls but
    cannot be focused is unusable without a mouse. */
-.table-wrap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lab .table-wrap:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Short, static guidance under a panel heading. */
-.panel-note {
+.lab .panel-note{
   margin: -4px 0 14px;
   font-size: 12px;
   line-height: 1.55;
   color: var(--muted);
 }
-.panel-note strong { color: var(--text); font-weight: 600; }
-.col-address { width: 16%; }
-.col-client { width: 10%; }
+.lab .panel-note strong{ color: var(--text); font-weight: 600; }
+.lab .col-address{ width: 16%; }
+.lab .col-client{ width: 10%; }
 /* As wide as the longest pill, "MANUAL OFFLINE" (115px), needs - "BLOCK RELAY"
    and "MANUAL LIVE" need real room too, which is exactly what was
    missing before (the pill visibly ran into First Seen %). overflow:hidden
@@ -443,32 +435,32 @@ table.peer-table {
    and (via the same class on its <td>, see app.js) the data cell, so even
    a future longer status value clips instead of spilling into the next
    column again. */
-.col-status { width: 140px; overflow: hidden; text-overflow: ellipsis; }
-.col-pct { width: 12%; }
-.col-ping { width: 6%; }
+.lab .col-status{ width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.lab .col-pct{ width: 12%; }
+.lab .col-ping{ width: 6%; }
 /* As wide as "99d 23h" needs. An offline peer shows only how long, since its
    OFFLINE pill says the rest. */
-.col-session { width: 78px; }
-.col-sessions { width: 5%; }
+.lab .col-session{ width: 78px; }
+.lab .col-sessions{ width: 5%; }
 /* Wide enough for "Add as Manual" and "Disconnect" side by side (see
    .row-actions). */
-.col-actions { width: 19%; }
+.lab .col-actions{ width: 19%; }
 /* Nudged off the shared 10px th padding - the column is wide (room for two
    buttons) and the plain padding left the label sitting noticeably left of
    where the buttons actually start. */
-th.col-actions { padding-left: 20px; }
+.lab th.col-actions{ padding-left: 20px; }
 
 /* Hero: current chain height, pulses via .bump when a new block lands */
-.hero-card { padding: 0; background: none; border: 0; }
+.lab .hero-card{ padding: 0; background: none; border: 0; }
 
-.hero-grid {
+.lab .hero-grid{
   display: grid;
   grid-template-columns: 2fr repeat(4, minmax(0, 1fr));
   align-items: stretch;
   gap: 10px;
 }
 
-.hero-stat {
+.lab .hero-stat{
   min-width: 0;
   padding: 12px 14px;
   border-radius: 14px;
@@ -476,14 +468,14 @@ th.col-actions { padding-left: 20px; }
   background: radial-gradient(120% 140% at 0% 0%, rgba(247,147,26,.16), transparent 60%), var(--panel);
 }
 
-.hero-l {
+.lab .hero-l{
   font-size: 11px;
   color: var(--faint);
   text-transform: uppercase;
   letter-spacing: .05em;
 }
 
-.hero-n {
+.lab .hero-n{
   font-size: 34px;
   font-weight: 700;
   color: var(--accent);
@@ -494,7 +486,7 @@ th.col-actions { padding-left: 20px; }
 }
 
 /* A glow that comes and goes with a new block. It used to come and stay. */
-.hero-n.bump { animation: height-bump 2.4s ease-out; }
+.lab .hero-n.bump{ animation: height-bump 2.4s ease-out; }
 @keyframes height-bump {
   15% { text-shadow: 0 0 18px rgba(247, 147, 26, .85); }
   100% { text-shadow: none; }
@@ -506,32 +498,32 @@ th.col-actions { padding-left: 20px; }
 /* Quiet by design: the height is the number, this is a footnote to it. The
    raw variant is what the miner wrote about himself rather than a pool we
    know, so it reads as a quotation and not as a name. */
-.hero-sub {
+.lab .hero-sub{
   font-size: 13px;
   color: var(--muted);
   margin-top: 2px;
   overflow-wrap: anywhere;
 }
-.hero-sub b { color: var(--text); font-weight: 600; }
-.hero-sub.raw b { font-style: italic; }
+.lab .hero-sub b{ color: var(--text); font-weight: 600; }
+.lab .hero-sub.raw b{ font-style: italic; }
 /* A miner's own text stays on one line and ends in … only where it is too long. */
-.hero-sub.raw { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lab .hero-sub.raw{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.hero-n.waiting {
+.lab .hero-n.waiting{
   font-size: 15px;
   font-weight: 400;
   color: var(--muted);
   line-height: 1.6;
 }
 
-.hero-grid .stat-grid { display: contents; }
+.lab .hero-grid .stat-grid{ display: contents; }
 
 /* Status toast for peer/pool row actions (add-manual, remove, disconnect,
    pool add/remove) - gives an explicit, visible outcome for every button
    click instead of the row just silently changing (or not) on the next
    table refresh, which is easy to miss if you're not watching the exact
    panel a peer moved to/from. */
-.action-toast {
+.lab .action-toast{
   position: fixed;
   top: 16px;
   right: 16px;
@@ -549,17 +541,17 @@ th.col-actions { padding-left: 20px; }
 /* A phone is narrower than the toast: right-aligned at 420 px it began left
    of the screen and the start of its message was cut off (10.11.2026). */
 @media (max-width: 480px) {
-  .action-toast { left: 16px; right: 16px; max-width: none; }
+  .lab .action-toast{ left: 16px; right: 16px; max-width: none; }
 }
-.action-toast { overflow-wrap: anywhere; }
-.action-toast.pending { color: var(--muted); border-color: var(--border); }
-.action-toast.success { border-color: var(--good); color: var(--good); }
-.action-toast.error { border-color: var(--bad); color: var(--bad); }
+.lab .action-toast{ overflow-wrap: anywhere; }
+.lab .action-toast.pending{ color: var(--muted); border-color: var(--border); }
+.lab .action-toast.success{ border-color: var(--good); color: var(--good); }
+.lab .action-toast.error{ border-color: var(--bad); color: var(--bad); }
 
 /* Shown only when a background service stops sending heartbeats. Those three
    processes have no UI of their own, so without this a stopped collector just
    looks like a node that happens to be quiet. */
-.service-banner {
+.lab .service-banner{
   margin-bottom: 16px;
   padding: 10px 14px;
   border-radius: 8px;
@@ -571,7 +563,7 @@ th.col-actions { padding-left: 20px; }
 }
 
 /* Full-screen orange wave that rolls across on a new block */
-.block-wave {
+.lab .block-wave{
   position: fixed;
   inset: 0;
   z-index: 999;
@@ -593,7 +585,7 @@ th.col-actions { padding-left: 20px; }
    fades only once it is out: eased, it crossed the left half in a flash and
    faded before it reached the right, on a phone a blink at the left edge
    (05.11.2026). Peer Map's wave is the same. */
-.block-wave.roll {
+.lab .block-wave.roll{
   animation: block-wave-roll 1.4s linear;
 }
 
@@ -604,7 +596,7 @@ th.col-actions { padding-left: 20px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .block-wave.roll { animation: none; }
+  .lab .block-wave.roll{ animation: none; }
 }
 
 /* Row of the peer(s) that delivered the newest block first - fades in,
@@ -614,19 +606,19 @@ th.col-actions { padding-left: 20px; }
    address in green, the same as in Peer Map. Only the address - near the top
    of the ranking almost every row has delivered, and whole green rows were a
    lot of colour for one bit. */
-.table-wrap table tbody tr.row-first-block {
+.lab .table-wrap table tbody tr.row-first-block{
   background: rgba(247, 147, 26, .22);
   transition: background 1.2s ease;
 }
-tr.row-delivered > td:first-child, tr.row-delivered > td:first-child a.peer-jump { color: #56d364; }
-.table-wrap table tbody tr.row-first-block:hover { background: rgba(247, 147, 26, .3); }
-.table-wrap table tbody tr.row-first-block:hover td { background: none; }
+.lab tr.row-delivered > td:first-child, .lab tr.row-delivered > td:first-child a.peer-jump{ color: #56d364; }
+.lab .table-wrap table tbody tr.row-first-block:hover{ background: rgba(247, 147, 26, .3); }
+.lab .table-wrap table tbody tr.row-first-block:hover td{ background: none; }
 
 /* The keep lock in the Manual Peers table. Both the state and the switch:
    the padlock means the rotation leaves this peer alone. Open, it is only a
    faint shadow of the closed one - there to be found and tapped, not to be
    read as locked; on hover or keyboard focus it gets a little stronger. */
-.keep-star {
+.lab .keep-star{
   background: none;
   border: 0;
   padding: 0 8px 0 0;
@@ -637,22 +629,22 @@ tr.row-delivered > td:first-child, tr.row-delivered > td:first-child a.peer-jump
   transition: opacity .15s ease;
 }
 
-.keep-star:hover,
-.keep-star:focus-visible {
+.lab .keep-star:hover,
+.lab .keep-star:focus-visible{
   opacity: .45;
 }
 
-.keep-star.on {
+.lab .keep-star.on{
   opacity: 1;
 }
 
-.keep-star:disabled {
+.lab .keep-star:disabled{
   cursor: default;
 }
 
 /* Visible to screen readers only - the lock needs a real name, and the title
    attribute alone is not reliably announced. */
-.sr-only {
+.lab .sr-only{
   position: absolute;
   width: 1px;
   height: 1px;
@@ -666,270 +658,270 @@ tr.row-delivered > td:first-child, tr.row-delivered > td:first-child a.peer-jump
 
 /* Traffic card: three tiles, then the bars. Up is the bar colour, down is
    blue, so the arrows are the legend. */
-.traffic-totals { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 4px 0 6px; font-variant-numeric: tabular-nums; }
-.traffic-totals .t { background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
-.traffic-totals .l { font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
-.traffic-totals .v { font-size: 15px; font-weight: 600; margin-top: 2px; }
-.traffic-totals .up { color: var(--accent); }
-.traffic-totals .down { color: #58a6ff; margin-left: 8px; }
-.traffic-totals .hint { grid-column: 1 / -1; }
+.lab .traffic-totals{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 4px 0 6px; font-variant-numeric: tabular-nums; }
+.lab .traffic-totals .t{ background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+.lab .traffic-totals .l{ font-size: 11px; color: var(--faint); text-transform: uppercase; letter-spacing: .05em; }
+.lab .traffic-totals .v{ font-size: 15px; font-weight: 600; margin-top: 2px; }
+.lab .traffic-totals .up{ color: var(--accent); }
+.lab .traffic-totals .down{ color: #58a6ff; margin-left: 8px; }
+.lab .traffic-totals .hint{ grid-column: 1 / -1; }
 /* An amount and its unit stay together: "GB" alone on a line read as a typo. */
-.traffic-totals .v span { white-space: nowrap; display: inline-block; }
-.traffic-chart { margin-bottom: 10px; }
-.traffic-chart svg { display: block; width: 100%; height: auto; }
-.traffic-chart .sent { fill: url(#traffic-sent); }
-.traffic-chart .recv { fill: #58a6ff; opacity: .8; }
-.traffic-chart .axis { fill: var(--faint); font-size: 11px; }
-.traffic-chart .grid { stroke: #1a2430; stroke-width: 1; }
+.lab .traffic-totals .v span{ white-space: nowrap; display: inline-block; }
+.lab .traffic-chart{ margin-bottom: 10px; }
+.lab .traffic-chart svg{ display: block; width: 100%; height: auto; }
+.lab .traffic-chart .sent{ fill: url(#traffic-sent); }
+.lab .traffic-chart .recv{ fill: #58a6ff; opacity: .8; }
+.lab .traffic-chart .axis{ fill: var(--faint); font-size: 11px; }
+.lab .traffic-chart .grid{ stroke: #1a2430; stroke-width: 1; }
 @media (max-width: 600px) {
-  .traffic-totals { grid-template-columns: 1fr; }
+  .lab .traffic-totals{ grid-template-columns: 1fr; }
   /* iPhone Safari zooms into any field with text under 16px when it is tapped,
      and leaves the page zoomed. */
-  input, select { font-size: 16px; }
+  .lab input, .lab select{ font-size: 16px; }
 }
 
 /* A tight table gives up its least important columns first (fitTables sets
    data-drops on the wrapper, data-drop on the cells). The peer tables' floor
    comes down with each step, so the columns that stay keep their room. */
-.table-wrap[data-drops="1"] [data-drop="1"],
-.table-wrap[data-drops="2"] [data-drop="1"], .table-wrap[data-drops="2"] [data-drop="2"],
-.table-wrap[data-drops="3"] [data-drop]:not([data-drop="4"]),
-.table-wrap[data-drops="4"] [data-drop] { display: none; }
+.lab .table-wrap[data-drops="1"] [data-drop="1"],
+.lab .table-wrap[data-drops="2"] [data-drop="1"], .lab .table-wrap[data-drops="2"] [data-drop="2"],
+.lab .table-wrap[data-drops="3"] [data-drop]:not([data-drop="4"]),
+.lab .table-wrap[data-drops="4"] [data-drop]{ display: none; }
 /* The two buttons need their width whatever the table's: as a share of a
    narrower table they no longer fit side by side. */
-.table-wrap[data-drops]:not([data-drops="0"]) table.peer-table th.col-actions { width: 19%; }
-.table-wrap[data-drops]:not([data-drops="0"]) table.peer-table th.col-ping { width: 72px; }
+.lab .table-wrap[data-drops]:not([data-drops="0"]) table.peer-table th.col-actions{ width: 19%; }
+.lab .table-wrap[data-drops]:not([data-drops="0"]) table.peer-table th.col-ping{ width: 72px; }
 /* The type pill too: 15% of a narrower table cut "BLOCK RELAY" short (iPad). */
-.table-wrap[data-drops]:not([data-drops="0"]) table.peer-table th.col-status { width: 140px; }
-.table-wrap[data-drops]:not([data-drops="0"]) table.peer-table th.col-pct { width: 140px; white-space: normal; }
+.lab .table-wrap[data-drops]:not([data-drops="0"]) table.peer-table th.col-status{ width: 140px; }
+.lab .table-wrap[data-drops]:not([data-drops="0"]) table.peer-table th.col-pct{ width: 140px; white-space: normal; }
 /* "First % (lifetime)" folds onto two lines before the note does. */
-.table-wrap[data-drops="1"]:not(.cards) table.peer-table { min-width: 800px; }
-.table-wrap[data-drops="2"]:not(.cards) table.peer-table { min-width: 740px; }
-.table-wrap[data-drops="3"]:not(.cards) table.peer-table { min-width: 680px; }
-.table-wrap[data-drops="4"]:not(.cards) table.peer-table { min-width: 540px; }
+.lab .table-wrap[data-drops="1"]:not(.cards) table.peer-table{ min-width: 800px; }
+.lab .table-wrap[data-drops="2"]:not(.cards) table.peer-table{ min-width: 740px; }
+.lab .table-wrap[data-drops="3"]:not(.cards) table.peer-table{ min-width: 680px; }
+.lab .table-wrap[data-drops="4"]:not(.cards) table.peer-table{ min-width: 540px; }
 /* The last step before cards: the client as a second line under the address
    (app.js, withClientLine), and the two buttons one above the other - the
    red one below, where it is in every row. */
-.addr-client { display: none; }
+.lab .addr-client{ display: none; }
 /* The raw user agent, on an opened card only (withClientLine). */
-.addr-client .ua-raw { display: none; }
-tr.open .addr-client .ua-raw { display: block; white-space: normal; overflow-wrap: anywhere; }
+.lab .addr-client .ua-raw{ display: none; }
+.lab tr.open .addr-client .ua-raw{ display: block; white-space: normal; overflow-wrap: anywhere; }
 /* On a touch screen the way over to Peer Map, inside the opened card. */
-.map-open { display: none; }
-tr.open .map-open { display: inline-block; max-width: 100%; box-sizing: border-box; margin-top: 8px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border); color: var(--text); font-size: 13px; text-decoration: none; white-space: nowrap; }
+.lab .map-open{ display: none; }
+.lab tr.open .map-open{ display: inline-block; max-width: 100%; box-sizing: border-box; margin-top: 8px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border); color: var(--text); font-size: 13px; text-decoration: none; white-space: nowrap; }
 /* Opened, the line is whole: the name and its reasons, however long. */
-.table-wrap[data-drops] tr.open .addr-client { white-space: normal; overflow: visible; }
-.addr-place { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.addr-place .flag { margin-right: 6px; }
-.manual-spread { margin: -4px 0 10px; }
-.table-wrap[data-drops="4"] .addr-client { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.table-wrap[data-drops="4"]:not(.cards) td.row-actions { white-space: normal; }
-.table-wrap[data-drops="4"]:not(.cards) td.row-actions > * { display: flex; width: 112px; margin-left: auto; }
-.table-wrap[data-drops="4"]:not(.cards) td.row-actions > * + * { margin-top: 6px; }
+.lab .table-wrap[data-drops] tr.open .addr-client{ white-space: normal; overflow: visible; }
+.lab .addr-place{ display: block; margin-top: 2px; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lab .addr-place .flag{ margin-right: 6px; }
+.lab .manual-spread{ margin: -4px 0 10px; }
+.lab .table-wrap[data-drops="4"] .addr-client{ display: block; margin-top: 2px; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lab .table-wrap[data-drops="4"]:not(.cards) td.row-actions{ white-space: normal; }
+.lab .table-wrap[data-drops="4"]:not(.cards) td.row-actions > *{ display: flex; width: 112px; margin-left: auto; }
+.lab .table-wrap[data-drops="4"]:not(.cards) td.row-actions > * + *{ margin-top: 6px; }
 
 /* Still too wide (a phone): each row becomes a small card. The name on top,
    then the values in a grid of equal cells - the column's name small above
    each value - so every card lines up with the next instead of wrapping
    wherever a line runs out. The buttons share the last row. Nothing scrolls
    sideways (see fitTables in app.js). */
-.table-wrap.cards { overflow-x: visible; }
-.table-wrap.cards table, .table-wrap.cards tbody { display: block; min-width: 0; }
-.table-wrap.cards thead { display: none; }
-.cards.cards table tr {
+.lab .table-wrap.cards{ overflow-x: visible; }
+.lab .table-wrap.cards table, .lab .table-wrap.cards tbody{ display: block; min-width: 0; }
+.lab .table-wrap.cards thead{ display: none; }
+.lab .cards.cards table tr{
   display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); align-items: end;
   gap: 8px 12px; padding: 12px 14px; border-bottom: 1px solid var(--border);
 }
-.cards.cards table tr td {
+.lab .cards.cards table tr td{
   display: block; padding: 0; border: 0; width: auto; max-width: 100%; min-width: 0;
   position: static; box-shadow: none; background: none;
 }
 /* Values end in an ellipsis rather than spill into the next cell; the buttons
    are left alone, so their focus ring is not cut off. */
-.cards.cards table tr td:not(.row-actions) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cards.cards table tr td:first-child,
-.cards.cards table tr td[data-col="col-address"],
-.cards.cards table tr td[data-col="col-actions"],
-.cards.cards table tr td[data-label=""] { grid-column: 1 / -1; }
-.cards.cards table tr td[data-col="col-client"] { grid-column: span 2; color: var(--muted); }
+.lab .cards.cards table tr td:not(.row-actions){ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lab .cards.cards table tr td:first-child,
+.lab .cards.cards table tr td[data-col="col-address"],
+.lab .cards.cards table tr td[data-col="col-actions"],
+.lab .cards.cards table tr td[data-label=""]{ grid-column: 1 / -1; }
+.lab .cards.cards table tr td[data-col="col-client"]{ grid-column: span 2; color: var(--muted); }
 /* Cards are measured by their own width, not the screen's. */
-.table-wrap.cards { container: cards / inline-size; }
+.lab .table-wrap.cards{ container: cards / inline-size; }
 /* A peer card has two rows, the same in every list: address and first %
    above, type and buttons below. First % and the buttons share the right
    column and start at the same edge, so the eye finds both in one place on
    every card. Ping went with the last drop; it is not what the card is about. */
-.cards.cards table.peer-table tr { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
-.cards.cards table.peer-table td[data-col="col-address"] { grid-column: 1; grid-row: 1; }
-.cards.cards table.peer-table td[data-col="col-pct"] { grid-column: 2; grid-row: 1; min-width: 132px; }
-.cards.cards table.peer-table td[data-col="col-status"] { grid-column: 1; grid-row: 2; }
-.cards.cards table.peer-table td.row-actions { grid-column: 2; grid-row: 2; justify-content: flex-start; position: relative; }
+.lab .cards.cards table.peer-table tr{ grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.lab .cards.cards table.peer-table td[data-col="col-address"]{ grid-column: 1; grid-row: 1; }
+.lab .cards.cards table.peer-table td[data-col="col-pct"]{ grid-column: 2; grid-row: 1; min-width: 132px; }
+.lab .cards.cards table.peer-table td[data-col="col-status"]{ grid-column: 1; grid-row: 2; }
+.lab .cards.cards table.peer-table td.row-actions{ grid-column: 2; grid-row: 2; justify-content: flex-start; position: relative; }
 /* The empty slot keeps a table's columns in line; on a card it would only push
    the buttons apart. Buttons a little tighter, so two fit beside the type. */
-.cards.cards table.peer-table td.row-actions > span.action-slot:not(.lock-slot) { display: none; }
+.lab .cards.cards table.peer-table td.row-actions > span.action-slot:not(.lock-slot){ display: none; }
 /* Every peer card one height (09.11.2026): the first line one line-height
    whether it is a link, "Tor peer" or a local app's name, which keeps to one
    line here like an address; the ⚡ beside a First % no taller than the
    digits. */
-.cards.cards table.peer-table td.hint[data-col="col-address"] { white-space: nowrap; }
-.cards.cards table.peer-table td[data-col="col-address"] { line-height: 18px; }
-.cards.cards table.peer-table td[data-col="col-address"] small { line-height: 16px; }
-.cards.cards table.peer-table td[data-col="col-pct"] .hb { line-height: 1; }
-.cards.cards table.peer-table td.row-actions > .action-slot { min-width: 0; padding: 5px 6px; }
+.lab .cards.cards table.peer-table td.hint[data-col="col-address"]{ white-space: nowrap; }
+.lab .cards.cards table.peer-table td[data-col="col-address"]{ line-height: 18px; }
+.lab .cards.cards table.peer-table td[data-col="col-address"] small{ line-height: 16px; }
+.lab .cards.cards table.peer-table td[data-col="col-pct"] .hb{ line-height: 1; }
+.lab .cards.cards table.peer-table td.row-actions > .action-slot{ min-width: 0; padding: 5px 6px; }
 /* Two buttons beside BLOCK RELAY on a 390 px phone: the last pixels come from
    a narrower gap and a tighter pill, not from smaller text. */
-.cards.cards table.peer-table tr { column-gap: 8px; padding-left: 10px; padding-right: 10px; }
-.cards.cards table.peer-table td[data-col="col-status"] .pill { letter-spacing: .03em; }
+.lab .cards.cards table.peer-table tr{ column-gap: 8px; padding-left: 10px; padding-right: 10px; }
+.lab .cards.cards table.peer-table td[data-col="col-status"] .pill{ letter-spacing: .03em; }
 /* Big enough for a finger: Remove and Disconnect have consequences. */
-.cards.cards table.peer-table td.row-actions > button.action-slot { min-height: 34px; }
+.lab .cards.cards table.peer-table td.row-actions > button.action-slot{ min-height: 34px; }
 /* The lock stands in the row, in front of Remove: hung outside the card's
    edge it was cut off by the card on a phone. */
-.cards.cards #manual-peer-table .lock-slot { padding: 0 4px 0 0; }
+.lab .cards.cards #manual-peer-table .lock-slot{ padding: 0 4px 0 0; }
 /* The buttons take the whole second row and end at the right edge, one or
    two of them: the red one stands in the same place on every card, and two
    buttons no longer push first % left and cut the address short. */
-.cards.cards table.peer-table td.row-actions { grid-column: 1 / -1; justify-content: flex-end; }
+.lab .cards.cards table.peer-table td.row-actions{ grid-column: 1 / -1; justify-content: flex-end; }
 /* On the narrowest phones two buttons do not fit beside the type: they get
    the second row to themselves, still ending at the right - on an opened
    card, where they show. A closed card kept the empty row, and was taller
    than the rest. */
 @container cards (max-width: 289px) {
-  .cards.cards table.peer-table tr.open:has(td.row-actions > button + button) td.row-actions { grid-column: 1 / -1; grid-row: 3; justify-content: flex-end; }
-  .cards.cards table.peer-table td[data-col="col-pct"] { min-width: 96px; }
+  .lab .cards.cards table.peer-table tr.open:has(td.row-actions > button + button) td.row-actions{ grid-column: 1 / -1; grid-row: 3; justify-content: flex-end; }
+  .lab .cards.cards table.peer-table td[data-col="col-pct"]{ min-width: 96px; }
 }
 /* First % is the point of the card: when its cell gets too narrow, the count
    (312/500) goes and the share and the bolt stay - never cut off. */
-.cards.cards table.peer-table td[data-col="col-pct"] { container-type: inline-size; }
-@container (max-width: 125px) { .cards.cards table.peer-table td[data-col="col-pct"] .cnt { display: none; } }
+.lab .cards.cards table.peer-table td[data-col="col-pct"]{ container-type: inline-size; }
+@container (max-width: 125px) { .lab .cards.cards table.peer-table td[data-col="col-pct"] .cnt{ display: none; } }
 /* With ⚡ or 📡 the app measures each card (fitPct): too tight, its count goes. */
-.cards.cards table.peer-table td[data-col="col-pct"].tight .cnt { display: none; }
+.lab .cards.cards table.peer-table td[data-col="col-pct"].tight .cnt{ display: none; }
 /* The pools likewise: wins, win %, avg in one row; enabled and remove under it. */
-.cards.cards #pool-table tr { grid-template-columns: minmax(0, .6fr) repeat(3, minmax(0, 1fr)); }
-.cards.cards #pool-table tr td[data-label=""]:last-child { grid-column: auto; }
+.lab .cards.cards #pool-table tr{ grid-template-columns: minmax(0, .6fr) repeat(3, minmax(0, 1fr)); }
+.lab .cards.cards #pool-table tr td[data-label=""]:last-child{ grid-column: auto; }
 /* The Remove button keeps its whole border: the cell is narrow at 320 px. */
-.cards.cards #pool-table tr td:last-child { overflow: visible; }
-.cards.cards table tr td[data-label]:not([data-label=""]):not(:first-child):not([data-col="col-address"]):not([data-col="col-client"]):not([data-col="col-status"]):not([data-col="col-actions"])::before {
+.lab .cards.cards #pool-table tr td:last-child{ overflow: visible; }
+.lab .cards.cards table tr td[data-label]:not([data-label=""]):not(:first-child):not([data-col="col-address"]):not([data-col="col-client"]):not([data-col="col-status"]):not([data-col="col-actions"])::before{
   content: attr(data-label); display: block; margin-bottom: 2px;
   color: var(--muted); font-size: 10px; letter-spacing: .05em; text-transform: uppercase;
 }
-.cards.cards tr.row-first-block { background: rgba(247, 147, 26, .22); }
-.cards.cards tr.row-focus { background: rgba(247,147,26,.10); box-shadow: inset 3px 0 0 var(--accent); }
-.cards.cards tr.empty-slot td { display: none; }
-.cards.cards tr.empty-slot::before { content: "Free slot"; color: var(--muted); font-size: 12px; }
-.cards.cards table tr td.row-actions { display: flex; gap: 6px; }
-.cards.cards table tr td.row-actions > * + * { margin-left: 0; }
+.lab .cards.cards tr.row-first-block{ background: rgba(247, 147, 26, .22); }
+.lab .cards.cards tr.row-focus{ background: rgba(247,147,26,.10); box-shadow: inset 3px 0 0 var(--accent); }
+.lab .cards.cards tr.empty-slot td{ display: none; }
+.lab .cards.cards tr.empty-slot::before{ content: "Free slot"; color: var(--muted); font-size: 12px; }
+.lab .cards.cards table tr td.row-actions{ display: flex; gap: 6px; }
+.lab .cards.cards table tr td.row-actions > * + *{ margin-left: 0; }
 
 /* The rotation log's note is a sentence: on its own line, wrapping. */
-.cards.cards table tr td.hint { grid-column: 1 / -1; white-space: normal; }
+.lab .cards.cards table tr td.hint{ grid-column: 1 / -1; white-space: normal; }
 /* The log is a log, not a table to compare: no labels, three lines - what
    and when, the address, then where and why in one grey line. */
-.log-card-line { display: none; }
-.cards.cards #rotation-log-table tr { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; padding: 10px 14px; }
-.cards.cards #rotation-log-table tr td[data-label]::before { content: none; }
-.cards.cards #rotation-log-table tr td:nth-child(2) { grid-column: 1; grid-row: 1; }
-.cards.cards #rotation-log-table tr td:first-child { grid-column: 2; grid-row: 1; justify-self: end; font-size: 12px; }
-.cards.cards #rotation-log-table tr td:nth-child(3) { grid-column: 1 / -1; grid-row: 2; }
-.cards.cards #rotation-log-table tr td:nth-child(4),
-.cards.cards #rotation-log-table .addr-place { display: none; }
-.cards.cards #rotation-log-table .log-card-line { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); white-space: normal; }
-.cards.cards #rotation-log-table .log-card-line > span { white-space: nowrap; }
-.cards.cards #rotation-log-table .log-card-line .flag { margin-right: 6px; }
-.cards.cards #rotation-log-table tr td[colspan] { grid-column: 1 / -1; grid-row: auto; justify-self: stretch; }
+.lab .log-card-line{ display: none; }
+.lab .cards.cards #rotation-log-table tr{ grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; padding: 10px 14px; }
+.lab .cards.cards #rotation-log-table tr td[data-label]::before{ content: none; }
+.lab .cards.cards #rotation-log-table tr td:nth-child(2){ grid-column: 1; grid-row: 1; }
+.lab .cards.cards #rotation-log-table tr td:first-child{ grid-column: 2; grid-row: 1; justify-self: end; font-size: 12px; }
+.lab .cards.cards #rotation-log-table tr td:nth-child(3){ grid-column: 1 / -1; grid-row: 2; }
+.lab .cards.cards #rotation-log-table tr td:nth-child(4),
+.lab .cards.cards #rotation-log-table .addr-place{ display: none; }
+.lab .cards.cards #rotation-log-table .log-card-line{ display: block; margin-top: 2px; font-size: 12px; color: var(--muted); white-space: normal; }
+.lab .cards.cards #rotation-log-table .log-card-line > span{ white-space: nowrap; }
+.lab .cards.cards #rotation-log-table .log-card-line .flag{ margin-right: 6px; }
+.lab .cards.cards #rotation-log-table tr td[colspan]{ grid-column: 1 / -1; grid-row: auto; justify-self: stretch; }
 
 /* ---- V2 design ---- */
 
 /* Tiles: the label on top, the number under it; the block height twice as
    wide as a count, with who mined it. */
-.stat .s { font-size: 12px; color: var(--muted); }
+.lab .stat .s{ font-size: 12px; color: var(--muted); }
 @media (max-width: 900px) {
-  .hero-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .hero-stat { grid-column: 1 / -1; }
+  .lab .hero-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lab .hero-stat{ grid-column: 1 / -1; }
 }
 
 /* Headings: what follows the name is quiet, not bold. */
-.card h2 .hint, details.card summary h2 .hint { font-weight: 400; font-size: 13px; margin-left: 4px; }
-.card h3 { font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
-.card h3 .hint { font-weight: 400; margin-left: 4px; }
+.lab .card h2 .hint, .lab details.card summary h2 .hint{ font-weight: 400; font-size: 13px; margin-left: 4px; }
+.lab .card h3{ font-size: 13px; font-weight: 600; margin: 14px 0 6px; }
+.lab .card h3 .hint{ font-weight: 400; margin-left: 4px; }
 
 /* Tables */
-td { border-bottom-color: var(--row); }
-td.client { color: var(--muted); font-size: 12.5px; }
-td .pct { font-weight: 600; }
-td .cnt { color: var(--faint); font-size: 12px; margin-left: 4px; }
+.lab td{ border-bottom-color: var(--row); }
+.lab td.client{ color: var(--muted); font-size: 12.5px; }
+.lab td .pct{ font-weight: 600; }
+.lab td .cnt{ color: var(--faint); font-size: 12px; margin-left: 4px; }
 
 /* Buttons in rows: smaller than a form button, the destructive ones tinted red. */
-.action-slot, table button.secondary { font-size: 12px; font-weight: 500; padding: 5px 9px; border-radius: 7px; background: #1b2531; border: 1px solid var(--border); color: var(--text); }
-.row-actions > .action-slot:last-child { min-width: 92px; }
-button.danger, table button.secondary.danger, .action-slot[data-action="disconnect"] { color: #e5534b; background: rgba(248,81,73,.08); border-color: rgba(229,83,75,.4); }
+.lab .action-slot, .lab table button.secondary{ font-size: 12px; font-weight: 500; padding: 5px 9px; border-radius: 7px; background: #1b2531; border: 1px solid var(--border); color: var(--text); }
+.lab .row-actions > .action-slot:last-child{ min-width: 92px; }
+.lab button.danger, .lab table button.secondary.danger, .lab .action-slot[data-action="disconnect"]{ color: #e5534b; background: rgba(248,81,73,.08); border-color: rgba(229,83,75,.4); }
 /* "Add as Manual" in the blue that means manual everywhere in both apps - red removes, blue adds. Laid over the
    panel colour so it reads the same on a plain, green or orange row. */
-.action-slot[data-action="add-manual"] { color: #6aa8f0; background: linear-gradient(rgba(57,135,229,.12), rgba(57,135,229,.12)), var(--panel); border-color: rgba(57,135,229,.55); }
+.lab .action-slot[data-action="add-manual"]{ color: #6aa8f0; background: linear-gradient(rgba(57,135,229,.12), rgba(57,135,229,.12)), var(--panel); border-color: rgba(57,135,229,.55); }
 /* On a green or orange row the see-through red mixes into pink; laid over the
    panel colour instead, it is the same red as on a plain row. */
-tr:is(.row-delivered, .row-first-block, .row-focus) :is(button.danger, .action-slot[data-action="disconnect"]) {
+.lab tr:is(.row-delivered, .row-first-block, .row-focus) :is(button.danger, .action-slot[data-action="disconnect"]){
   background: linear-gradient(rgba(248,81,73,.08), rgba(248,81,73,.08)), var(--panel);
   border-color: #673132;
 }
 /* "Show all" is a link under the table, not a button. */
-button.link { background: none; border: 0; padding: 10px 0 0; color: var(--muted); font-weight: 400; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
-button.link:hover { color: var(--text); filter: none; }
+.lab button.link{ background: none; border: 0; padding: 10px 0 0; color: var(--muted); font-weight: 400; font-size: 13px; text-decoration: underline; text-underline-offset: 3px; }
+.lab button.link:hover{ color: var(--text); filter: none; }
 
 /* Switches for the two settings that switch a whole feature on or off. */
-.switch-label input[type="checkbox"] {
+.lab .switch-label input[type="checkbox"]{
   appearance: none; -webkit-appearance: none; margin: 0 4px 0 0;
   width: 34px; height: 20px; border-radius: 999px; background: #2a3541; position: relative; flex: none; transition: background .15s;
 }
-.switch-label input[type="checkbox"]::after {
+.lab .switch-label input[type="checkbox"]::after{
   content: ""; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .15s;
 }
-.switch-label input[type="checkbox"]:checked { background: var(--accent); }
-.switch-label input[type="checkbox"]:checked::after { left: 17px; }
-.switch-label input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.switch-label input[type="checkbox"]:disabled { opacity: .5; }
+.lab .switch-label input[type="checkbox"]:checked{ background: var(--accent); }
+.lab .switch-label input[type="checkbox"]:checked::after{ left: 17px; }
+.lab .switch-label input[type="checkbox"]:focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+.lab .switch-label input[type="checkbox"]:disabled{ opacity: .5; }
 /* The per-pool "Enabled" box in the brand colour, on the dark scheme. */
-input[type="checkbox"] { accent-color: var(--accent); }
+.lab input[type="checkbox"]{ accent-color: var(--accent); }
 
-select { background: #1b2531; color: var(--text); border: 1px solid var(--border); border-radius: 7px; padding: 5px 9px; font: inherit; font-size: 12px; }
-#manual-add-input { min-width: 240px; }
+.lab select{ background: #1b2531; color: var(--text); border: 1px solid var(--border); border-radius: 7px; padding: 5px 9px; font: inherit; font-size: 12px; }
+.lab #manual-add-input{ min-width: 240px; }
 /* On a phone the status line goes under the title instead of squeezing it. */
 @media (max-width: 600px) {
-  .topbar { flex-wrap: wrap; gap: 4px 0; padding: 14px 16px; }
-  .status-pill { flex-basis: 100%; font-size: 12px; }
+  .lab .topbar{ flex-wrap: wrap; gap: 4px 0; padding: 14px 16px; }
+  .lab .status-pill{ flex-basis: 100%; font-size: 12px; }
 }
 
 /* --- Feel (28.10.2026), the same as in Peer Map --- */
 /* Small controls get a finger-sized target without looking any bigger. */
-.sibling-link, .keep-star, .peer-jump, button.link, table button.secondary { position: relative; }
-.sibling-link::after, button.link::after { content: ""; position: absolute; inset: -12px -8px; }
-.keep-star::after { content: ""; position: absolute; inset: -12px -4px -12px -10px; }
-.peer-jump::after { content: ""; position: absolute; inset: -10px -2px; }
-table button.secondary::after { content: ""; position: absolute; inset: -8px -2px; }
+.lab .sibling-link, .lab .keep-star, .lab .peer-jump, .lab button.link, .lab table button.secondary{ position: relative; }
+.lab .sibling-link::after, .lab button.link::after{ content: ""; position: absolute; inset: -12px -8px; }
+.lab .keep-star::after{ content: ""; position: absolute; inset: -12px -4px -12px -10px; }
+.lab .peer-jump::after{ content: ""; position: absolute; inset: -10px -2px; }
+.lab table button.secondary::after{ content: ""; position: absolute; inset: -8px -2px; }
 /* Buttons change state softly. */
-button.secondary, .action-slot { transition: background-color .12s ease, border-color .12s ease, color .12s ease; }
+.lab button.secondary, .lab .action-slot{ transition: background-color .12s ease, border-color .12s ease, color .12s ease; }
 /* What the storage card opens fades in. */
-#storage-card[open] > :not(summary) { animation: lab-in .18s ease-out; }
+.lab #storage-card[open] > :not(summary){ animation: lab-in .18s ease-out; }
 @keyframes lab-in { from { opacity: 0; transform: translateY(-4px); } }
 /* A peer that has just connected lights up once. */
-tr.arrived > td { animation: arrived 2.4s ease-out; }
-.cards.cards tr.arrived { animation: arrived 2.4s ease-out; }
-.cards.cards tr.arrived > td { animation: none; }
+.lab tr.arrived > td{ animation: arrived 2.4s ease-out; }
+.lab .cards.cards tr.arrived{ animation: arrived 2.4s ease-out; }
+.lab .cards.cards tr.arrived > td{ animation: none; }
 @keyframes arrived { from { background-color: rgba(247, 147, 26, .16); } }
 /* Scrolling back up on a phone: the sections, a tap away. */
-.jump-bar { position: fixed; z-index: 30; left: 50%; top: 8px; transform: translate(-50%, -64px); display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(19, 26, 34, .94); border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(0, 0, 0, .35); transition: transform .2s ease; max-width: calc(100vw - 16px); }
-.jump-bar.shown { transform: translate(-50%, 0); }
-.jump-bar button { font: inherit; font-size: 13px; font-weight: 400; color: var(--text); background: none; border: 0; padding: 8px 9px; border-radius: 999px; white-space: nowrap; }
-.jump-bar button:active { background: var(--row); }
+.lab .jump-bar{ position: fixed; z-index: 30; left: 50%; top: 8px; transform: translate(-50%, -64px); display: flex; gap: 2px; padding: 4px; border-radius: 999px; background: rgba(19, 26, 34, .94); border: 1px solid var(--border); box-shadow: 0 4px 16px rgba(0, 0, 0, .35); transition: transform .2s ease; max-width: calc(100vw - 16px); }
+.lab .jump-bar.shown{ transform: translate(-50%, 0); }
+.lab .jump-bar button{ font: inherit; font-size: 13px; font-weight: 400; color: var(--text); background: none; border: 0; padding: 8px 9px; border-radius: 999px; white-space: nowrap; }
+.lab .jump-bar button:active{ background: var(--row); }
 @media (prefers-reduced-motion: reduce) {
-  button.secondary, .action-slot, .jump-bar { transition: none; }
-  #storage-card[open] > :not(summary), tr.arrived, tr.arrived > td { animation: none; }
+  .lab button.secondary, .lab .action-slot, .lab .jump-bar{ transition: none; }
+  .lab #storage-card[open] > :not(summary), .lab tr.arrived, .lab tr.arrived > td{ animation: none; }
 }
 /* Column headings stay in view over a long table (not as cards). */
 @media (min-width: 601px) {
-  .table-wrap:not(.cards) { overflow-x: clip; }
-  .table-wrap:not(.cards) thead th { position: sticky; top: 0; z-index: 3; background: var(--panel); box-shadow: 0 1px 0 var(--border); }
+  .lab .table-wrap:not(.cards){ overflow-x: clip; }
+  .lab .table-wrap:not(.cards) thead th{ position: sticky; top: 0; z-index: 3; background: var(--panel); box-shadow: 0 1px 0 var(--border); }
 }
 /* With a mouse the sections wait in the bottom right corner. */
-.jump-bar.corner { left: auto; right: 16px; top: auto; bottom: 16px; transform: translateY(80px); }
-.jump-bar.corner.shown { transform: none; }
-@media (prefers-reduced-motion: reduce) { .jump-bar.corner { transition: none; } }
+.lab .jump-bar.corner{ left: auto; right: 16px; top: auto; bottom: 16px; transform: translateY(80px); }
+.lab .jump-bar.corner.shown{ transform: none; }
+@media (prefers-reduced-motion: reduce) { .lab .jump-bar.corner{ transition: none; } }
 
 /* Buttons only where they are wanted (28.10.2026): a row's buttons show
    once it is opened by a tap - like a row in Peer Map; with a mouse they
@@ -937,138 +929,144 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
    they take no room until then, and a chevron says the card opens. A
    touch screen showing the table keeps its buttons as they were: there is
    no pointer to hover with. */
-tr.can-act { cursor: pointer; }
-tr.can-act:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.lab tr.can-act{ cursor: pointer; }
+.lab tr.can-act:focus-visible{ outline: 2px solid var(--accent); outline-offset: -2px; }
 @media (hover: hover) {
   /* At rest the buttons stand there quietly, grey and without their colour,
      so it is clear there is something to do without a wall of red and blue;
      under the pointer they take their colour (28.10.2026). Hidden entirely
      they read as missing. */
-  .table-wrap:not(.cards) tr.can-act:not(:hover, .open, :focus-visible, :has(:is(button, input):focus-visible)) :is(td.row-actions > button, td:last-child > button.danger) {
+  .lab .table-wrap:not(.cards) tr.can-act:not(:hover, .open, :focus-visible, :has(:is(button, input):focus-visible)) :is(td.row-actions > button, td:last-child > button.danger){
     color: var(--muted); background: transparent; border-color: var(--border);
   }
-  .table-wrap:not(.cards) tr.can-act:not(:hover, .open, :focus-visible, :has(:is(button, input):focus-visible)) td.pool-enabled > label { opacity: .5; }
-  .table-wrap:not(.cards) tr.can-act :is(td.row-actions > button, td:last-child > button.danger, td.pool-enabled > label) { transition: color .12s ease, background-color .12s ease, border-color .12s ease, opacity .12s ease; }
+  .lab .table-wrap:not(.cards) tr.can-act:not(:hover, .open, :focus-visible, :has(:is(button, input):focus-visible)) td.pool-enabled > label{ opacity: .5; }
+  .lab .table-wrap:not(.cards) tr.can-act :is(td.row-actions > button, td:last-child > button.danger, td.pool-enabled > label){ transition: color .12s ease, background-color .12s ease, border-color .12s ease, opacity .12s ease; }
 }
-.cards.cards tr.can-act { position: relative; padding-right: 30px; }
-.cards.cards tr.can-act::after {
+.lab .cards.cards tr.can-act{ position: relative; padding-right: 30px; }
+.lab .cards.cards tr.can-act::after{
   content: ""; position: absolute; right: 13px; top: 18px; width: 7px; height: 7px;
   border: solid var(--muted); border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform .15s ease;
 }
-.cards.cards tr.can-act.open::after { transform: rotate(45deg); }
-.cards.cards tr.can-act.open { background: rgba(255, 255, 255, .035); }
-.cards.cards tr.can-act:not(.open) td.row-actions > button,
-.cards.cards #pool-table tr.can-act:not(.open) :is(td:last-child, td.pool-enabled) { display: none; }
-.cards.cards tr.can-act.open :is(td.row-actions > button, td:last-child > button) { animation: lab-in .18s ease-out; }
+.lab .cards.cards tr.can-act.open::after{ transform: rotate(45deg); }
+.lab .cards.cards tr.can-act.open{ background: rgba(255, 255, 255, .035); }
+.lab .cards.cards tr.can-act:not(.open) td.row-actions > button,
+.lab .cards.cards #pool-table tr.can-act:not(.open) :is(td:last-child, td.pool-enabled){ display: none; }
+.lab .cards.cards tr.can-act.open :is(td.row-actions > button, td:last-child > button){ animation: lab-in .18s ease-out; }
 @media (prefers-reduced-motion: reduce) {
-  .cards.cards tr.can-act::after { transition: none; }
-  .cards.cards tr.can-act.open :is(td.row-actions > button, td:last-child > button) { animation: none; }
+  .lab .cards.cards tr.can-act::after{ transition: none; }
+  .lab .cards.cards tr.can-act.open :is(td.row-actions > button, td:last-child > button){ animation: none; }
 }
 
 /* Before the first answer, grey rows stand where the peers will be, about
    as tall as they will be: the page does not grow by a screen at once when
    they arrive, and it reads as loading rather than as empty. */
-tr.skeleton td { padding: 12px 14px; }
-tr.skeleton i { display: block; height: 10px; border-radius: 5px; background: var(--border); opacity: .55; animation: skeleton 1.4s ease-in-out infinite; }
-tr.skeleton i + i { width: 55%; margin-top: 8px; }
+.lab tr.skeleton td{ padding: 12px 14px; }
+.lab tr.skeleton i{ display: block; height: 10px; border-radius: 5px; background: var(--border); opacity: .55; animation: skeleton 1.4s ease-in-out infinite; }
+.lab tr.skeleton i + i{ width: 55%; margin-top: 8px; }
 @keyframes skeleton { 50% { opacity: .25; } }
-@media (max-width: 700px) { tr.skeleton td { height: 74px; } }
-@media (prefers-reduced-motion: reduce) { tr.skeleton i { animation: none; } }
+@media (max-width: 700px) { .lab tr.skeleton td{ height: 74px; } }
+@media (prefers-reduced-motion: reduce) { .lab tr.skeleton i{ animation: none; } }
 
 /* The dot in front of the status line: beats on fresh numbers, grey when a
    refresh failed. */
-.live-dot { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: #3fb950; vertical-align: 1px; }
-.live-dot.stale { background: var(--muted); }
-.live-dot.beat { animation: beat .9s ease-out; }
+.lab .live-dot{ display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: #3fb950; vertical-align: 1px; }
+.lab .live-dot.stale{ background: var(--muted); }
+.lab .live-dot.beat{ animation: beat .9s ease-out; }
 @keyframes beat { 0% { box-shadow: 0 0 0 0 rgba(63, 185, 80, .7); } 100% { box-shadow: 0 0 0 7px rgba(63, 185, 80, 0); } }
-@media (prefers-reduced-motion: reduce) { .live-dot.beat { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .lab .live-dot.beat{ animation: none; } }
 
 /* A pool switched off says so by its name, so its switch can wait in the
    opened row with Remove. */
-.off-tag { margin-left: 6px; padding: 1px 7px; border: 1px solid var(--border); border-radius: 999px; font-size: 11px; font-weight: 500; color: var(--muted); vertical-align: 1px; }
-#pool-table tr.pool-off td:not(:first-child, .pool-enabled, :last-child) { opacity: .5; }
+.lab .off-tag{ margin-left: 6px; padding: 1px 7px; border: 1px solid var(--border); border-radius: 999px; font-size: 11px; font-weight: 500; color: var(--muted); vertical-align: 1px; }
+.lab #pool-table tr.pool-off td:not(:first-child, .pool-enabled, :last-child){ opacity: .5; }
 
 /* Every card folds to its title on a tap and stays so on this device; open
    unless the reader closed it (28.10.2026). The chevron is Storage's. */
-.card h2.fold-title { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; cursor: pointer; user-select: none; -webkit-user-select: none; }
-.card h2.fold-title::before {
+.lab .card h2.fold-title{ display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+.lab .card h2.fold-title::before{
   content: ''; flex: none; width: 7px; height: 7px; margin: 0 4px 0 2px;
   border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
   transform: translateY(-2px) rotate(45deg); transition: transform .15s ease;
 }
-.card.folded h2.fold-title::before { transform: rotate(-45deg); }
-.card h2.fold-title:hover::before { border-color: var(--text); }
-.card h2.fold-title:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
-.card h2.fold-title .hint { margin-left: 0; }
-.card.folded > :not(h2) { display: none; }
-.card.folded h2 { margin-bottom: 0; }
-.card:not(.folded) .fold-sum { display: none; }
+.lab .card.folded h2.fold-title::before{ transform: rotate(-45deg); }
+.lab .card h2.fold-title:hover::before{ border-color: var(--text); }
+.lab .card h2.fold-title:focus-visible{ outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.lab .card h2.fold-title .hint{ margin-left: 0; }
+.lab .card.folded > :not(h2){ display: none; }
+.lab .card.folded h2{ margin-bottom: 0; }
+.lab .card:not(.folded) .fold-sum{ display: none; }
 
 /* The open ranking keeps its name and the way back at the top. */
-.stick { position: sticky; top: 0; z-index: 6; height: 0; }
-.stick > div {
+.lab .stick{ position: sticky; top: 0; z-index: 6; height: 0; }
+.lab .stick > div{
   position: absolute; left: -21px; right: -21px; top: 0; display: flex; align-items: center; gap: 8px;
   padding: 8px 12px 8px 20px; background: var(--panel); border: 1px solid var(--border); border-radius: 0 0 14px 14px;
   box-shadow: 0 6px 16px rgba(0, 0, 0, .35); font-size: 15px; font-weight: 600;
   opacity: 0; pointer-events: none; transition: opacity .15s;
 }
-.stick > div button { margin-left: auto; }
-.stick.on > div { opacity: 1; pointer-events: auto; }
+.lab .stick > div button{ margin-left: auto; }
+.lab .stick.on > div{ opacity: 1; pointer-events: auto; }
 /* A soft edge under the bar, so a row passing beneath fades out instead of
    showing half a line. */
-.stick > div::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 20px; background: linear-gradient(var(--panel) 35%, transparent); pointer-events: none; }
+.lab .stick > div::after{ content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 20px; background: linear-gradient(var(--panel) 35%, transparent); pointer-events: none; }
 
 /* ⚡ and 📡 after the First % numbers: a small gap of their own. */
-.hb { margin-left: 4px; }
-.cards.cards .hb { margin-left: 2px; }
+.lab .hb{ margin-left: 4px; }
+.lab .cards.cards .hb{ margin-left: 2px; }
 
 /* What the marks mean - phone only, folded, right under the count line; a
    wide screen says it on hover. */
-.key { display: none; margin: -4px 0 10px; color: var(--muted); font-size: 12px; }
-.key summary { cursor: pointer; }
-.key ul { list-style: none; margin: 8px 0 2px; padding: 0; display: grid; gap: 7px; }
-.key li { display: grid; grid-template-columns: 104px 1fr; align-items: center; gap: 10px; }
-.key li > b { justify-self: start; font-weight: 400; color: var(--text); }
-.key .hb { font-size: 13px; }
-.key .key-new { padding: 1px 8px; border-radius: 6px; background: rgba(247, 147, 26, .22); }
-.key .key-green { color: #56d364; }
-.key .key-grey { color: var(--muted); }
-.key .key-grey .never { display: block; width: max-content; margin-top: 1px; }
-@media (max-width: 600px) { .key { display: block; } }
+.lab .key{ display: none; margin: -4px 0 10px; color: var(--muted); font-size: 12px; }
+.lab .key summary{ cursor: pointer; }
+.lab .key ul{ list-style: none; margin: 8px 0 2px; padding: 0; display: grid; gap: 7px; }
+.lab .key li{ display: grid; grid-template-columns: 104px 1fr; align-items: center; gap: 10px; }
+.lab .key li > b{ justify-self: start; font-weight: 400; color: var(--text); }
+.lab .key .hb{ font-size: 13px; }
+.lab .key .key-new{ padding: 1px 8px; border-radius: 6px; background: rgba(247, 147, 26, .22); }
+.lab .key .key-green{ color: #56d364; }
+.lab .key .key-grey{ color: var(--muted); }
+.lab .key .key-grey .never{ display: block; width: max-content; margin-top: 1px; }
+@media (max-width: 600px) { .lab .key{ display: block; } }
 /* Below 360 px four numbers do not fit a pool card: the average goes, the
    last block stays (04.11.2026). */
 @media (max-width: 359px) {
-  .cards.cards #pool-table tr { grid-template-columns: minmax(0, .7fr) minmax(0, 1fr) minmax(0, 1.4fr); }
-  .cards.cards #pool-table td[data-label="Avg"] { display: none; }
+  .lab .cards.cards #pool-table tr{ grid-template-columns: minmax(0, .7fr) minmax(0, 1fr) minmax(0, 1.4fr); }
+  .lab .cards.cards #pool-table td[data-label="Avg"]{ display: none; }
 }
 
 /* The licence line for the DB-IP data under the manual peers. */
-.foot { margin: 8px auto 28px; text-align: center; font-size: 12px; color: var(--muted); }
-.foot a { color: inherit; }
+.lab .foot{ margin: 8px auto 28px; text-align: center; font-size: 12px; color: var(--muted); }
+.lab .foot a{ color: inherit; }
 
 /* A phone card says where the peer is (11.11.2026): flag and country, the
    provider under it, beside address and client - two lines, no more. Type,
    numbers and buttons belong to the opened card. */
-.card-place { display: none; }
-.cards.cards table.peer-table td[data-col="col-pct"]:has(.card-place) { min-width: min(38cqw, 170px); }
+.lab .card-place{ display: none; }
+.lab .cards.cards table.peer-table td[data-col="col-pct"]:has(.card-place){ min-width: min(38cqw, 170px); }
 /* Room for the chevron: a country name runs to the end of its cell. */
-.cards.cards table.peer-table tr.can-act { padding-right: 28px; }
-.cards.cards table.peer-table td[data-col="col-pct"]:has(.card-place)::before { content: none !important; }
-.cards.cards table.peer-table td[data-col="col-pct"]:has(.card-place) > :not(.card-place) { display: none; }
-.cards.cards table.peer-table .card-place { display: block; }
-.cards.cards table.peer-table .card-place > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.cards.cards table.peer-table .cp-land { line-height: 18px; }
-.cards.cards table.peer-table .cp-land .flag { margin-right: 6px; }
-.cards.cards table.peer-table .cp-land .hb { line-height: 1; }
-.cards.cards table.peer-table .cp-net { margin-top: 2px; line-height: 16px; font-size: 12px; color: var(--muted); }
-.cards.cards table.peer-table .cp-num { margin-top: 2px; line-height: 16px; font-size: 12px; color: var(--muted); }
-.cards.cards table.peer-table .cp-num b { color: var(--text); }
-.cards.cards table.peer-table tr:not(.open) .cp-num { display: none; }
-.cards.cards table.peer-table tr { align-items: start; }
-.cards.cards table.peer-table tr:not(.open):has(.card-place) td[data-col="col-status"],
-.cards.cards table.peer-table tr:not(.open):has(.card-place) td.row-actions { display: none; }
+.lab .cards.cards table.peer-table tr.can-act{ padding-right: 28px; }
+.lab .cards.cards table.peer-table td[data-col="col-pct"]:has(.card-place)::before{ content: none !important; }
+.lab .cards.cards table.peer-table td[data-col="col-pct"]:has(.card-place) > :not(.card-place){ display: none; }
+.lab .cards.cards table.peer-table .card-place{ display: block; }
+.lab .cards.cards table.peer-table .card-place > span{ display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lab .cards.cards table.peer-table .cp-land{ line-height: 18px; }
+.lab .cards.cards table.peer-table .cp-land .flag{ margin-right: 6px; }
+.lab .cards.cards table.peer-table .cp-land .hb{ line-height: 1; }
+.lab .cards.cards table.peer-table .cp-net{ margin-top: 2px; line-height: 16px; font-size: 12px; color: var(--muted); }
+.lab .cards.cards table.peer-table .cp-num{ margin-top: 2px; line-height: 16px; font-size: 12px; color: var(--muted); }
+.lab .cards.cards table.peer-table .cp-num b{ color: var(--text); }
+.lab .cards.cards table.peer-table tr:not(.open) .cp-num{ display: none; }
+.lab .cards.cards table.peer-table tr{ align-items: start; }
+.lab .cards.cards table.peer-table tr:not(.open):has(.card-place) td[data-col="col-status"],
+.lab .cards.cards table.peer-table tr:not(.open):has(.card-place) td.row-actions{ display: none; }
 /* The place is on the right now; the manual peers' own line would say it twice. */
-.cards.cards table.peer-table tr:has(.card-place) .addr-place { display: none; }
+.lab .cards.cards table.peer-table tr:has(.card-place) .addr-place{ display: none; }
 /* In a table a row without a button is not something to click. */
-.table-wrap:not(.cards) tr.can-act:not(:has(td.row-actions > button)) { cursor: default; }
-.cards.cards table.peer-table tr.open td[data-col="col-status"] { align-self: center; }
+.lab .table-wrap:not(.cards) tr.can-act:not(:has(td.row-actions > button)){ cursor: default; }
+.lab .cards.cards table.peer-table tr.open td[data-col="col-status"]{ align-self: center; }
+
+/* The page is the map's; these sections keep the line height they were drawn for. */
+.lab { line-height: normal; }
+/* Its cards one under the other, spaced like the page's own. */
+main > .lab { display: flex; flex-direction: column; gap: 16px; }
+main > .lab:empty, main > .lab:not(:has(> :not([hidden]))) { display: none; }

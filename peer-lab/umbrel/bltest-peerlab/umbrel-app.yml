@@ -12,7 +12,7 @@ dependencies:
 - bitcoin
 repo: https://github.com/benunskilled/bitcoin-lab-test-store
 support: https://github.com/benunskilled/bitcoin-lab-test-store/issues
-icon: https://raw.githubusercontent.com/benunskilled/bitcoin-lab-test-store/main/bltest-peerlab/icon.svg
+icon: https://raw.githubusercontent.com/benunskilled/bitcoin-lab-test-store/main/bltest-peerlab/icon.png
 port: 8796
 gallery: []
 path: ''

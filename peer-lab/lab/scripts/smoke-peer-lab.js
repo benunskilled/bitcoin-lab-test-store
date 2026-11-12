@@ -42,19 +42,16 @@ async function main() {
     assert.equal(ready, true, 'map starts through the unified origin');
     const overview = await (await fetch(base)).text();
     assert.match(overview, /<h1>Peer Lab<\/h1>/);
-    for (const anchor of ['live-peer-card', 'slot-fill', 'stratum-race', 'storage-card']) {
+    for (const anchor of ['mapCard', 'tables', 'slot-fill', 'stratum-race', 'storage-card']) {
       assert.ok(overview.includes(`id="${anchor}"`), anchor);
     }
     const map = await (await fetch(base + '/map/')).text();
-    assert.match(map, /<h1>Peer Lab<\/h1>/);
     const peers = await (await fetch(base + '/map/api/peers')).json();
     assert.ok(peers.peers.length > 0, 'real map module returns mock peers');
     assert.equal(peers.sibling, true, 'map can reach the integrated measurement module');
-    for (const resource of ['/peerlab.js', '/peerlab.css', '/map/app.js', '/map/style.css', '/map/world.json', '/api/widget/traffic']) {
+    for (const resource of ['/app.js', '/style.css', '/favicon.png', '/map/app.js', '/map/style.css', '/map/world.json', '/api/widget/traffic']) {
       assert.equal((await fetch(base + resource)).status, 200, resource);
     }
-    assert.match(await (await fetch(base + '/app.js')).text(), /const base = '\/map\/'/);
-    assert.match(await (await fetch(base + '/map/app.js')).text(), /const base = "\/"/);
     console.log('Peer Lab cross-module HTTP smoke test passed. No live node or peer writes used.');
   } finally {
     if (child) {

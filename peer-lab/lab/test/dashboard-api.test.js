@@ -322,7 +322,7 @@ test('serveStatic refuses to walk out of the public directory', async () => {
     const res = await fetch(`${baseUrl}${attempt}`);
     assert.ok(res.status === 404 || res.status === 403, `${attempt} must not be served`);
   }
-  assert.equal((await fetch(`${baseUrl}/favicon.svg`)).status, 200, 'but real assets still serve');
+  assert.equal((await fetch(`${baseUrl}/favicon.png`)).status, 200, 'but real assets still serve');
 });
 
 // --- security headers -------------------------------------------------------

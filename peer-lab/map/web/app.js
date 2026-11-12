@@ -1,9 +1,11 @@
 "use strict";
 (() => {
+  // Where this script came from is where its data is: the page may be one level up.
+  const BASE = new URL(".", document.currentScript.src).href;
   // This window answers to a name, and links to Bitcoin Lab aim at Bitcoin Lab's name: clicking back and forth between
   // the two apps then reuses one window each instead of opening a new one per click. That needs the opener kept, so
   // these links carry no rel="noopener" - both windows are this Umbrel's own apps.
-  window.name = "peer-map";
+  window.name = window.peerLab ? "peer-lab" : "peer-map";
   // On a phone or tablet Safari loads a named tab in the background and stays where it is, so a tap seemed to do
   // nothing. There the jump stays in the same tab, and Back returns.
   const LAB_TARGET = "_self";
@@ -231,7 +233,7 @@
     let next = 10;
     inFlight = true;
     try {
-      const r = await fetch("api/peers", { cache: "no-store" });
+      const r = await fetch(BASE + "api/peers", { cache: "no-store" });
       if (!r.ok) throw new Error("HTTP " + r.status);
       state.data = await r.json();
       state.receivedAt = Date.now();
@@ -354,6 +356,12 @@
   // always show the same peers starred.
   let deliveredNow = new Set();
   let deliveredEver = new Set();
+  // What the measuring half of the app knows of a peer (window.peerLab, set by
+  // its script on the same page): blocks delivered first, blocks connected
+  // for, the share of the last N blocks. Nothing where that half is absent.
+  const lab = () => window.peerLab || null;
+  const rankOf = (p) => (lab() ? lab().peer(p.addr) : null);
+  const rankPct = (r) => (100 * (r.recentFirst || 0)) / lab().windowBlocks;
 
   function deliveredSet() {
     const b = liveBlock();
@@ -1256,6 +1264,9 @@
     const a = document.activeElement;
     return Boolean(a && a !== document.body && a.matches && a.matches(":focus-visible") && a.closest(".peers, #map"));
   }
+  // The measuring half has new numbers, or has just acted on a peer.
+  window.addEventListener("peerlab:ranking", () => { if (state.data) renderWhenFree(); });
+  window.addEventListener("peerlab:acted", () => setTimeout(refresh, 1200));
   function renderWhenFree() {
     if (busy() && (!heldSince || Date.now() - heldSince < HOLD_MAX_MS)) {
       if (!heldSince) heldSince = Date.now();
@@ -1479,7 +1490,7 @@
 
   // ---------- map ----------
   async function loadWorld() {
-    const r = await fetch("world.json");
+    const r = await fetch(BASE + "world.json");
     state.world = await r.json();
     $("map").setAttribute("viewBox", `0 0 ${state.world.w} ${state.world.h}`);
     const frag = document.createDocumentFragment();
@@ -2387,6 +2398,27 @@
         }
         text.append(b, sub);
         who.append(f, text);
+        // A phone card (12.11.2026): the address and what the peer is on the
+        // left, its country and provider on the right - two lines, every
+        // card. Hidden in a table (style.css), where the columns say it.
+        {
+          const pc = document.createElement("div");
+          pc.className = "pc";
+          const span = (cls, text) => { const e = document.createElement("span"); e.className = cls; if (text != null) e.textContent = text; return e; };
+          const addr = span("pc-addr addr-txt", HIDDEN[p.network] || p.network === "not_publicly_routable" ? title : p.addr);
+          const land = span("pc-land");
+          land.append(span("flag", HIDDEN_FLAG[p.network] || flagOf(p.cc)), p.cc ? regionName(p.cc) : HIDDEN[p.network] ? title : "");
+          if (deliveredNow.has(p.addr)) land.append(" ", span("star", "\u2605"));
+          const what = span("pc-what");
+          const label = p.linking_lion ? "LinkingLion" : p.kind;
+          // Under a kind filter every card has the same word: then the line the pill cannot say.
+          const pill = span("kind " + (p.linking_lion ? "lion" : p.kind === "Disguised" ? "disg" : p.no_relay ? "never" : "first"),
+            (p.no_relay ? "\u2298 " : "") + (state.kind ? cardLine(p) || label : label));
+          what.append(pill);
+          for (const [active, symbol] of [[p.hb_to, "\u26a1"], [p.hb_from, "\ud83d\udce1"]]) if (active) what.append(span("hb", symbol));
+          pc.append(addr, land, what, span("pc-net", p.operator || (p.tor_exit ? "Tor exit" : "")));
+          who.appendChild(pc);
+        }
         td.appendChild(who);
       },
     },
@@ -2520,6 +2552,26 @@
     },
     { key: "conntime", label: "Connected", cls: "num", val: (p) => p.conntime, show: (p) => ago(Date.now() / 1000 - p.conntime) },
   ];
+  // How often a peer was first: "46/1276", blocks delivered first out of the
+  // blocks it was connected for, and beside it its share of the last N blocks.
+  // The list is ordered by that share, then by the blocks delivered first in
+  // all; a peer without a record comes last. Not on a phone card.
+  const FIRST_COL = {
+    key: "first", get label() { return "First/Blocks \u00b7 last " + lab().windowBlocks; }, cls: "num",
+    val: (p) => { const r = rankOf(p); return r && r.eligible ? -(rankPct(r) * 1e7 + r.first) : 1; },
+    cell: (td, p) => {
+      const r = rankOf(p);
+      if (!r || !r.eligible) { td.textContent = "\u2013"; td.classList.add("dim"); return; }
+      const b = document.createElement("b");
+      b.textContent = r.first + "/" + r.eligible;
+      const pct = document.createElement("span");
+      pct.className = "first-pct";
+      pct.textContent = rankPct(r).toFixed(1) + "%";
+      td.append(b, " ", pct);
+      td.title = `First for ${r.first} of the ${r.eligible} blocks it was connected for. ${r.recentFirst || 0} of the last ${lab().windowBlocks} blocks.`;
+    },
+  };
+  COLS.splice(COLS.findIndex((c) => c.key === "ping"), 0, FIRST_COL);
 
   // What is known of a peer, in full: the sentences behind the words in its
   // row, what it announced, the connection, the traffic and where it sits.
@@ -2630,6 +2682,12 @@
     const facts = el("div", "pd-facts");
     if (p.min_ping_ms != null) facts.appendChild(fact("Ping", fmtPing(p.min_ping_ms)));
     if (p.conntime) facts.appendChild(fact("Connected", ago(Date.now() / 1000 - p.conntime)));
+    const r = rankOf(p);
+    if (r && r.eligible) {
+      facts.appendChild(fact("First / blocks", r.first + " / " + r.eligible));
+      facts.appendChild(fact("Last " + lab().windowBlocks + " blocks", (r.recentFirst || 0) + " \u00b7 " + rankPct(r).toFixed(1) + "%"));
+    }
+    if (r && r.sessionsCount) facts.appendChild(fact("Sessions", String(r.sessionsCount)));
     facts.appendChild(fact("Link", [LABEL[p.group], typeLabel(p.type).toLowerCase() === p.group ? "" : typeLabel(p.type),
       netLabel(p.network), p.transport].filter(Boolean).join(" \u00b7 ")));
 
@@ -2691,15 +2749,23 @@
     else svc.appendChild(el("span", "pd-chip none", p.no_services ? "no services" : "services unknown"));
     who.appendChild(svc);
     if (p.version) who.appendChild(el("p", "pd-small", "Protocol " + p.version));
-    if (state.data && state.data.sibling) {
-      const lab = el("a", "pd-lab", "Ranking \u2192");
-      lab.title = "View this peer in the ranking";
-      lab.href = siblingURL(p.addr);
-      lab.target = LAB_TARGET;
-      who.appendChild(lab);
+    if (state.data && state.data.sibling && !lab()) {
+      const link = el("a", "pd-lab", "Ranking \u2192");
+      link.title = "View this peer in the ranking";
+      link.href = siblingURL(p.addr);
+      link.target = LAB_TARGET;
+      who.appendChild(link);
     }
     const where = [p.region, p.cc].filter(Boolean).join(", ");
     if (where || p.operator) who.appendChild(el("p", "pd-where", [where, p.operator ? p.operator + (p.asn ? " (AS" + p.asn + ")" : "") : ""].filter(Boolean).join(" \u00b7 ")));
+    // What can be done with this peer: the measuring half's own buttons, in
+    // its own dress (.lab) and handled by its script.
+    const acts = lab() ? lab().actionsHtml(p.addr) : "";
+    if (/<button/.test(acts)) {
+      const row = el("div", "pd-actions lab");
+      row.innerHTML = acts;
+      panel.appendChild(row);
+    }
     return panel;
   }
   // The detail is a row of its own under the peer, as wide as the table. It
@@ -2890,8 +2956,8 @@
         continue;
       }
 
-      const cols = COLS;
-      const s = state.sort[g] || { key: "conntime", dir: 1 };
+      const cols = lab() ? COLS : COLS.filter((c) => c !== FIRST_COL);
+      const s = state.sort[g] || (lab() ? { key: "first", dir: 1 } : { key: "conntime", dir: 1 });
       const col = cols.find((c) => c.key === s.key) || cols[cols.length - 1];
       peers.sort((a, b) => {
         const x = col.val(a), y = col.val(b);

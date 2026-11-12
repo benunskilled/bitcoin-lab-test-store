@@ -71,7 +71,7 @@ const SERVICE_STALE_MS = {
 // <style> block, no style="" attribute and no inline event handler - every
 // click goes through a delegated listener in app.js keyed on data-action - so
 // neither 'unsafe-inline' nor a nonce is needed for scripts or styles.
-// Everything it loads (app.js, style.css, favicon.svg) is same-origin, the
+// Everything it loads (app.js, style.css, favicon.png) is same-origin, the
 // stylesheet references no url(), and every request the page makes - fetch to
 // /api/*, the EventSource on /api/events - is same-origin too. The one thing
 // that was not was a cross-origin knock on Peer Map's port from the browser;

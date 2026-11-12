@@ -776,3 +776,32 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 .key .kind { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 999px; background: #1a2430; color: var(--text); white-space: nowrap; }
 .key .kind.disg, .key .kind.lion { background: rgba(248,81,73,.12); color: #e5534b; }
 @media (max-width: 600px) { .key { display: block; } }
+
+/* First/Blocks: the count in the row's own weight, its share of the recent
+   blocks faint beside it. Gone with the ping on a narrow table, where keeping it
+   cost the operator and the net; never on a phone card. */
+.peers td.k-first { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.peers td.k-first .first-pct { color: var(--muted); font-size: 12px; margin-left: 4px; }
+.scroll.scroll[data-drops="2"] .k-first, .scroll.scroll[data-drops="3"] .k-first, .scroll.scroll[data-drops="4"] .k-first,
+.cards.cards table tr td.k-first { display: none; }
+/* The buttons for a peer, under the three blocks of its panel, at the right. */
+.pd-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+.pd-actions .action-slot:empty { display: none; }
+
+/* A phone card (12.11.2026): address and what the peer is on the left, country
+   and provider on the right. Two lines, every card; the rest is in the panel. */
+.pc { display: none; }
+.cards.cards table tr td.k-peer .who-text, .cards.cards table tr td.k-peer .who > .flag { display: none; }
+.cards.cards table tr td.k-kind, .cards.cards table tr td.k-operator, .cards.cards table tr td.k-net, .cards.cards table tr td.k-conntime { display: none; }
+.cards.cards table tr td.k-peer .who { display: block; }
+.cards.cards table tr td.k-peer .pc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 46%); gap: 3px 12px; align-items: center; min-width: 0; }
+.cards.cards .pc > span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 20px; }
+.cards.cards .pc .pc-addr { font-size: 13px; color: var(--text); }
+.cards.cards .peers tr.weak .pc .pc-addr { color: var(--muted); }
+.cards.cards .peers tr.delivered-ever .pc .pc-addr { color: #56d364; }
+.cards.cards .pc .pc-land { font-weight: 600; }
+.cards.cards .pc .pc-land .flag { display: inline-block; width: 22px; margin-right: 6px; font-size: 15px; line-height: 1; text-align: center; vertical-align: -1px; }
+.cards.cards .pc .pc-net { font-size: 12px; color: var(--muted); }
+.cards.cards .pc .pc-what .kind { margin-left: 0; max-width: 100%; vertical-align: middle; line-height: 16px; }
+.cards.cards .pc .pc-what .kind.never { margin-left: 0; }
+.cards.cards .pc .pc-what .hb { margin-left: 5px; font-size: 12px; }
