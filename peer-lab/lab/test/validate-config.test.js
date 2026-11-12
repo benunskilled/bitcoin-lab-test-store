@@ -13,7 +13,6 @@ function good(overrides = {}) {
     minEligibleForJudgement: 50,
     newManualGraceBlocks: 50,
     manualPerRegion: 1,
-    recentScoreWindowBlocks: 500,
     offlineGraceHours: 1,
     offlineGraceDeliveredHours: 24,
     stratumRaceTimeoutMs: 8000,
@@ -48,11 +47,6 @@ test('a typo becomes a refusal, not NaN', () => {
   assert.match(problems[0], /PEER_POLL_INTERVAL_MS is not a number/);
 });
 
-test('a window of zero is refused', () => {
-  const problems = checkConfig(good({ recentScoreWindowBlocks: 0 }));
-  assert.ok(problems.some((p) => p.startsWith('RECENT_SCORE_WINDOW_BLOCKS must be between 1')));
-});
-
 test('a poll interval fast enough to hammer Core is refused', () => {
   const problems = checkConfig(good({ peerPollIntervalMs: 0 }));
   assert.ok(problems.some((p) => /PEER_POLL_INTERVAL_MS must be between 1000/.test(p)));
@@ -64,14 +58,7 @@ test('more manual peers than Core will hold is refused', () => {
 });
 
 test('counts must be whole numbers, rates need not be', () => {
-  assert.ok(checkConfig(good({ recentScoreWindowBlocks: 500.5 })).some((p) => /whole number/.test(p)));
-});
-
-test('values that are each fine but wrong together are caught', () => {
-  assert.ok(
-    checkConfig(good({ recentScoreWindowBlocks: 10 }))
-      .some((p) => /no peer could ever fill the window/.test(p)),
-  );
+  assert.ok(checkConfig(good({ minEligibleForJudgement: 50.5 })).some((p) => /whole number/.test(p)));
 });
 
 test('every problem is reported, not just the first', () => {

@@ -72,7 +72,7 @@ function statusFor(r, trusted) {
   return 'OFFLINE';
 }
 
-function mapRankingRow(now, recent = new Map(), graceFrom = 0, liveTip = 0) {
+function mapRankingRow(now, graceFrom = 0, liveTip = 0) {
   return (r) => {
     // "Trusted" isn't only what's in our own trusted_peer table - Core
     // itself reports connection_type 'manual' for ANY addnode'd peer,
@@ -104,7 +104,6 @@ function mapRankingRow(now, recent = new Map(), graceFrom = 0, liveTip = 0) {
     // local peer - see the localUmbrelPeer note below, which is what they were
     // being mistaken for.
     const privateNetwork = networkFromCore(r.coreNetwork) ?? unreachableNetwork(r.address);
-    const recentRow = recent.get(r.id);
     // Everything else inside Umbrel's shared internal Docker network isn't
     // an external peer at all - it's another app on the same host (electrs,
     // mempool's indexer, etc.) connecting to Core's P2P port directly, the
@@ -171,14 +170,10 @@ function mapRankingRow(now, recent = new Map(), graceFrom = 0, liveTip = 0) {
       eligible: r.eligible,
       first: r.first,
       firstPct: r.eligible > 0 ? (100 * r.first) / r.eligible : null,
-      // first/eligible count for as long as the peer has been known and are
-      // what the table shows. The order comes from the recent window alone:
-      // the share of its blocks this peer delivered first, out of the whole
-      // window, so a peer seen for three blocks cannot lead with one of them.
-      // Null for a peer with no record at all, which sorts below a measured 0.
-      recentEligible: recentRow ? recentRow.eligible : 0,
-      recentFirst: recentRow ? recentRow.first : 0,
-      score: r.eligible > 0 ? (100 * (recentRow ? recentRow.first : 0)) / config.recentScoreWindowBlocks : null,
+      // What the ranking and Slot Fill order by: the blocks this peer has
+      // delivered first, counted for as long as it has been known. Null for a
+      // peer with no record at all, which sorts below a measured 0.
+      score: r.eligible > 0 ? r.first : null,
       live: Boolean(r.liveDirection),
       direction: r.liveDirection,
       connectionType: r.liveConnectionType,

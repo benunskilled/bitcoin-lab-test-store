@@ -358,7 +358,7 @@
   let deliveredEver = new Set();
   // What the measuring half of the app knows of a peer (window.peerLab, set by
   // its script on the same page): blocks delivered first, blocks connected
-  // for, the share of the last N blocks. Nothing where that half is absent.
+  // for. Nothing where that half is absent.
   const lab = () => window.peerLab || null;
   // A row for a manual peer Core is not connected to, built from the
   // measuring half's record of it: where it is, what it last called itself.
@@ -370,7 +370,6 @@
     about: "Not connected right now. It still holds its manual slot" + (r.kept ? ", and it is locked." : "."),
   });
   const rankOf = (p) => (lab() ? lab().peer(p.addr) : null);
-  const rankPct = (r) => (100 * (r.recentFirst || 0)) / lab().windowBlocks;
 
   function deliveredSet() {
     const b = liveBlock();
@@ -2442,8 +2441,8 @@
           const r = rankOf(p);
           if (lab()) {
             const n = span("pc-x pc-first", r && r.eligible ? r.first + "/" + r.eligible : "\u2013");
-            const s = span("pc-x pc-sub", r && r.eligible ? rankPct(r).toFixed(1) + "% of last " + lab().windowBlocks : "first/blocks");
-            if (r && r.eligible) n.title = s.title = `First for ${r.first} of the ${r.eligible} blocks it was connected for. ${r.recentFirst || 0} of the last ${lab().windowBlocks} blocks.`;
+            const s = span("pc-x pc-sub", "first/blocks");
+            if (r && r.eligible) n.title = s.title = `First for ${r.first} of the ${r.eligible} blocks it was connected for.`;
             pc.append(n, s);
           }
           pc.append(span("pc-y pc-ping", p.min_ping_ms == null ? "\u2013" : fmtPing(p.min_ping_ms)),
@@ -2583,24 +2582,22 @@
     },
     { key: "conntime", label: "Connected", cls: "num", val: (p) => p.conntime, show: (p) => (p.offline ? "offline" + (p.offline_ms ? " " + ago(p.offline_ms / 1000) : "") : ago(Date.now() / 1000 - p.conntime)) },
   ];
-  // How often a peer was first: "46/1276", blocks delivered first out of the
-  // blocks it was connected for, and beside it its share of the last N blocks.
-  // The list is ordered by that share, then by the blocks delivered first in
-  // all; a peer without a record comes last. Not on a phone card.
+  // How often a peer was first: "43/1693", blocks delivered first out of the
+  // blocks it was connected for, counted for as long as it has been known. The
+  // list is ordered by the first number; between two with the same count the
+  // one that needed fewer blocks stands higher, and a peer without a record
+  // comes last. Not on a phone card.
+  const FIRST_TITLE = "Blocks this peer delivered first, out of the blocks it was connected for. The list is ordered by it.";
   const FIRST_COL = {
-    key: "first", label: "First/Blocks", cls: "num",
-    get title() { return "Blocks this peer delivered first, out of the blocks it was connected for. The percentage is its share of the last " + lab().windowBlocks + " blocks; the list is ordered by it."; },
-    val: (p) => { const r = rankOf(p); return r && r.eligible ? -(rankPct(r) * 1e7 + r.first) : 1; },
+    key: "first", label: "First/Blocks", cls: "num", title: FIRST_TITLE,
+    val: (p) => { const r = rankOf(p); return r && r.eligible ? -(r.first * 1e7) + r.eligible : Infinity; },
     cell: (td, p) => {
       const r = rankOf(p);
       if (!r || !r.eligible) { td.textContent = "\u2013"; td.classList.add("dim"); return; }
       const b = document.createElement("b");
       b.textContent = r.first + "/" + r.eligible;
-      const pct = document.createElement("span");
-      pct.className = "first-pct";
-      pct.textContent = rankPct(r).toFixed(1) + "%";
-      td.append(b, " ", pct);
-      td.title = `First for ${r.first} of the ${r.eligible} blocks it was connected for. ${r.recentFirst || 0} of the last ${lab().windowBlocks} blocks.`;
+      td.append(b);
+      td.title = `First for ${r.first} of the ${r.eligible} blocks it was connected for.`;
     },
   };
   COLS.splice(COLS.findIndex((c) => c.key === "ping"), 0, FIRST_COL);
@@ -2718,7 +2715,6 @@
     const r = rankOf(p);
     if (r && r.eligible) {
       facts.appendChild(fact("First / blocks", r.first + " / " + r.eligible));
-      facts.appendChild(fact("Last " + lab().windowBlocks + " blocks", (r.recentFirst || 0) + " \u00b7 " + rankPct(r).toFixed(1) + "%"));
     }
     if (r && r.sessionsCount) facts.appendChild(fact("Sessions", String(r.sessionsCount)));
     facts.appendChild(fact("Link", [LABEL[p.group], typeLabel(p.type).toLowerCase() === p.group ? "" : typeLabel(p.type),

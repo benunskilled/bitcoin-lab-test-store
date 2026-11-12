@@ -44,7 +44,6 @@ On Umbrel, the dashboard is available at `<your-umbrel>:8790`. The default `8788
 | `MIN_ELIGIBLE_FOR_JUDGEMENT` | Blocks an outbound peer must have been connected for to count as tested in the Outbound Peers line | `50` |
 | `NEW_MANUAL_PEER_GRACE_BLOCKS` | Blocks a new manual peer is safe from being replaced by a peer added by hand | `50` |
 | `MANUAL_PER_REGION` | Outbound connections, Core's own included, below which a region (continent, Tor, I2P) counts as missing and may be filled from Core's "new" table | `1` |
-| `RECENT_SCORE_WINDOW_BLOCKS` | How many of the most recent blocks the ranking is ordered by | `500` |
 | `PEER_POLL_INTERVAL_MS` | Peer-profiler session poll interval | `15000` |
 
 `MAX_MANUAL_PEERS` accepts values from 1 to 8, matching Core's maximum of eight simultaneous manual connections. Larger values are rejected at startup.
@@ -116,7 +115,7 @@ in `src/lib/config.js` and is not an environment variable.
 
 The pages linked from the [README](../README.md#documentation) explain the choices behind the defaults.
 
-Numeric settings are validated at startup. Invalid values stop the service with an error naming the setting. In particular, `RECENT_SCORE_WINDOW_BLOCKS` must be at least `MIN_ELIGIBLE_FOR_JUDGEMENT`.
+Numeric settings are validated at startup. Invalid values stop the service with an error naming the setting.
 
 ---
 

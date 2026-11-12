@@ -13,10 +13,8 @@
  * than a crash, because a crash is visible in the app's logs on the first
  * restart.
  *
- * Ranges, not just types. `RECENT_SCORE_WINDOW_BLOCKS=0` is a number and a
- * meaningless one: the ranking divides by the window, and a peer's share would
- * come out as a division by zero dressed up as a percentage. Same for a poll
- * interval of 0, which is a busy loop against Core's RPC.
+ * Ranges, not just types. A poll interval of 0 is a number and a busy loop
+ * against Core's RPC.
  *
  * The upper bounds are deliberately loose. They are there to catch a wrong
  * unit - milliseconds typed where hours were meant - not to have an opinion
@@ -31,7 +29,6 @@ const RULES = {
   minEligibleForJudgement: { min: 1, max: 100000 },
   newManualGraceBlocks: { min: 0, max: 100000 },
   manualPerRegion: { min: 1, max: 8 },
-  recentScoreWindowBlocks: { min: 1, max: 1000000 },
   offlineGraceHours: { min: 0, max: 8760, integer: false },
   offlineGraceDeliveredHours: { min: 0, max: 8760, integer: false },
   stratumRaceTimeoutMs: { min: 100, max: 600000 },
@@ -52,7 +49,6 @@ const ENV_NAMES = {
   minEligibleForJudgement: 'MIN_ELIGIBLE_FOR_JUDGEMENT',
   newManualGraceBlocks: 'NEW_MANUAL_PEER_GRACE_BLOCKS',
   manualPerRegion: 'MANUAL_PER_REGION',
-  recentScoreWindowBlocks: 'RECENT_SCORE_WINDOW_BLOCKS',
   offlineGraceHours: 'OFFLINE_GRACE_HOURS',
   offlineGraceDeliveredHours: 'OFFLINE_GRACE_DELIVERED_HOURS',
   stratumRaceTimeoutMs: 'STRATUM_RACE_TIMEOUT_MS',
@@ -89,15 +85,6 @@ function checkConfig(config) {
     if (value < rule.min || value > rule.max) {
       problems.push(`${name} must be between ${rule.min} and ${rule.max}${where}, got ${value}`);
     }
-  }
-
-  // Pairs, where each value is fine on its own and the combination is not.
-  if (Number.isFinite(config.recentScoreWindowBlocks) && Number.isFinite(config.minEligibleForJudgement)
-      && config.recentScoreWindowBlocks < config.minEligibleForJudgement) {
-    problems.push(
-      'RECENT_SCORE_WINDOW_BLOCKS must not be smaller than MIN_ELIGIBLE_FOR_JUDGEMENT - '
-      + 'no peer could ever fill the window enough to be judged',
-    );
   }
 
   return problems;

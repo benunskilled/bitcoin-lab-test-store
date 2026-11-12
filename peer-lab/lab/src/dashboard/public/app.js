@@ -33,11 +33,6 @@ const highlightUntil = new Map();
 let lastRaceId = null; // null = "haven't loaded the latest race yet", not "no races"
 let lastKnownHeight = null;
 let MAX_MANUAL_PEERS = 8; // overwritten from /api/status once loaded (config.maxManualPeers)
-// The window the ranking judges a peer on, in blocks. Overwritten from
-// /api/status (config.recentScoreWindowBlocks) rather than hardcoded, because
-// it names a number in a column heading and a heading that lies about the
-// window is worse than one that omits it.
-let RECENT_WINDOW_BLOCKS = null;
 
 async function api(path, options) {
   const res = await fetch(path, {
@@ -495,9 +490,6 @@ document.addEventListener('mouseover', (e) => {
 async function refreshStatus() {
   const s = await api('/api/status');
   if (s.maxManualPeers) MAX_MANUAL_PEERS = s.maxManualPeers;
-  if (s.recentScoreWindowBlocks && s.recentScoreWindowBlocks !== RECENT_WINDOW_BLOCKS) {
-    RECENT_WINDOW_BLOCKS = s.recentScoreWindowBlocks;
-  }
   applyStratumEnabled(Boolean(s.stratumRaceEnabled));
   // Folded, the Storage card says how big the database is.
   if (s.dbBytes != null) document.getElementById('storage-total').textContent = fmtBytes(s.dbBytes);
@@ -877,7 +869,6 @@ async function refreshPeers() {
 // - the same buttons as ever, handled by the click handler below.
 let rankingByAddress = new Map();
 window.peerLab = {
-  get windowBlocks() { return RECENT_WINDOW_BLOCKS || 500; },
   get maxManual() { return MAX_MANUAL_PEERS; },
   peer: (address) => rankingByAddress.get(address) || null,
   // Manual peers that are not connected: they still hold their slot, and the

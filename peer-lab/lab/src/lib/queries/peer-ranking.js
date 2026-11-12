@@ -22,65 +22,6 @@ let peerRankingStmt = null;
 let liveTipStmt = null;
 
 /**
- * Per-peer totals over the last N races, which is what the ranking is ordered by.
- *
- * Cached against the newest race id, which is the only thing that can change
- * the answer. Measured on a synthetic four-million-row observation table the
- * query itself takes about 17ms - fine once per block, wasteful several times
- * a minute, which is how often the ranking is asked for. Reading MAX(id) to
- * check is a primary-key lookup and costs nothing.
- *
- * Bounded by "the newest N race ids that exist" rather than "MAX(id) minus N",
- * because deleting the measurement data leaves gaps in the sequence and the
- * second form would then silently shrink the window.
- */
-let recentStatsCache = { raceId: null, byPeer: new Map() };
-
-/**
- * INDEXED BY is the whole point of this statement, not decoration.
- *
- * The question is about the newest 500 races, so the only affordable plan is a
- * range search down relay_observation's primary key, which begins with
- * race_id. Left to itself SQLite preferred any index that started with peer_id
- * - it groups by peer_id, so that index arrives pre-sorted and saves the temp
- * b-tree - and paid for the saving by reading every row the table has ever
- * held. Measured on two million observations: 3.7s against 32ms, with the gap
- * widening for as long as the node runs, because that plan's cost is the
- * history and this one's is the window.
- *
- * Naming the index pins the plan and, better, makes a future index that would
- * tempt the planner again harmless. SQLite refuses to prepare the statement at
- * all if the named index ever stops existing, so this cannot rot quietly.
- */
-const RECENT_RELAY_STATS_SQL = `
-  SELECT peer_id AS peerId, COUNT(*) AS eligible, COALESCE(SUM(first), 0) AS first
-    FROM relay_observation INDEXED BY sqlite_autoindex_relay_observation_1
-   WHERE race_id >= (SELECT MIN(id) FROM (SELECT id FROM relay_race ORDER BY id DESC LIMIT ?))
-   GROUP BY peer_id`;
-
-function recentRelayStats() {
-  // Keyed on the newest race AND how many observations it holds: a block's
-  // observations can land after its race row, and a key on the race alone kept
-  // the window stale until the next block. The count is a range on
-  // relay_observation's primary key (race_id first), so it costs nothing.
-  const head = db.instance
-    .prepare(`SELECT r.id AS id, (SELECT COUNT(*) FROM relay_observation o WHERE o.race_id = r.id) AS n
-                FROM relay_race r ORDER BY r.id DESC LIMIT 1`)
-    .get();
-  if (!head) return new Map();
-  const newest = `${head.id}:${head.n}`;
-  if (recentStatsCache.raceId === newest) return recentStatsCache.byPeer;
-
-  const rows = db.instance
-    .prepare(RECENT_RELAY_STATS_SQL)
-    .all(config.recentScoreWindowBlocks);
-
-  const byPeer = new Map(rows.map((r) => [r.peerId, r]));
-  recentStatsCache = { raceId: newest, byPeer };
-  return byPeer;
-}
-
-/**
  * When the new-slot-holder grace period starts: the moment the block
  * `newManualGraceBlocks` back was detected. A manual peer added after that has
  * not yet been through its grace.
@@ -121,10 +62,9 @@ function peerRanking() {
     liveTipStmt = db.instance.prepare(
       'SELECT MAX(synced_headers) AS tip FROM peer_session INDEXED BY idx_peer_session_live WHERE ended_at IS NULL');
   }
-  const recent = recentRelayStats();
   const graceFrom = newManualGraceStartedAt();
   const liveTip = liveTipStmt.get()?.tip || 0;
-  const rows = peerRankingStmt.all().map(mapRankingRow(now, recent, graceFrom, liveTip));
+  const rows = peerRankingStmt.all().map(mapRankingRow(now, graceFrom, liveTip));
 
   // The manual peer the slot fill has on trial (peer-rotation/fill.js): in its
   // slot, but only for good once Core has connected to it.
@@ -138,19 +78,17 @@ function peerRanking() {
     }
   }
 
-  // Ordered here rather than in SQL, where the recent window is not at hand:
-  // by the share of the recent window delivered first, then by how many
-  // blocks the peer has delivered first in all, then the lower ping, the
-  // larger sample, and the address so the order never wobbles.
+  // Ordered by the blocks delivered first; between two with the same count
+  // the one that needed fewer blocks for it, then the lower ping, and the
+  // address so the order never wobbles.
   return rows.sort((a, b) => {
     const sa = a.score == null ? -1 : a.score;
     const sb = b.score == null ? -1 : b.score;
     if (sa !== sb) return sb - sa;
-    if ((a.first || 0) !== (b.first || 0)) return (b.first || 0) - (a.first || 0);
+    if (a.eligible !== b.eligible) return a.eligible - b.eligible;
     const pa = a.minPingMs == null ? Infinity : a.minPingMs;
     const pb = b.minPingMs == null ? Infinity : b.minPingMs;
     if (pa !== pb) return pa - pb;
-    if (a.eligible !== b.eligible) return b.eligible - a.eligible;
     return a.address < b.address ? -1 : a.address > b.address ? 1 : 0;
   });
 }
@@ -258,12 +196,8 @@ function peerRankingSql() {
          UNION
          SELECT id FROM peer WHERE address IN (SELECT address FROM trusted_peer)
        )
-       -- No ORDER BY: peerRanking() sorts these rows in JavaScript, by the
-       -- share of the recent window, which this
-       -- statement does not have. An order here was a sort thrown away.
+       -- No ORDER BY: peerRanking() sorts these rows in JavaScript.
        `;
 }
 
-// RECENT_RELAY_STATS_SQL is exported so the suite can assert the plan this
-// statement actually gets rather than a copy of it that has drifted.
-module.exports = { peerRanking, RECENT_RELAY_STATS_SQL };
+module.exports = { peerRanking };

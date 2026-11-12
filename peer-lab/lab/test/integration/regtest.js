@@ -471,9 +471,9 @@ async function main() {
     }
     const ranking = queries.peerRanking();
     const rowOf = (h) => ranking.find((p) => p.address === hostOf(h));
-    assert.ok(rowOf(fullRelay).recentEligible >= minEligible && rowOf(fullRelay).recentFirst === 0,
-      `the full-relay helper qualifies: ${JSON.stringify(rowOf(fullRelay) && { e: rowOf(fullRelay).recentEligible, f: rowOf(fullRelay).recentFirst })}`);
-    assert.ok(rowOf(anchor).recentEligible >= minEligible && rowOf(anchor).recentFirst === 0, 'so would the anchor, by the numbers');
+    assert.ok(rowOf(fullRelay).eligible >= minEligible && rowOf(fullRelay).first === 0,
+      `the full-relay helper qualifies: ${JSON.stringify(rowOf(fullRelay) && { e: rowOf(fullRelay).eligible, f: rowOf(fullRelay).first })}`);
+    assert.ok(rowOf(anchor).eligible >= minEligible && rowOf(anchor).first === 0, 'so would the anchor, by the numbers');
     // There used to be a kick pass that dropped the full-relay one. Core picks
     // and spreads its own outbound peers; the slot fill works on the manual
     // slots only.

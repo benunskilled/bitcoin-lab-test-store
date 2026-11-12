@@ -619,7 +619,6 @@ async function router(req, res, pathname, url) {
       // Named in a column heading, so it is read from the config rather than
       // written into the page: a heading that states the wrong window is worse
       // than one that states none.
-      recentScoreWindowBlocks: config.recentScoreWindowBlocks,
       // Whether the pool race is running at all. The page needs it before it
       // renders anything of that card: switched off there is nothing to show
       // and, more to the point, nothing being measured, so a table of

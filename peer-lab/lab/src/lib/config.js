@@ -111,11 +111,6 @@ module.exports = {
   // turns up.
   manualPerRegion: Number(pick(process.env.MANUAL_PER_REGION, '1')),
 
-  // How many of the most recent blocks the ranking is ordered by: a peer's
-  // place is the share of these blocks it delivered first. 500 blocks is
-  // roughly three and a half days.
-  recentScoreWindowBlocks: Number(pick(process.env.RECENT_SCORE_WINDOW_BLOCKS, '500')),
-
   // How long a manual peer may stay offline before the slot fill gives its
   // slot to someone else (peer-rotation/rules.js, offlineGraceMs): an hour for
   // a peer that has never delivered a block first, a day for one that has.
