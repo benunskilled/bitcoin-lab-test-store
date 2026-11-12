@@ -978,7 +978,6 @@ function renderSlotStatus() {
   box.hidden = !lastSlotStatus.enabled;
   if (!lastSlotStatus.enabled) return;
   const t = slotStatusText(lastSlotStatus.status, Date.now());
-  box.dataset.state = t.state;
   document.getElementById('slot-now').innerHTML = `<b>${t.head}</b> ${t.rest}`;
   foldSums();
 }
