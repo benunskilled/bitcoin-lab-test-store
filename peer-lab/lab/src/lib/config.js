@@ -28,10 +28,7 @@ const zmqPort = pick(process.env.BITCOIN_ZMQ_HASHBLOCK_PORT, process.env.APP_BIT
 const dataDir = pick(process.env.DATA_DIR, '/data');
 
 // For a test copy beside the real app on the same node (the test store):
-// LAB_READ_ONLY=1 keeps it from changing Core's peers at all, and
-// PEERMAP_LINK_PORT points the browser link at the test Peer Map instead of
-// the store's 8791.
-const linkPort = Number(process.env.PEERMAP_LINK_PORT);
+// LAB_READ_ONLY=1 keeps it from changing Core's peers at all.
 
 module.exports = {
   readOnly: process.env.LAB_READ_ONLY === '1',
@@ -40,7 +37,6 @@ module.exports = {
   // Docker gateway, where umbrelOS 2.x's proxy connects from. See
   // lib/write-source.js.
   trustedProxyHost: pick(process.env.TRUSTED_PROXY_HOST, ''),
-  peerMapLinkPort: Number.isInteger(linkPort) && linkPort > 0 && linkPort < 65536 ? linkPort : 0,
   bitcoin: {
     rpcUrl: `http://${bitcoinHost}:${bitcoinRpcPort}/`,
     rpcUser: bitcoinRpcUser,

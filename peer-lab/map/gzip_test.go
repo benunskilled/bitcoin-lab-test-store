@@ -41,16 +41,13 @@ func TestGzipped(t *testing.T) {
 		t.Fatalf("packed peer list does not unpack to peers: %v", err)
 	}
 
-	for _, path := range []string{"/", "/app.js", "/style.css", "/world.json"} {
+	for _, path := range []string{"/app.js", "/style.css", "/world.json"} {
 		if rec := get(path, gz); rec.Code != 200 || rec.Header().Get("Content-Encoding") != "gzip" || rec.Header().Get("Content-Length") != "" {
 			t.Errorf("%s: HTTP %d, encoding %q, length %q", path, rec.Code, rec.Header().Get("Content-Encoding"), rec.Header().Get("Content-Length"))
 		}
 	}
 	if rec := get("/api/peers", nil); rec.Header().Get("Content-Encoding") != "" || !json.Valid(rec.Body.Bytes()) {
 		t.Error("a browser without gzip got a packed answer")
-	}
-	if rec := get("/apple-touch-icon.png", gz); rec.Header().Get("Content-Encoding") != "" {
-		t.Error("the PNG was packed")
 	}
 	if rec := get("/style.css", map[string]string{"Accept-Encoding": "gzip", "Range": "bytes=0-9"}); rec.Header().Get("Content-Encoding") != "" {
 		t.Error("a range request was packed")

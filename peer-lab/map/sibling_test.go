@@ -355,17 +355,6 @@ func TestSiblingSaysSoWhenTheReplyIsTooLarge(t *testing.T) {
 	}
 }
 
-// The browser link to Bitcoin Lab uses PEERMAP_SIBLING_LINK_PORT only when it is
-// a valid port; anything else leaves the store port to the page.
-func TestSiblingLinkPort(t *testing.T) {
-	for v, want := range map[string]int{"": 0, "8794": 8794, "0": 0, "70000": 0, "abc": 0} {
-		t.Setenv("PEERMAP_SIBLING_LINK_PORT", v)
-		if got := siblingLinkPort(); got != want {
-			t.Errorf("PEERMAP_SIBLING_LINK_PORT=%q: got %d, want %d", v, got, want)
-		}
-	}
-}
-
 // offSibling is the check a test wants: no neighbour, no request, no timeout.
 func offSibling() *siblingCheck {
 	return &siblingCheck{url: "off", now: time.Now}

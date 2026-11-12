@@ -329,14 +329,15 @@ func TestShownText(t *testing.T) {
 }
 
 // default-src is not a fallback for base-uri or form-action: without them an
-// injected <base> could re-point every relative URL on the page, and an
-// injected form could post off-site. The page has neither, so both are 'none'.
+// injected <base> could re-point every relative URL, and an injected form
+// could post off-site. What this server sends is scripts and data, so both
+// are 'none'; the page itself comes from the dashboard, with its own policy.
 func TestCSPClosesBaseAndForm(t *testing.T) {
 	h := newHandler(&source{now: time.Now, fetch: mockPeers}, offSibling())
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, httptest.NewRequest("GET", "/", nil))
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/app.js", nil))
 	if rec.Code != 200 {
-		t.Fatalf("the page no longer loads: HTTP %d", rec.Code)
+		t.Fatalf("the script no longer loads: HTTP %d", rec.Code)
 	}
 	csp := rec.Header().Get("Content-Security-Policy")
 	for _, want := range []string{"default-src 'self'", "script-src 'self'", "base-uri 'none'", "form-action 'none'"} {
@@ -344,21 +345,12 @@ func TestCSPClosesBaseAndForm(t *testing.T) {
 			t.Errorf("CSP %q is missing %q", csp, want)
 		}
 	}
-	page, err := webFS.ReadFile("web/index.html")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, tag := range []string{"<base", "<form"} {
-		if strings.Contains(string(page), tag) {
-			t.Errorf("the page now has a %s, which 'none' forbids", tag)
-		}
-	}
 }
 
 func TestHTTP(t *testing.T) {
 	s := &source{now: time.Now, fetch: mockPeers}
 	h := newHandler(s, offSibling())
-	for _, path := range []string{"/", "/world.json", "/app.js", "/style.css", "/api/health"} {
+	for _, path := range []string{"/world.json", "/app.js", "/style.css", "/api/health"} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest("GET", path, nil))
 		if rec.Code != 200 {
@@ -509,7 +501,10 @@ func TestNoTxWhy(t *testing.T) {
 	}
 }
 
-// The map's viewBox stands in index.html so the page has its height before
+// The page that carries the map, served by the dashboard.
+const pagePath = "../lab/src/dashboard/public/index.html"
+
+// The map's viewBox stands in the page so it has its height before
 // world.json is loaded; it has to be world.json's own size.
 func TestMapSizeInHTML(t *testing.T) {
 	var world struct{ W, H float64 }
@@ -520,13 +515,13 @@ func TestMapSizeInHTML(t *testing.T) {
 	if err := json.Unmarshal(b, &world); err != nil {
 		t.Fatal(err)
 	}
-	html, err := os.ReadFile("web/index.html")
+	html, err := os.ReadFile(pagePath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	want := fmt.Sprintf(`<svg id="map" viewBox="0 0 %g %g"`, world.W, world.H)
 	if !strings.Contains(string(html), want) {
-		t.Errorf("index.html has no %s", want)
+		t.Errorf("the page has no %s", want)
 	}
 }
 

@@ -2,18 +2,11 @@
 (() => {
   // Where this script came from is where its data is: the page may be one level up.
   const BASE = new URL(".", document.currentScript.src).href;
-  // This window answers to a name, and links to Bitcoin Lab aim at Bitcoin Lab's name: clicking back and forth between
-  // the two apps then reuses one window each instead of opening a new one per click. That needs the opener kept, so
-  // these links carry no rel="noopener" - both windows are this Umbrel's own apps.
-  window.name = window.peerLab ? "peer-lab" : "peer-map";
-  // On a phone or tablet Safari loads a named tab in the background and stays where it is, so a tap seemed to do
-  // nothing. There the jump stays in the same tab, and Back returns.
-  const LAB_TARGET = "_self";
   const GROUPS = ["inbound", "outbound", "manual"];
   const INBOUND_LIMIT = 10;
   // A peer reaching the node through Tor shows the exit's place and operator; the peer itself stays hidden behind it.
   const TOR_EXIT_TITLE = "Tor exit: location and operator are the exit's, not the peer's";
-  // Same directions and symbols as Bitcoin Lab; Core reports both independently.
+  // Core reports both directions independently.
   const HB_TITLE = "One of Core's three high-bandwidth peers: it may send a new block without being asked first, which gives it a head start of at least one ping.";
   const HB_FROM_TITLE = "This peer has picked your node as one of its three high-bandwidth peers: your node sends it new blocks without being asked first.";
   const LABEL = { manual: "Manual", inbound: "Inbound", outbound: "Outbound" };
@@ -46,7 +39,7 @@
   // Smooth scrolling, unless the reader asked the system for less motion.
   const glide = () => (window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth");
 
-  // Folding in place (10.11.2026, the same in Bitcoin Lab): what was tapped
+  // Folding in place (10.11.2026): what was tapped
   // stays where it is on the screen. What opens rolls out downwards and what
   // closes rolls up, gently, and the page never jumps - not to bring
   // something into view, not because the page got shorter at its end. Every
@@ -138,8 +131,6 @@
     paused: false,
     // A peer another app pointed at, via ?peer=<address>. Highlighted once and
     // scrolled to, then left alone - it is a starting point, not a filter.
-    focus: new URLSearchParams(location.search).get("peer") || null,
-    focusDone: false,
     lastHash: null,       // newest block hash seen, to pulse the map when it changes
     lastInput: Date.now(),
     // When the current snapshot arrived here. The block's age comes from the
@@ -203,12 +194,8 @@
     }
     foldable($("keyCard"), $("keyHead"), "key");
   }
-  // The block card folds to its summary line, but only when a route is drawn
-  // under it (has-route): without one it is a single line already.
   // The block card does not fold itself (12.11.2026): its head is two short
-  // lines, and everything else is in its one fold, "Details". Under Peer Lab
-  // only; Peer Map alone keeps the card it had.
-  if (!window.peerLab) foldable($("blockCard"), $("blockSummary"), "block");
+  // lines, and everything else is in its one fold, "Details".
 
   // ---------- projection: same Natural Earth polynomial as tools/genmap ----------
   function nePoly(lon, lat) {
@@ -329,7 +316,7 @@
     "outbound-full-relay": "Full relay",
     "block-relay-only": "Block relay",
   }[t] || t || "-");
-  // As Bitcoin Lab writes it: milliseconds below a second, seconds above.
+  // Milliseconds below a second, seconds above.
   const fmtPing = (ms) => (ms < 1000 ? Math.round(ms) + " ms" : (ms / 1000).toFixed(2) + " s");
   const netLabel = (n) => ({
     ipv4: "IPv4", ipv6: "IPv6", onion: "Tor", i2p: "I2P", cjdns: "CJDNS",
@@ -349,11 +336,10 @@
     i2p: "\u{1F310}", i2p_hidden: "\u{1F310}", ipv6_hidden: "\u{1F310}",
   };
   const flagOf = (cc) => (/^[A-Z]{2}$/.test(cc || "") ? String.fromCodePoint(...[...cc].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)) : "");
-  const locLabel = (p) => (p.cc ? (p.region ? `${p.region}, ${regionName(p.cc)}` : regionName(p.cc)) : "");
 
   // ---------- the block that just landed ----------
 
-  // Bitcoin Lab next door says which block arrived last, who mined it, and
+  // The server says which block arrived last, who mined it, and
   // which peer here delivered it. The mark lasts two minutes - long enough to
   // see on a dashboard somebody just opened, short enough that a star stays a
   // piece of news instead of turning into decoration.
@@ -368,10 +354,9 @@
   // always show the same peers starred.
   let deliveredNow = new Set();
   let deliveredEver = new Set();
-  // What the measuring half of the app knows of a peer (window.peerLab, set by
-  // its script on the same page): blocks delivered first, blocks connected
-  // for. Nothing where that half is absent.
-  const lab = () => window.peerLab || null;
+  // What the measurements know of a peer (window.peerLab, set by the page's
+  // other script): blocks delivered first, blocks connected for, the buttons.
+  const lab = () => window.peerLab;
   // A row for a manual peer Core is not connected to, built from the
   // measuring half's record of it: where it is, what it last called itself.
   const offlinePeer = (r) => ({
@@ -381,7 +366,7 @@
     kind: "Offline", subver: r.client || "", services: [], bytes_sent: 0, bytes_recv: 0, min_ping_ms: null, conntime: 0,
     about: "Not connected right now. It still holds its manual slot" + (r.kept ? ", and it is locked." : "."),
   });
-  const rankOf = (p) => (lab() ? lab().peer(p.addr) : null);
+  const rankOf = (p) => lab().peer(p.addr);
 
   function deliveredSet() {
     const b = liveBlock();
@@ -389,7 +374,7 @@
   }
 
   // The card under the filters: one block, and the three roles it has here.
-  // Mined by (from Bitcoin Lab's coinbase reading), delivered by (the peers
+  // Mined by (from the server's coinbase reading), delivered by (the peers
   // Core credited), raced by (the pools that turned it into work). Each of the
   // three can be missing, and then it says so rather than leaving a gap.
   // Who brought the block and how the own pool did, in two lines (12.11.2026,
@@ -451,85 +436,43 @@
     const b = state.data && state.data.last_block;
     card.hidden = !b;
     if (!b) return;
-    if (window.peerLab) {
-      const more = $("blockMore");
-      // The route and the compact block line belong to the details.
-      for (const id of ["blockRoute", "blockRecon"]) if ($(id).parentElement !== more) more.insertBefore($(id), $("blockBody"));
-      $("blockSummary").hidden = false;
-      fillSummary($("blockSummary"), b, true);
-      let verdict = $("blockVerdict");
-      if (!verdict) { verdict = document.createElement("div"); verdict.id = "blockVerdict"; verdict.className = "b-verdict"; $("blockSummary").after(verdict); }
-      renderVerdict(verdict, b);
-      more.classList.add("minor");
-      $("blockMoreLabel").textContent = "Details";
-      const own = routeStops(b), typical = medianStops(b);
-      const view = state.routeView === "median" && typical ? "median" : "block";
-      const stops = own || typical ? (view === "median" ? typical : own || typical) : null;
-      $("blockRoute").hidden = !stops;
-      if (stops) {
-        // The route as Peer Map draws it, without the winning pool: only your
-        // own path, to scale on a wide screen and down a line on a phone, the
-        // same stretches and times on both.
-        renderRoute($("blockRoute"), b, stops.filter((s) => s.kind !== "win"),
-          { view: stops === typical ? "median" : "block", canSwitch: Boolean(own && typical), noRaceHere: !own });
-      }
-      // Who brought it is in the head; the details need not list it again.
-      renderBlockBody(b, true);
-      renderRecon($("blockRecon"), b, own && typical ? view : null);
-      return;
-    }
-
-    // With a route the card stays open: the summary and the route are the
-    // point, and only the full pool list folds away. Without one - Stratum
-    // Race off, or no race recorded for this block - it is today's card, a
-    // single line that opens onto who delivered it.
-    const own = routeStops(b);
-    const typical = medianStops(b);
-    const view = state.routeView === "median" && typical ? "median" : "block";
-    // The card is open whenever there is any route to show - this block's,
-    // or the typical one if this block happens to have no race.
-    const stops = own || typical ? (view === "median" ? typical : own || typical) : null;
     const more = $("blockMore");
-    const line = stops ? $("blockSummary") : $("blockMoreLabel");
-    $("blockSummary").hidden = !stops;
-    card.classList.toggle("has-route", Boolean(stops));
+    // The route and the compact block line belong to the details.
+    for (const id of ["blockRoute", "blockRecon"]) if ($(id).parentElement !== more) more.insertBefore($(id), $("blockBody"));
+    $("blockSummary").hidden = false;
+    fillSummary($("blockSummary"), b);
+    let verdict = $("blockVerdict");
+    if (!verdict) { verdict = document.createElement("div"); verdict.id = "blockVerdict"; verdict.className = "b-verdict"; $("blockSummary").after(verdict); }
+    renderVerdict(verdict, b);
+    more.classList.add("minor");
+    $("blockMoreLabel").textContent = "Details";
+    const own = routeStops(b), typical = medianStops(b);
+    const view = state.routeView === "median" && typical ? "median" : "block";
+    const stops = own || typical ? (view === "median" ? typical : own || typical) : null;
     $("blockRoute").hidden = !stops;
-    more.classList.toggle("minor", Boolean(stops));
-    fillSummary(line, b);
     if (stops) {
-      // This block may have no race of its own while the typical route
-      // exists - Stratum Race was off for a moment, say. Then the fold holds
-      // what this block does have: who delivered it.
-      const entries = (b.stratum && b.stratum.entries) || [];
-      $("blockMoreLabel").textContent = entries.length
-        ? `All ${entries.length} ${entries.length === 1 ? "pool" : "pools"}`
-        : "Delivered first";
-      renderRoute($("blockRoute"), b, stops, {
-        view: stops === typical ? "median" : "block",
-        canSwitch: Boolean(own && typical),
-        noRaceHere: !own,
-      });
+      // The route without the winning pool: only your own path, to scale on a wide screen and down a line on a phone, the
+      // same stretches and times on both.
+      renderRoute($("blockRoute"), b, stops.filter((s) => s.kind !== "win"),
+        { view: stops === typical ? "median" : "block", canSwitch: Boolean(own && typical) });
     }
-    // "Delivered first" is on the route only when this block's own route is.
-    renderBlockBody(b, Boolean(own) && stops === own);
-    // One switch for the whole card: where the route has one, it sets the
-    // compact block line too; without a route the line brings its own.
+    // Who brought it is in the head; the details need not list it again.
+    renderBlockBody(b);
     renderRecon($("blockRecon"), b, own && typical ? view : null);
   }
 
   // How Core put the block together from its compact form (BIP152), as
-  // Bitcoin Lab read it from getpeerinfo: from the mempool alone, or after
+  // The server read it from getpeerinfo: from the mempool alone, or after
   // asking a peer for the transactions it did not have - a full round trip -
   // or downloaded in full. This block, or the share over the last hundred
   // blocks - the same "typical" as the route's, and the same switch.
-  // Absent with a Bitcoin Lab from before it measured this.
   const RECON_WHY = "A new block arrives as a compact block: short ids for its transactions, " +
     "which your node fills in from its mempool and from transactions it recently turned down. " +
     "Whatever it does not have, it asks the peer for - one more round trip before the block is complete.";
   // No-break spaces keep a number and its unit on one line on a phone.
   const kB = (bytes) => (bytes < 1000 ? "under 1\u00a0kB" : Math.round(bytes / 1000).toLocaleString("en-US") + "\u00a0kB");
 
-  // What was missing as a share of the whole block, once Bitcoin Lab knows its size.
+  // What was missing as a share of the whole block, once its size is known.
   function shareOfBlock(b) {
     if (!b.block_size || b.recon_missing_bytes == null) return "";
     const p = (100 * b.recon_missing_bytes) / b.block_size;
@@ -591,7 +534,7 @@
   // The line is parts, not words: "mined by Foundry USA" moves to the next
   // line as one, and the dot in front of a part that starts a line is clipped
   // (see .b-parts), so no line begins with a stray "·" on a phone.
-  function fillSummary(sum, b, short = false) {
+  function fillSummary(sum, b) {
     sum.textContent = "";
     const line = document.createElement("span");
     line.className = "b-line";
@@ -630,12 +573,6 @@
       // that, or when it could not read it, nothing was checked yet.
       add(part(), "b-unknown", "Unknown", "Mined by a pool we do not know: neither the payout address nor the coinbase text matched");
     }
-    const n = short ? -1 : (b.first_peers || []).length;
-    // One peer and a known place: say where it came from, with its flag.
-    const one = n === 1 && state.data.peers.find((p) => p.addr === b.first_peers[0]);
-    if (n >= 0) add(part(), null, n === 0 ? "nobody credited" : one && one.cc ? `delivered from ${flagOf(one.cc)} ${regionName(one.cc)}`
-      : n === 1 ? "delivered by 1 peer" : `delivered by ${n} peers`,
-      b.eligible ? `${b.eligible} peers were connected when it arrived` : "");
     add(part(), "miss", ago(blockAgeMs(b) / 1000) + " ago", "How long ago your node saw this block");
   }
 
@@ -654,12 +591,12 @@
   // How many pings, as BIP152 counts them (hopPings): a high-bandwidth peer
   // sends the block unasked, half a ping; any other announces it and is
   // asked, a ping and a half; asking for missing transactions adds one.
-  // Bitcoin Lab says which kind of peer it was just before the block. It
+  // The server says which kind of peer it was just before the block. It
   // only moves the peer's dot - Core and the pools stand where they were
   // measured.
   const ROUTE_STUB = 140;  // the miner's dashed lead-in, not to scale
   // Not known whether the peer was high-bandwidth (older blocks): one ping,
-  // the middle. Bitcoin Lab's typical route counts the same way.
+  // the middle. The typical route counts the same way.
   const hopPings = (hb, recon) => (hb === 1 ? 0.5 : hb === 0 ? 1.5 : 1) + (recon === "asked" ? 1 : 0);
   const HOP_WHY = "Estimated from the peer's ping, as BIP152 counts it: a high-bandwidth peer sends a new block " +
     "without being asked, half a ping; any other announces it first, a ping and a half. Asking for missing " +
@@ -726,7 +663,7 @@
 
     const known = new Map(((state.data && state.data.peers) || []).map((p) => [p.addr, p]));
     const credited = (b.first_peers || []).map((addr) => ({ addr, peer: known.get(addr) }));
-    // The ping Bitcoin Lab took from the snapshot that credited the peer is
+    // The ping taken from the snapshot that credited the peer is
     // the right one - it is from the moment the block arrived. Only a block
     // from before the Lab stored it falls back to what Core says now.
     const pingOf = (c) => (c.peer ? (c.peer.min_ping_ms != null ? c.peer.min_ping_ms : c.peer.ping_ms) : null);
@@ -854,7 +791,7 @@
 
 
 
-  function renderRoute(box, b, stops, { view, canSwitch, noRaceHere }) {
+  function renderRoute(box, b, stops, { view, canSwitch }) {
     box.textContent = "";
     const median = view === "median";
     const n = (b.route_median && b.route_median.blocks) || 0;
@@ -996,70 +933,23 @@
       if (win && journey.length && win.t <= journey[0].t) seg(win, journey[0]);
       for (let i = 1; i < journey.length; i++) seg(journey[i - 1], journey[i]);
     }
-    const note = document.createElement("p");
-    note.className = "note";
-    note.textContent = ((noRaceHere ? "No race was recorded for this block, so this is the typical route. " : "")
-      + (median
-      ? `Each stop is its median over the last ${n} blocks. `
-      : "When the block was found cannot be measured; the hop into your node is estimated from the peer's ping.")
-      ).trim();
-    // Peer Lab draws no winning pool on the route, so there is no first job
-    // to explain here.
-    if (!window.peerLab) box.appendChild(note);
   }
 
-  function renderBlockBody(b, routed) {
+  function renderBlockBody(b) {
     const body = $("blockBody");
     body.textContent = "";
 
-    // --- who brought it here - on the route when there is one ------------
-    if (!routed) {
-      const peers = document.createElement("div");
-      const h1 = document.createElement("h3");
-      h1.textContent = "Delivered first";
-      peers.appendChild(h1);
-      if (!(b.first_peers || []).length) {
-        const p = document.createElement("p");
-        p.className = "note";
-        p.textContent = "No peer was credited for this block.";
-        peers.appendChild(p);
-      } else {
-        const known = new Map((state.data.peers || []).map((p) => [p.addr, p]));
-        const t = document.createElement("table");
-        t.className = "firsts";
-        for (const addr of b.first_peers) {
-          const peer = known.get(addr);
-          const tr = document.createElement("tr");
-          const a = document.createElement("td");
-          a.className = "mono";
-          a.textContent = addr;
-          const where = document.createElement("td");
-          where.textContent = peer ? locLabel(peer) || "–" : "";
-          const who = document.createElement("td");
-          who.textContent = peer ? (peer.operator || "–") + (peer.tor_exit ? " · Tor exit" : "") : "no longer connected";
-          if (!peer) who.className = "miss";
-          if (peer && peer.asn) who.title = "AS" + peer.asn + (peer.tor_exit ? "\n" + TOR_EXIT_TITLE : "");
-          tr.append(a, where, who);
-          t.appendChild(tr);
-        }
-        peers.appendChild(t);
-      }
-      body.appendChild(peers);
-    }
-
     // --- who turned it into work ---------------------------------------
-    // Under Peer Lab the list folds (12.11.2026): with every public pool in it
+    // The list folds (12.11.2026): with every public pool in it
     // it is long. Open by default up to four pools, folded above that, and
     // kept as the reader set it while the page refreshes.
     const n = ((b.stratum && b.stratum.entries) || []).length;
-    const race = document.createElement(window.peerLab ? "details" : "div");
-    const h2 = document.createElement(window.peerLab ? "summary" : "h3");
-    if (window.peerLab) {
-      race.className = "pool-fold";
-      h2.textContent = `Pools \u00b7 relative to the fastest${n ? " \u00b7 " + n : ""}`;
-      race.open = state.poolsOpen != null ? state.poolsOpen : n <= 4;
-      race.addEventListener("toggle", () => { state.poolsOpen = race.open; });
-    } else h2.textContent = "Stratum race";
+    const race = document.createElement("details");
+    const h2 = document.createElement("summary");
+    race.className = "pool-fold";
+    h2.textContent = `Pools \u00b7 relative to the fastest${n ? " \u00b7 " + n : ""}`;
+    race.open = state.poolsOpen != null ? state.poolsOpen : n <= 4;
+    race.addEventListener("toggle", () => { state.poolsOpen = race.open; });
     race.appendChild(h2);
     if (!b.stratum || !(b.stratum.entries || []).length) {
       const p = document.createElement("p");
@@ -1088,10 +978,6 @@
         t.appendChild(tr);
       }
       race.appendChild(t);
-      const note = document.createElement("p");
-      note.className = "note";
-      note.textContent = "Times are relative to the first job seen here, not to the moment the block was found.";
-      if (!window.peerLab) race.appendChild(note);
     }
     body.appendChild(race);
   }
@@ -1234,7 +1120,7 @@
     for (const g of GROUPS) {
       const c = document.getElementById("group-" + g);
       // Short, so the bar fits a phone without sliding sideways.
-      if (c) go(window.peerLab ? { inbound: "In", outbound: "Out", manual: "Manual" }[g] : LABEL[g], c);
+      if (c) go({ inbound: "In", outbound: "Out", manual: "Manual" }[g], c);
     }
     // The cards under the list, where the page has them.
     for (const [label, id] of [["Slot Fill", "slot-fill"], ["Stratum", "stratum-race"], ["Traffic", "traffic-card"]]) {
@@ -1448,7 +1334,6 @@
   }
   function restoreReloadY() {
     if (reloadY === null) return;
-    if (state.focus) { reloadY = null; return; }
     const max = document.documentElement.scrollHeight - window.innerHeight;
     window.scrollTo(0, Math.min(reloadY, max));
     restoredY = window.scrollY;
@@ -1463,7 +1348,7 @@
   // down there on its own. The anchor is the topmost table row
   // on screen, else the topmost card.
   // A row is held by its place in its group's table, never by the peer in it
-  // (28.10.2026, the same in Bitcoin Lab): sorted by ping or anything else,
+  // (28.10.2026): sorted by ping or anything else,
   // a page that followed one peer up or down the list jumped under a reader
   // who was only looking. When a peer moves, another one stands in its
   // place; the list does not move.
@@ -1506,7 +1391,6 @@
     renderStatus();
     deliveredNow = deliveredSet();
     deliveredEver = new Set((d.last_block && d.last_block.delivered_ever) || []);
-    renderSiblingLink();
     state.liveShown = Boolean(liveBlock()) || deliveredNow.size > 0;
     renderBlockCard();
     renderMarkers();
@@ -1515,57 +1399,9 @@
     if (window.scrollY !== y) window.scrollTo(0, y);
     if (!folding) holdAnchor(anchor);
     restoreReloadY();
-    focusOnce();
     const hash = d.last_block && d.last_block.hash;
     if (hash && state.lastHash && hash !== state.lastHash) pulseBlock();
     if (hash) state.lastHash = hash;
-  }
-
-  // Somebody arrived from Bitcoin Lab asking about one peer. Put it in front of
-  // them once. Not a filter and not sticky: the rest of the node is the reason
-  // they are looking at a map, and a row that keeps jumping under the cursor on
-  // every ten-second refresh would be its own kind of rude.
-  function focusOnce() {
-    if (!state.focus || state.focusDone) return;
-    const row = document.querySelector("tr.focus");
-    if (!row) return;
-    state.focusDone = true;
-    // A card the reader folded opens for this visit, not for good: the peer
-    // asked for is in it, and a reload keeps it folded as before.
-    const shut = row.closest(".folded");
-    if (shut) {
-      shut.classList.remove("folded");
-      const title = shut.querySelector(".fold-title");
-      if (title) title.setAttribute("aria-expanded", "true");
-      fitTables();
-    }
-    row.scrollIntoView({ block: "center", behavior: glide() });
-  }
-
-  // Bitcoin Lab measures which of these peers actually delivers each block
-  // first. The server says whether it is installed; the port is the one its
-  // store manifest publishes (or PEERMAP_SIBLING_LINK_PORT, passed on as
-  // sibling_port, for a test store), and the host is this one.
-  const SIBLING_PORT = 8790;
-  function siblingURL(peerAddress) {
-    const port = (state.data && state.data.sibling_port) || SIBLING_PORT;
-    const base = "/";
-    return peerAddress ? base + "?peer=" + encodeURIComponent(peerAddress) : base;
-  }
-  function renderSiblingLink() {
-    const a = $("sibling-link");
-    if (!a || !state.data) return;
-    // Without Bitcoin Lab the same link leads to where it can be had, as
-    // Bitcoin Lab does for this app.
-    const lab = !!state.data.sibling;
-    a.hidden = false;
-    a.target = lab ? LAB_TARGET : "_blank";
-    a.href = lab ? siblingURL(null) : LAB_PAGE;
-    if (lab) a.removeAttribute("title");
-    else a.title = "See which of your peers bring you new blocks first";
-    // The star and the green address are Bitcoin Lab's word; without it the
-    // legend does not explain marks the page never shows.
-    for (const li of document.querySelectorAll(".key .lab-only, .key-list .lab-only")) li.hidden = !lab;
   }
 
   // Nodes are what passes blocks on (every "Node (...)" kind and pool nodes),
@@ -1573,8 +1409,6 @@
   // wallets, crawlers, indexers, unknown - are "others", so the three add up.
   // Named once, in the tooltip and the Disguised explanation, not on every card.
   const LION_CREDIT = "Tracked by 0xB10C, b10c.me";
-  // Until Bitcoin Lab is in Umbrel's own store, its page is the repository.
-  const LAB_PAGE = "/";
   const isNode = (p) => p.kind.startsWith("Node (") || p.kind === "Pool node";
   // A dot in front of the status line beats once when fresh peers arrive.
   const liveDot = document.createElement("span");
@@ -2499,18 +2333,7 @@
           star.title = "Delivered the block that just landed";
           sub.appendChild(star);
         }
-        // With Bitcoin Lab installed the address is the way over: same peer,
-        // the other question. Without it, plain text - no dead links.
-        if (state.data && state.data.sibling) {
-          const a = document.createElement("a");
-          a.className = "peer-jump addr-txt";
-          a.href = siblingURL(p.addr);
-          a.target = LAB_TARGET;
-          a.textContent = p.addr;
-          a.dataset.tip = "View this peer in the ranking";
-          a.title = [got, a.dataset.tip].filter(Boolean).join("\n");
-          sub.appendChild(a);
-        } else {
+        {
           const a = document.createElement("span");
           a.className = "addr-txt";
           a.textContent = p.addr;
@@ -2545,12 +2368,10 @@
           // often the peer was first, then ping and time connected. Shown by
           // the card's width; all of it is in the opened row at any width.
           const r = rankOf(p);
-          if (lab()) {
-            const n = span("pc-x pc-first", r && r.eligible ? r.first + "/" + r.eligible : "\u2013");
-            const s = span("pc-x pc-sub", "first/blocks");
-            if (r && r.eligible) n.title = s.title = `First for ${r.first} of the ${r.eligible} blocks it was connected for.`;
-            pc.append(n, s);
-          }
+          const n = span("pc-x pc-first", r && r.eligible ? r.first + "/" + r.eligible : "\u2013");
+          const s = span("pc-x pc-sub", "first/blocks");
+          if (r && r.eligible) n.title = s.title = `First for ${r.first} of the ${r.eligible} blocks it was connected for.`;
+          pc.append(n, s);
           pc.append(span("pc-y pc-ping", p.min_ping_ms == null ? "\u2013" : fmtPing(p.min_ping_ms)),
             span("pc-y pc-sub", p.offline ? "offline" : p.conntime ? ago(Date.now() / 1000 - p.conntime) : ""));
           who.appendChild(pc);
@@ -2615,8 +2436,7 @@
         // saw (no services, no tx, no headers) is in the panel. Software that
         // passes no blocks on gets the ⊘ and a muted row; "never first" is
         // said on hover and in the panel (28.10.2026: beside "offers no
-        // services" it said the same twice, and without Bitcoin Lab next door
-        // nothing in the map says what "first" is).
+        // services" it said the same twice).
         // One layout in every row, and the pill is never cut.
         const label = p.linking_lion ? "LinkingLion" : p.kind;
         if (p.no_relay) {
@@ -2778,17 +2598,6 @@
     for (const [word, why, cls] of flags) {
       const row = el("p", "pd-flag-row");
       row.append(el("span", "pd-flag" + (cls ? " " + cls : ""), word), " " + why);
-      // Without Bitcoin Lab next door nothing in the map says what "first"
-      // is: where someone wonders, one line says where to find out.
-      if (p.no_relay && (word === "never first" || word === p.fork) && !state.data.sibling) {
-        const more = el("span", "pd-more", "Which of your peers bring you new blocks first: ");
-        const a = el("a", "", "Ranking \u2192");
-        a.href = LAB_PAGE;
-        a.target = "_blank";
-        a.rel = "noopener";
-        more.appendChild(a);
-        row.appendChild(more);
-      }
       what.appendChild(row);
     }
     // Pruned, the fee filter and the Umbrel app only add context; they do not
@@ -2886,18 +2695,11 @@
     else svc.appendChild(el("span", "pd-chip none", p.no_services ? "no services" : "services unknown"));
     who.appendChild(svc);
     if (p.version) who.appendChild(el("p", "pd-small", "Protocol " + p.version));
-    if (state.data && state.data.sibling && !lab()) {
-      const link = el("a", "pd-lab", "Ranking \u2192");
-      link.title = "View this peer in the ranking";
-      link.href = siblingURL(p.addr);
-      link.target = LAB_TARGET;
-      who.appendChild(link);
-    }
     const where = [p.region, p.cc].filter(Boolean).join(", ");
     if (where || p.operator) who.appendChild(el("p", "pd-where", [where, p.operator ? p.operator + (p.asn ? " (AS" + p.asn + ")" : "") : ""].filter(Boolean).join(" \u00b7 ")));
     // What can be done with this peer: the measuring half's own buttons, in
     // its own dress (.lab) and handled by its script.
-    const acts = lab() ? lab().actionsHtml(p.addr) : "";
+    const acts = lab().actionsHtml(p.addr);
     if (/<button/.test(acts)) {
       const row = el("div", "pd-actions lab");
       row.innerHTML = acts;
@@ -2991,7 +2793,7 @@
     // A panel left open for a peer that is gone must not pop open when its address comes back.
     const live = new Set(state.data.peers.map((p) => p.group + " " + p.addr));
     // An offline manual peer is a row too, and stays open like any other.
-    if (lab()) for (const r of lab().offlineManual()) live.add("manual " + r.address);
+    for (const r of lab().offlineManual()) live.add("manual " + r.address);
     for (const k of state.openRows) if (!live.has(k)) state.openRows.delete(k);
     const root = $("tables");
     root.textContent = "";
@@ -3006,7 +2808,7 @@
       if (state.group) peers = peers.filter(matchesKind);
       // A manual peer that is not connected still holds its slot: it stands
       // in the list with the others, from what the measuring half knows of it.
-      if (g === "manual" && lab() && !state.place && !state.group) peers = peers.concat(lab().offlineManual().map(offlinePeer));
+      if (g === "manual" && !state.place && !state.group) peers = peers.concat(lab().offlineManual().map(offlinePeer));
 
       const card = document.createElement("section");
       card.className = "card group-card";
@@ -3081,8 +2883,8 @@
       if (peers.length) {
         const spread = document.createElement("p");
         spread.className = "kinds spread";
-        spread.textContent = spreadText(peers) + (g === "manual" && lab() ? " \u00b7 " + lab().manualSummary() : "")
-          + (g === "inbound" && lab() && lab().fedCount() ? " \u00b7 \ud83d\udce1 " + lab().fedCount() + " peers take new blocks from you first" : "");
+        spread.textContent = spreadText(peers) + (g === "manual" ? " \u00b7 " + lab().manualSummary() : "")
+          + (g === "inbound" && lab().fedCount() ? " \u00b7 \ud83d\udce1 " + lab().fedCount() + " peers take new blocks from you first" : "");
         card.appendChild(spread);
       }
 
@@ -3099,9 +2901,8 @@
         continue;
       }
 
-      const cols = lab() ? COLS : COLS.filter((c) => c !== FIRST_COL);
-      const s = state.sort[g] || (lab() ? { key: "first", dir: 1 } : { key: "conntime", dir: 1 });
-      const col = cols.find((c) => c.key === s.key) || cols[cols.length - 1];
+      const s = state.sort[g] || { key: "first", dir: 1 };
+      const col = COLS.find((c) => c.key === s.key) || COLS[COLS.length - 1];
       peers.sort((a, b) => {
         const x = col.val(a), y = col.val(b);
         return (x < y ? -1 : x > y ? 1 : 0) * s.dir;
@@ -3113,7 +2914,7 @@
       table.className = "peers";
       const thead = document.createElement("thead");
       const hr = document.createElement("tr");
-      for (const c of cols) {
+      for (const c of COLS) {
         const th = document.createElement("th");
         th.scope = "col";
         th.className = "k-" + c.key + (c.cls ? " " + c.cls : "");
@@ -3133,31 +2934,21 @@
       table.appendChild(thead);
       // Inbound runs to a couple of hundred rows and pushed Outbound and Manual
       // far down the page, so it shows its top ten - in the order of the
-      // current sort - with a toggle for the rest, as Bitcoin Lab's ranking
-      // does. The others never get long. A peer Bitcoin Lab pointed at opens
-      // the full list once, or its row would not exist to land on.
+      // current sort - with a toggle for the rest. The others never get long.
       let shown = peers;
       const limited = g === "inbound" && peers.length > INBOUND_LIMIT;
-      if (limited) {
-        if (state.focus && !state.focusDone && !state.showAllInbound
-            && peers.slice(INBOUND_LIMIT).some((p) => p.addr === state.focus)) state.showAllInbound = true;
-        if (!state.showAllInbound) shown = peers.slice(0, INBOUND_LIMIT);
-      }
+      if (limited && !state.showAllInbound) shown = peers.slice(0, INBOUND_LIMIT);
       const tbody = document.createElement("tbody");
       for (const p of shown) {
         const tr = document.createElement("tr");
         tr.dataset.anchor = g + " " + p.addr;
-        if (state.focus && p.addr === state.focus) tr.className = "focus";
         // The peer that brought the newest block, for as long as the star
         // is up - one rule for "just delivered", in the row and on the map.
-        else if (deliveredNow.has(p.addr)) {
-          tr.className = "delivered-now";
-        }
-        // A connection that has brought this node a block, at least once: its address in green, also on an orange or
-        // focused row (as in Bitcoin Lab).
+        if (deliveredNow.has(p.addr)) tr.className = "delivered-now";
+        // A connection that has brought this node a block, at least once: its address in green, also on an orange row.
         if (deliveredEver.has(p.addr) || deliveredNow.has(p.addr)) tr.classList.add("delivered-ever");
         if (p.no_relay || p.offline) tr.classList.add("weak");
-        for (const c of cols) {
+        for (const c of COLS) {
           const td = document.createElement("td");
           if (c.cls) td.className = c.cls;
           td.classList.add("k-" + c.key);
@@ -3184,12 +2975,7 @@
         tr.tabIndex = -1;
         tr.addEventListener("click", (ev) => {
           // Links and buttons keep doing their own thing; so does selecting text.
-          // On a touch screen the address is too small a target for a finger: a tap
-          // on it opens the peer like a tap anywhere else, and the way over to
-          // Bitcoin Lab is a button in the panel.
-          const onAddress = ev.target.closest("a.peer-jump") && window.matchMedia("(pointer: coarse)").matches;
-          if (onAddress) ev.preventDefault();
-          else if (ev.target.closest("a, button, input, select, textarea") && !ev.target.closest(".chev")) return;
+          if (ev.target.closest("a, button, input, select, textarea") && !ev.target.closest(".chev")) return;
           if (String(window.getSelection()).length > 0) return;
           toggleDetail(tr, p, rowKey);
         });
@@ -3267,8 +3053,7 @@
   // (see [data-drops] in style.css): Connected, then Ping, then Net, and
   // Operator last (Ping and Connected matter less than anything
   // else). The first three steps are also taken when the tables would fit
-  // but the kind's text would be cut. The address always stays: it is the
-  // link into Bitcoin Lab.
+  // but the kind's text would be cut. The address always stays.
   const DROP_LEVELS = 4, KIND_LEVEL = 3;
   function fitTables() {
     const y = window.scrollY;
@@ -3305,10 +3090,10 @@
       cards = level === DROP_LEVELS && overflows(wraps);
       if (cards) unalign();
     }
-    // With the measuring half on the page, cards come as soon as a table
-    // would lose its net and First/Blocks (level 3): a card that wide shows
-    // more than the three columns left (12.11.2026).
-    if (lab() && level >= 3 && !cards) { cards = true; unalign(); }
+    // Cards come as soon as a table would lose its net and First/Blocks
+    // (level 3): a card that wide shows more than the three columns left
+    // (12.11.2026).
+    if (level >= 3 && !cards) { cards = true; unalign(); }
     for (const w of wraps) w.classList.toggle("cards", cards);
     // A second reason only where it fits whole, never cut short (09.11.2026):
     // on a card its own line, in the wide list the grey line it sits in.

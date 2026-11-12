@@ -73,10 +73,7 @@ const SERVICE_STALE_MS = {
 // neither 'unsafe-inline' nor a nonce is needed for scripts or styles.
 // Everything it loads (app.js, style.css, favicon.png) is same-origin, the
 // stylesheet references no url(), and every request the page makes - fetch to
-// /api/*, the EventSource on /api/events - is same-origin too. The one thing
-// that was not was a cross-origin knock on Peer Map's port from the browser;
-// that question is answered by this process now (/api/status peerMapInstalled,
-// via lib/sibling.js) and the browser-side probe is gone with it.
+// /api/*, the EventSource on /api/events - is same-origin too.
 //
 // No CORS headers: nothing reads this API from another origin. Peer Map polls
 // /api/blocks/latest from its own Go process, container to container, where
@@ -616,24 +613,16 @@ async function router(req, res, pathname, url) {
       network: config.bitcoin.network,
       live: queries.liveSummary(),
       maxManualPeers: config.maxManualPeers,
-      // Named in a column heading, so it is read from the config rather than
-      // written into the page: a heading that states the wrong window is worse
-      // than one that states none.
       // Whether the pool race is running at all. The page needs it before it
       // renders anything of that card: switched off there is nothing to show
       // and, more to the point, nothing being measured, so a table of
       // yesterday's numbers would be a lie told by a stale row.
       stratumRaceEnabled: stratumRace.isEnabled(),
-      // Whether Peer Map is installed beside this app. The page uses it to
-      // decide whether to offer a link there at all - a link to an app nobody
-      // installed is worse than no link.
-      peerMapInstalled: await sibling.isInstalled(),
       // The database's size on disk, for the folded Storage card: three file
       // sizes, nothing read. The split per table stays behind /api/storage.
       dbBytes: db.sizeBytes(),
-      // A test copy (see lib/config.js): read-only, and its own Peer Map port.
+      // A test copy (see lib/config.js): read-only.
       readOnly: config.readOnly,
-      peerMapLinkPort: config.peerMapLinkPort || undefined,
     });
   }
 

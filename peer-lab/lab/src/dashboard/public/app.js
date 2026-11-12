@@ -1,13 +1,5 @@
 'use strict';
 
-// This window answers to a name, and links to Peer Map aim at Peer Map's name: clicking back and forth between the two
-// apps then reuses one window each instead of opening a new one per click. That needs the opener kept, so these links
-// carry no rel="noopener" - both windows are this Umbrel's own apps.
-window.name = 'peer-lab';
-// On a phone or tablet Safari loads a named tab in the background and stays where it is, so a tap seemed to do nothing.
-// There the jump stays in the same tab, and Back returns.
-const TOUCH_ONLY = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
-
 // Peer/pool ranking is a slow-moving, historical stat, not a live combat
 // feed - it doesn't need sub-10s freshness, and peerRanking() in particular
 // runs several joined aggregate queries. Manual actions (add/remove/
@@ -194,50 +186,6 @@ function truncatedCell(text, cls = '') {
 // put back after every change.
 const DROP_LEVELS = 4;
 
-// Column widths of the peer tables, set for each step: the short columns as
-// wide as their content, the other four as wide as each needs - an IPv4
-// address with its port, a client name like /Satoshi:31.0.0/ (a longer one is
-// cut, the open row has it whole), the longest pill (MANUAL OFFLINE), First %
-// with its ⚡ and 📡. A window too narrow for that shrinks those four
-// together, so none is cut while another has room to spare. A wider one
-// shares what is left among those four, the client twice over: in one or
-// two columns only, it stood as an empty band (under Type and First %, then
-// under the client), and beside the short numbers it was a gap too.
-const COL_FIXED = { 'col-ping': 72, 'col-session': 78, 'col-sessions': 56, 'col-actions': 240 };
-const COL_NEED = { 'col-address': 161, 'col-client': 140, 'col-status': 139, 'col-pct': 141 };
-function sizeColumns() {
-  for (const t of document.querySelectorAll('table.peer-table')) {
-    if (!t.offsetWidth) continue;
-    const ths = [...t.tHead.rows[0].cells];
-    for (const th of ths) th.style.width = '';
-    const shown = ths.filter((th) => getComputedStyle(th).display !== 'none');
-    const col = (th) => [...th.classList].find((c) => c.startsWith('col-'));
-    // Only the tables with these columns.
-    if (!shown.every((th) => COL_FIXED[col(th)] || COL_NEED[col(th)])) continue;
-    let fixed = 0;
-    let need = 0;
-    for (const th of shown) {
-      if (COL_FIXED[col(th)]) fixed += COL_FIXED[col(th)];
-      else need += COL_NEED[col(th)] || 0;
-    }
-    // Without the Client column the address cell carries the client too,
-    // and the two buttons stand one above the other (style.css).
-    const last = t.closest('.table-wrap')?.dataset.drops === String(DROP_LEVELS);
-    if (last) {
-      fixed -= COL_FIXED['col-actions'] - 136;
-      need += COL_NEED['col-client'] - COL_NEED['col-address'];
-    }
-    const spare = Math.max(0, t.offsetWidth - fixed);
-    const want = (c) => (last && c === 'col-address' ? COL_NEED['col-client'] : COL_NEED[c] || 0);
-    const fixOf = (c) => (last && c === 'col-actions' ? 136 : COL_FIXED[c]);
-    const base = new Map(shown.map((th) => [th, fixOf(col(th)) || (spare < need ? spare * want(col(th)) / need : want(col(th)))]));
-    const rest = spare > need ? spare - need : 0;
-    const share = (th) => (col(th) === 'col-client' ? 2 : COL_NEED[col(th)] ? 1 : 0);
-    const shares = shown.reduce((sum, th) => sum + share(th), 0);
-    const add = (th) => (shares ? rest * share(th) / shares : 0);
-    for (const th of shown) th.style.width = Math.floor(base.get(th) + add(th)) + 'px';
-  }
-}
 
 function fitTables() {
   const y = window.scrollY;
@@ -282,22 +230,11 @@ function fitTables() {
   const anchorTop = anchor ? anchor.getBoundingClientRect().top : 0;
   const before = `${fitState.level}${fitState.cards}`;
   const tight = () => wraps.some((w) => w.clientWidth && w.scrollWidth > w.clientWidth + 1);
-  // An address cut to "..." counts as too tight while there are columns left
-  // to give up before it - an ordinary one, that is: an onion address is not
-  // worth four columns on a wide screen. A client name may be cut; the open
-  // row shows it whole.
-  const clientCut = () => [...document.querySelectorAll('table.peer-table td[data-col="col-address"]')]
-    .some((td) => td.clientWidth && (td.dataset.full || '').length <= 24 && td.scrollWidth > td.clientWidth);
-  // A type pill cut to "MANUAL LI..." counts as too tight as well: the column
-  // can squeeze below its 140px before the table as a whole overflows.
-  const typeCut = () => [...document.querySelectorAll('table.peer-table td[data-col="col-status"]')]
-    .some((td) => td.clientWidth && td.scrollWidth > td.clientWidth + 1);
   if (wider) for (const w of wraps) w.classList.remove('cards');
   let level = wider ? 0 : fitState.level;
   for (; ; level++) {
     for (const w of wraps) w.dataset.drops = String(level);
-    sizeColumns();
-    if (level === DROP_LEVELS || !(tight() || clientCut() || typeCut())) break;
+    if (level === DROP_LEVELS || !tight()) break;
   }
   const cards = level === DROP_LEVELS && tight();
   for (const w of wraps) w.classList.toggle('cards', cards);
@@ -310,159 +247,21 @@ function fitTables() {
   if (window.scrollY !== y) window.scrollTo(0, y);
   return false;
 }
-// A reload puts the reader back where they were. The browser tries it before
-// the peers have arrived, finds a short page and settles near the top. So the position is kept here, set again once the
-// tables are in, and let go when the reader moves the page, when the page has
-// grown to it, or after six seconds.
-let reloadY = null;
-let restoredY = null;  // where this code last put the page
-try {
-  // Always manual: with the browser's own restore on, it and this code pull the page two ways.
-  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-  const nav = performance.getEntriesByType('navigation')[0];
-  const key = 'scrollY:' + location.pathname;
-  if (nav && (nav.type === 'reload' || nav.type === 'back_forward')) {
-    const v = Number(sessionStorage.getItem(key));
-    if (v > 0) reloadY = v;
-  }
-  // Still waiting to be restored, the page is short: keep the position that waits.
-  const save = () => { try { sessionStorage.setItem(key, String(reloadY !== null ? reloadY : Math.round(window.scrollY))); } catch { /* private window */ } };
-  window.addEventListener('pagehide', save);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
-  const letGo = () => { reloadY = null; };
-  for (const ev of ['wheel', 'touchstart', 'keydown', 'mousedown']) window.addEventListener(ev, letGo, { passive: true });
-  // A drag on the scrollbar or a fling is the reader's, not ours.
-  window.addEventListener('scroll', () => { if (reloadY !== null && restoredY !== null && Math.abs(window.scrollY - restoredY) > 40) letGo(); }, { passive: true });
-  setTimeout(letGo, 6000);
-} catch {
-  // No storage: nothing is saved, so the browser's own restore has to do.
-  try { history.scrollRestoration = 'auto'; } catch { /* old browser */ }
-}
 
 // The width of the last check and what it decided. The first check always
 // counts as wider, so it measures from scratch.
 const fitState = { width: -Infinity, level: 0, cards: false };
 let fitTimer = null;
-const scheduleFit = () => { clearTimeout(fitTimer); fitTimer = setTimeout(() => { fitTables(); fitSeconds(); fitPct(); notePlace(); }, 50); };
-// On a phone card, First % with ⚡ and 📡 must stay one line: a card taller
-// than the others moves every card below it. Where the line does not fit, the
-// count (312/500) goes in that card alone - the share and the marks stay, and
-// the count is still in the table on a wide screen (28.10.2026). Measured per
-// card: the share and the count are as wide as their digits. The count's
-// width comes from its text, so a hidden one is measured the same way.
-const textWidth = (() => {
-  const ctx = document.createElement('canvas').getContext('2d');
-  return (el, text) => { ctx.font = getComputedStyle(el).font; return ctx.measureText(text).width; };
-})();
-// Each second part only where it fits whole in its cell or line; cut short,
-// it said less than the first alone (09.11.2026). The client cell is cut to
-// its column, so the longer text never widens it. Measured, not tried: the
-// page watches every change to keep the reader's place and fits again on
-// one, so a text put in to try was a loop that never ended. Written only when
-// the answer changes.
-function fitSeconds() {
-  for (const e of document.querySelectorAll('.cname[data-full]')) {
-    const box = e.closest('small, td');
-    if (!box || !box.offsetWidth) continue;
-    const sep = e.previousElementSibling && e.previousElementSibling.querySelector('.sep');
-    // Where the name starts in its box, and how far the box reaches: a cut
-    // box does not report how wide its content is.
-    const cs = getComputedStyle(box);
-    const start = e.getBoundingClientRect().left - box.getBoundingClientRect().left - box.clientLeft - parseFloat(cs.paddingLeft)
-      + (sep && sep.hidden ? textWidth(sep, sep.textContent) : 0);
-    const room = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    const fits = (t) => start + textWidth(e, t) <= room + 1;
-    // An opened card's line wraps: everything, whole. A table cell does not.
-    const next = (box.closest('tr.open') && cs.whiteSpace !== 'nowrap') || fits(e.dataset.full) ? e.dataset.full : fits(e.dataset.one) || !e.dataset.word ? e.dataset.one : '';
-    if (e.textContent !== next) e.textContent = next;
-    if (sep && sep.hidden !== !next) sep.hidden = !next;
-  }
-}
-
-function fitPct() {
-  for (const td of document.querySelectorAll('.cards table.peer-table td[data-col="col-pct"]')) {
-    const marks = [...td.querySelectorAll('.hb')];
-    const cnt = td.querySelector('.cnt');
-    if (!cnt || !marks.length || td.querySelector('.card-place')) { td.classList.remove('tight'); continue; }
-    const pct = td.querySelector('.pct');
-    const need = pct.getBoundingClientRect().width + textWidth(cnt, '\u00a0' + cnt.textContent)
-      + marks.reduce((w, m) => w + m.getBoundingClientRect().width + parseFloat(getComputedStyle(m).marginLeft), 0);
-    // Only on a change, so the observer below is not set off again.
-    if (td.classList.contains('tight') !== need > td.clientWidth) td.classList.toggle('tight');
-  }
-}
-// Re-rendered rows are cards without their labels until fitTables runs, and
-// fitTables takes the cards away for a moment to measure: either way the page
-// is shorter for an instant, and Safari clamps the scroll position to it and
-// keeps it there - a reader far down was thrown up on every refresh. The
-// position from the last frame is put back before anything is painted. Only a
-// jump upwards of more than a flick, so a scroll in progress is left alone.
-let lastScrollY = window.scrollY;
-// Keeping the scroll position is not enough either: with all peers shown, a
-// refresh adds and drops rows above the reader, and everything below moved
-// by a few hundred pixels every twenty seconds (iPhone, 24.10.2026). Safari
-// has no scroll anchoring of its own, so the page does it: what is at the top
-// of the window - a heading, or a row in a table - is noted, and after any
-// change of the page it is put back where it was.
-// A row is held by its place in its table, never by the peer in it
-// (28.10.2026): the lists are sorted by how well a peer delivers, and a page
-// that followed one peer up or down the ranking jumped under a reader who
-// was only looking. When a peer moves, another one stands in its place; the
-// list does not move. Every change goes through here: new data, a card
-// folded, a row opened (the observer below also watches those classes).
-//
-// Headings and tables are found again by name, not by their number on the
-// page (06.11.2026): with all peers shown, a reader near the top of the
-// ranking was thrown 36,000 px down to Traffic on a refresh, because "the
-// nth heading" or "table n" had come to mean another one further down. A
-// heading's name is its own text, without the counts in its hint.
-const PLACE_SELECTOR = 'h2, h3, .table-wrap tbody tr';
-let placeMarks = [];
-const headName = (h) => (h.firstChild && h.firstChild.textContent || '').trim();
-function notePlace() {
-  placeMarks = [];
-  if (window.scrollY <= 0) return;
-  for (const e of document.querySelectorAll(PLACE_SELECTOR)) {
-    const r = e.getBoundingClientRect();
-    if (r.height === 0 || r.bottom <= 0) continue;
-    if (r.top >= window.innerHeight) break;
-    const table = e.tagName === 'TR' && e.closest('table');
-    if (table && !table.id) continue;
-    const key = table ? [table.id, [...e.parentNode.children].indexOf(e)] : [null, headName(e)];
-    if (!table && !key[1]) continue;
-    placeMarks.push({ key, top: r.top });
-    if (placeMarks.length === 3) break;
-  }
-}
-let placeFrame = 0;
-window.addEventListener('scroll', () => {
-  lastScrollY = window.scrollY;
-  if (!placeFrame) placeFrame = requestAnimationFrame(() => { placeFrame = 0; notePlace(); });
-}, { passive: true });
+const scheduleFit = () => { clearTimeout(fitTimer); fitTimer = setTimeout(fitTables, 50); };
+// Rows re-rendered are tables again until fitTables has run: it puts the
+// labels back and decides between table and cards after every change.
 // A class or attribute matters only where it can change the height of the
 // page's content: inside main, and not the beating dot or the bar that rides
-// along at the top. The jump bar outside main changes its class on every
-// scroll; counting that put the reader back after each flick, and the page
-// could not be scrolled at all (2.0.1-62/63 in the test store, 28.10.2026).
+// along at the top.
 const QUIET = '.live-dot, .stick';
 const counts = (m) => m.type === 'childList' || (m.target.closest('main') && !m.target.closest(QUIET));
 new MutationObserver((list) => {
-  if (!list.some(counts)) return;
-  const y = lastScrollY;
-  // Not when fitTables has just kept the reader's place itself: that move is
-  // meant, and putting the old position back would undo it.
-  const anchored = fitTables();
-  fitSeconds();
-  fitPct();
-  // The old position only where the page still reaches it: after "Show top 10
-  // only" it no longer does, and forcing it landed the reader at the bottom.
-  const reachable = y <= document.documentElement.scrollHeight - window.innerHeight;
-  // A fold keeps the reader's place itself, by what was tapped (foldInPlace).
-  // Keeping the reader's place while the page changes is the page's own
-  // script's job (the map's); this half only fits its tables.
-  void anchored; void reachable; void y;
-  lastScrollY = window.scrollY;
-  notePlace();
+  if (list.some(counts)) fitTables();
 }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open', 'hidden'] });
 // Only a change of width can change whether the tables fit. On an iPhone the
 // height changes all the time - Safari's toolbar shrinks and grows while the
@@ -709,8 +508,6 @@ function actionsCell(p, { lock = '' } = {}) {
 // cell, with the reason in that cell's tooltip. A sentence repeating that
 // above the table said the same thing twice.
 
-let showAllLivePeers = false; // toggled by #live-peer-limit-toggle
-
 // The log is a diary, and a diary is mostly interesting at the end: the four
 // most recent rows answer "what changed lately". The rest of what the server
 // keeps - thirty - is behind "Show all".
@@ -722,9 +519,9 @@ try {
   const nav = performance.getEntriesByType('navigation')[0];
   if (nav && (nav.type === 'reload' || nav.type === 'back_forward')) {
     const o = JSON.parse(sessionStorage.getItem(OPENED_KEY) || 'null');
-    if (o) { showAllLivePeers = !!o.live; showAllLog = !!o.log; }
+    if (o) showAllLog = !!o.log;
   }
-  const keep = () => { try { sessionStorage.setItem(OPENED_KEY, JSON.stringify({ live: showAllLivePeers, log: showAllLog })); } catch { /* private window */ } };
+  const keep = () => { try { sessionStorage.setItem(OPENED_KEY, JSON.stringify({ log: showAllLog })); } catch { /* private window */ } };
   window.addEventListener('pagehide', keep);
   document.addEventListener('visibilitychange', () => { if (document.hidden) keep(); });
 } catch { /* no storage: nothing to keep */ }
@@ -787,13 +584,13 @@ function foldInPlace({ anchor, box, set, open }) {
   // fold reach it after the fold has pinned the anchor, and it would move the
   // page by the top of the window instead.
   const done = () => { pin(); giveBack(); pin(); requestAnimationFrame(() => {
-    pin(); folding -= 1; notePlace();
+    pin(); folding -= 1;
     // A refresh that came in while it rolled waited for it.
     if (!folding) setTimeout(flushDeferredRenders, 0);
   }); };
   // Fitted before it is measured: re-rendered rows are cards only once
   // fitTables has run, and the end of the roll would be off by that.
-  const settle = (state) => { set(state); fitTables(); fitSeconds(); fitPct(); };
+  const settle = (state) => { set(state); fitTables(); };
   // A fold that fails half way must not leave the page thinking it is
   // still folding: the runway and the place-keeping would stay off.
   try { settle(open); } catch (err) { folding -= 1; throw err; }
@@ -1056,8 +853,6 @@ function markOpenRow() {
     tr.classList.toggle('open', open);
     tr.setAttribute('aria-expanded', String(open));
   }
-  // An opened card's client line wraps and has room for every reason again.
-  fitSeconds();
 }
 function toggleRow(tr) {
   const id = rowId(tr);
@@ -1065,11 +860,7 @@ function toggleRow(tr) {
 }
 document.addEventListener('click', (e) => {
   const tr = e.target.closest && e.target.closest('tr.can-act');
-  // The address is too small a target for a finger: on a touch screen it
-  // opens the card like a tap anywhere else (Peer Map does the same).
-  const onAddress = TOUCH_ONLY && e.target.closest('a.peer-jump');
-  if (tr && onAddress) e.preventDefault();
-  else if (!tr || e.target.closest('button, a, input, label, select')) return;
+  if (!tr || e.target.closest('button, a, input, label, select')) return;
   // A drag to select an address is not a tap.
   if (String(window.getSelection && window.getSelection()).length) return;
   toggleRow(tr);
@@ -2053,19 +1844,6 @@ document.getElementById('storage-card').addEventListener('toggle', (e) => {
 wireReset('peers');
 wireReset('pools');
 
-
-// The link to Peer Map used to be decided here, by knocking on port 8791 from
-// the browser with a no-cors fetch and showing the link if anything answered.
-// That knock is gone: refreshStatus() above already reads peerMapInstalled
-// from /api/status, where this app's own process asks the question properly -
-// it can see whether the container exists, which a browser never could, and it
-// is not guessing from a request whose reply it is not allowed to read.
-//
-// It also had to go for the dashboard to be servable under a
-// Content-Security-Policy with connect-src 'self' (see SECURITY_HEADERS in
-// dashboard-server.js): a cross-origin fetch is exactly what that forbids, and
-// the policy is worth more than a second way of answering a question already
-// answered.
 startRefreshLoop();
 startEventStream();
 

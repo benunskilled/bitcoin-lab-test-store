@@ -76,16 +76,6 @@ func loadConfig() (config, error) {
 	return c, nil
 }
 
-// siblingLinkPort is PEERMAP_SIBLING_LINK_PORT when it is a valid port, else 0
-// (the page then uses Bitcoin Lab's store port, 8790).
-func siblingLinkPort() int {
-	p, err := strconv.Atoi(os.Getenv("PEERMAP_SIBLING_LINK_PORT"))
-	if err != nil || p < 1 || p > 65535 {
-		return 0
-	}
-	return p
-}
-
 func env(k, def string) string {
 	if v := os.Getenv(k); v != "" {
 		return v
@@ -185,11 +175,6 @@ type snapshot struct {
 	Interval  int    `json:"interval"`
 	Error     string `json:"error,omitempty"`
 	Demo      bool   `json:"demo,omitempty"`
-	Sibling   bool   `json:"sibling,omitempty"` // Bitcoin Lab is installed on this node
-	// The port the browser link to Bitcoin Lab uses, when it is not the store's
-	// 8790 (PEERMAP_SIBLING_LINK_PORT, for a test store that runs both apps on
-	// other ports). Absent means 8790.
-	SiblingPort int `json:"sibling_port,omitempty"`
 	// The newest block Bitcoin Lab has seen, when it is installed: who mined
 	// it, and which peer here delivered it. Absent otherwise, and absent
 	// while it has not seen one.
@@ -278,10 +263,6 @@ func newHandler(src *source, sib *siblingCheck) http.Handler {
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 			snap := src.get(ctx)
-			snap.Sibling = sib.installed(ctx)
-			if snap.Sibling {
-				snap.SiblingPort = siblingLinkPort()
-			}
 			snap.LastBlock = sib.latest(ctx)
 			return snap
 		})

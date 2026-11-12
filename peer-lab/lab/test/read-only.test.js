@@ -16,7 +16,6 @@ process.env.DATA_DIR = tmpDir;
 process.env.LOG_LEVEL = 'error';
 process.env.PEERMAP_HEALTH_URL = 'off';
 process.env.LAB_READ_ONLY = '1';
-process.env.PEERMAP_LINK_PORT = '8795';
 // Nothing listens here: a call that reached Core would fail.
 process.env.BITCOIN_RPC_HOST = '127.0.0.1';
 process.env.BITCOIN_RPC_PORT = '9';
@@ -44,9 +43,8 @@ async function post(pathname, body) {
   return { status: res.status, body: await res.json().catch(() => null) };
 }
 
-test('config reads the read-only flag and the link port', () => {
+test('config reads the read-only flag', () => {
   assert.equal(config.readOnly, true);
-  assert.equal(config.peerMapLinkPort, 8795);
 });
 
 test('addnode and disconnectnode are never sent to Core', async () => {
@@ -69,8 +67,7 @@ test('peer-changing routes answer 403', async () => {
   }
 });
 
-test('/api/status tells the page it is read-only and which Peer Map port to link', async () => {
+test('/api/status tells the page it is read-only', async () => {
   const s = await (await fetch(`${baseUrl}/api/status`)).json();
   assert.equal(s.readOnly, true);
-  assert.equal(s.peerMapLinkPort, 8795);
 });
