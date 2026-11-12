@@ -28,8 +28,6 @@
   --umbrel: #8b5cf6;
 }
 
-
-
 /* Buttons do not inherit the font on their own: without this they were Arial. */
 .lab button{ font-family: inherit; }
 
@@ -66,8 +64,6 @@
 
 /* The peer another app pointed at. Marked, not filtered - and unlike the
    new-block tint it does not fade, so it can still be found after scrolling. */
-.lab tr.row-focus td{ background: rgba(247,147,26,.10); }
-.lab tr.row-focus td:first-child{ box-shadow: inset 3px 0 0 var(--accent); }
 
 .lab .status-pill{
   font-size: 13px;
@@ -95,7 +91,6 @@
    reader's place. Browsers anchor the scroll position on their own too (Chrome,
    Firefox, Safari from 27), and two corrections for one change throw the reader
    somewhere else - so nothing on the page takes part in anchoring. */
-
 
 .lab .card h2{
   margin: 0 0 14px;
@@ -196,9 +191,6 @@
 /* Before the client name: Disguised or LinkingLion in Peer Map's red (red is
    kept for that there too - orange is Bitcoin's and means something good
    here) (clientName). */
-.lab .kind-tag{ color: var(--muted); }
-.lab .kind-tag.disg{ color: var(--bad); }
-.lab .lion-link{ color: inherit; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, currentColor 40%, transparent); }
 
 .lab .pill{
   display: inline-block;
@@ -217,7 +209,7 @@
    a fourth meaning on the same axis is one a colour-blind reader cannot
    separate - measured, not assumed. It is not a fault either; a wallet is doing
    what a wallet does, and the colour still says what kind of connection this is. */
-.lab .pill.norelay{ opacity: .7; }
+
 /* The manual slots' log: a peer the slot fill added is green, one added by
    hand the blue that means manual in both apps. A peer that went - offline,
    or disconnected by hand - is grey: nothing went wrong. */
@@ -234,7 +226,6 @@
 .lab #manual-add-result:empty{ display: none; }
 .lab .result-ok{ color: var(--good); }
 .lab .result-error{ color: var(--bad); }
-
 
 .lab .inline-form{
   display: flex;
@@ -357,9 +348,6 @@
    for it turns into cards instead. */
 /* A real table cell, so it grows with a two-line row and its border lines up;
    the slots sit in it side by side. */
-.lab .row-actions{ white-space: nowrap; }
-.lab td.row-actions > *{ display: inline-flex; vertical-align: middle; }
-.lab td.row-actions > * + *{ margin-left: 6px; }
 
 /* Each action cell renders a fixed two-slot layout (primary action, then
    Disconnect) with an empty placeholder - never an omitted element - for
@@ -384,7 +372,7 @@
    so it is as wide as the longer one - otherwise Disconnect beside it jumps
    from row to row. In the Manual table it holds the lock, at its right edge,
    so Remove there stands under Disconnect too. */
-.lab .row-actions > .action-slot:first-child{ min-width: 112px; }
+
 .lab span.action-slot.lock-slot{ visibility: visible; justify-content: flex-end; background: none; border-color: transparent; }
 .lab .lock-slot .keep-star{ padding: 0; }
 
@@ -395,7 +383,6 @@
    as every other row, just dashes in each column like any other empty
    cell in this app (see truncatedCell etc.) - a dashed box around the row
    read as much heavier/busier than the empty state warranted. */
-.lab tr.empty-slot td{ color: var(--muted); }
 
 /* Live Peer Ranking, Outbound Peers, and Manual Peers all render the exact
    same column set in the exact same order (see the shared .col-* classes
@@ -606,13 +593,6 @@
    address in green, the same as in Peer Map. Only the address - near the top
    of the ranking almost every row has delivered, and whole green rows were a
    lot of colour for one bit. */
-.lab .table-wrap table tbody tr.row-first-block{
-  background: rgba(247, 147, 26, .22);
-  transition: background 1.2s ease;
-}
-.lab tr.row-delivered > td:first-child, .lab tr.row-delivered > td:first-child a.peer-jump{ color: #56d364; }
-.lab .table-wrap table tbody tr.row-first-block:hover{ background: rgba(247, 147, 26, .3); }
-.lab .table-wrap table tbody tr.row-first-block:hover td{ background: none; }
 
 /* The keep lock in the Manual Peers table. Both the state and the switch:
    the padlock means the rotation leaves this peer alone. Open, it is only a
@@ -702,22 +682,15 @@
 /* The last step before cards: the client as a second line under the address
    (app.js, withClientLine), and the two buttons one above the other - the
    red one below, where it is in every row. */
-.lab .addr-client{ display: none; }
+
 /* The raw user agent, on an opened card only (withClientLine). */
-.lab .addr-client .ua-raw{ display: none; }
-.lab tr.open .addr-client .ua-raw{ display: block; white-space: normal; overflow-wrap: anywhere; }
+
 /* On a touch screen the way over to Peer Map, inside the opened card. */
-.lab .map-open{ display: none; }
-.lab tr.open .map-open{ display: inline-block; max-width: 100%; box-sizing: border-box; margin-top: 8px; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border); color: var(--text); font-size: 13px; text-decoration: none; white-space: nowrap; }
+
 /* Opened, the line is whole: the name and its reasons, however long. */
-.lab .table-wrap[data-drops] tr.open .addr-client{ white-space: normal; overflow: visible; }
+
 .lab .addr-place{ display: block; margin-top: 2px; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lab .addr-place .flag{ margin-right: 6px; }
-.lab .manual-spread{ margin: -4px 0 10px; }
-.lab .table-wrap[data-drops="4"] .addr-client{ display: block; margin-top: 2px; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lab .table-wrap[data-drops="4"]:not(.cards) td.row-actions{ white-space: normal; }
-.lab .table-wrap[data-drops="4"]:not(.cards) td.row-actions > *{ display: flex; width: 112px; margin-left: auto; }
-.lab .table-wrap[data-drops="4"]:not(.cards) td.row-actions > * + *{ margin-top: 6px; }
 
 /* Still too wide (a phone): each row becomes a small card. The name on top,
    then the values in a grid of equal cells - the column's name small above
@@ -753,10 +726,10 @@
 .lab .cards.cards table.peer-table td[data-col="col-address"]{ grid-column: 1; grid-row: 1; }
 .lab .cards.cards table.peer-table td[data-col="col-pct"]{ grid-column: 2; grid-row: 1; min-width: 132px; }
 .lab .cards.cards table.peer-table td[data-col="col-status"]{ grid-column: 1; grid-row: 2; }
-.lab .cards.cards table.peer-table td.row-actions{ grid-column: 2; grid-row: 2; justify-content: flex-start; position: relative; }
+
 /* The empty slot keeps a table's columns in line; on a card it would only push
    the buttons apart. Buttons a little tighter, so two fit beside the type. */
-.lab .cards.cards table.peer-table td.row-actions > span.action-slot:not(.lock-slot){ display: none; }
+
 /* Every peer card one height (09.11.2026): the first line one line-height
    whether it is a link, "Tor peer" or a local app's name, which keeps to one
    line here like an address; the ⚡ beside a First % no taller than the
@@ -765,26 +738,26 @@
 .lab .cards.cards table.peer-table td[data-col="col-address"]{ line-height: 18px; }
 .lab .cards.cards table.peer-table td[data-col="col-address"] small{ line-height: 16px; }
 .lab .cards.cards table.peer-table td[data-col="col-pct"] .hb{ line-height: 1; }
-.lab .cards.cards table.peer-table td.row-actions > .action-slot{ min-width: 0; padding: 5px 6px; }
+
 /* Two buttons beside BLOCK RELAY on a 390 px phone: the last pixels come from
    a narrower gap and a tighter pill, not from smaller text. */
 .lab .cards.cards table.peer-table tr{ column-gap: 8px; padding-left: 10px; padding-right: 10px; }
 .lab .cards.cards table.peer-table td[data-col="col-status"] .pill{ letter-spacing: .03em; }
 /* Big enough for a finger: Remove and Disconnect have consequences. */
-.lab .cards.cards table.peer-table td.row-actions > button.action-slot{ min-height: 34px; }
+
 /* The lock stands in the row, in front of Remove: hung outside the card's
    edge it was cut off by the card on a phone. */
-.lab .cards.cards #manual-peer-table .lock-slot{ padding: 0 4px 0 0; }
+
 /* The buttons take the whole second row and end at the right edge, one or
    two of them: the red one stands in the same place on every card, and two
    buttons no longer push first % left and cut the address short. */
-.lab .cards.cards table.peer-table td.row-actions{ grid-column: 1 / -1; justify-content: flex-end; }
+
 /* On the narrowest phones two buttons do not fit beside the type: they get
    the second row to themselves, still ending at the right - on an opened
    card, where they show. A closed card kept the empty row, and was taller
    than the rest. */
 @container cards (max-width: 289px) {
-  .lab .cards.cards table.peer-table tr.open:has(td.row-actions > button + button) td.row-actions{ grid-column: 1 / -1; grid-row: 3; justify-content: flex-end; }
+  
   .lab .cards.cards table.peer-table td[data-col="col-pct"]{ min-width: 96px; }
 }
 /* First % is the point of the card: when its cell gets too narrow, the count
@@ -802,12 +775,6 @@
   content: attr(data-label); display: block; margin-bottom: 2px;
   color: var(--muted); font-size: 10px; letter-spacing: .05em; text-transform: uppercase;
 }
-.lab .cards.cards tr.row-first-block{ background: rgba(247, 147, 26, .22); }
-.lab .cards.cards tr.row-focus{ background: rgba(247,147,26,.10); box-shadow: inset 3px 0 0 var(--accent); }
-.lab .cards.cards tr.empty-slot td{ display: none; }
-.lab .cards.cards tr.empty-slot::before{ content: "Free slot"; color: var(--muted); font-size: 12px; }
-.lab .cards.cards table tr td.row-actions{ display: flex; gap: 6px; }
-.lab .cards.cards table tr td.row-actions > * + *{ margin-left: 0; }
 
 /* The rotation log's note is a sentence: on its own line, wrapping. */
 .lab .cards.cards table tr td.hint{ grid-column: 1 / -1; white-space: normal; }
@@ -849,7 +816,7 @@
 
 /* Buttons in rows: smaller than a form button, the destructive ones tinted red. */
 .lab .action-slot, .lab table button.secondary{ font-size: 12px; font-weight: 500; padding: 5px 9px; border-radius: 7px; background: #1b2531; border: 1px solid var(--border); color: var(--text); }
-.lab .row-actions > .action-slot:last-child{ min-width: 92px; }
+
 .lab button.danger, .lab table button.secondary.danger, .lab .action-slot[data-action="disconnect"]{ color: #e5534b; background: rgba(248,81,73,.08); border-color: rgba(229,83,75,.4); }
 /* "Add as Manual" in the blue that means manual everywhere in both apps - red removes, blue adds. Laid over the
    panel colour so it reads the same on a plain, green or orange row. */
@@ -949,7 +916,7 @@
 }
 .lab .cards.cards tr.can-act.open::after{ transform: rotate(45deg); }
 .lab .cards.cards tr.can-act.open{ background: rgba(255, 255, 255, .035); }
-.lab .cards.cards tr.can-act:not(.open) td.row-actions > button,
+
 .lab .cards.cards #pool-table tr.can-act:not(.open) :is(td:last-child, td.pool-enabled){ display: none; }
 .lab .cards.cards tr.can-act.open :is(td.row-actions > button, td:last-child > button){ animation: lab-in .18s ease-out; }
 @media (prefers-reduced-motion: reduce) {
@@ -1022,10 +989,7 @@
 .lab .key li{ display: grid; grid-template-columns: 104px 1fr; align-items: center; gap: 10px; }
 .lab .key li > b{ justify-self: start; font-weight: 400; color: var(--text); }
 .lab .key .hb{ font-size: 13px; }
-.lab .key .key-new{ padding: 1px 8px; border-radius: 6px; background: rgba(247, 147, 26, .22); }
-.lab .key .key-green{ color: #56d364; }
-.lab .key .key-grey{ color: var(--muted); }
-.lab .key .key-grey .never{ display: block; width: max-content; margin-top: 1px; }
+
 @media (max-width: 600px) { .lab .key{ display: block; } }
 /* Below 360 px four numbers do not fit a pool card: the average goes, the
    last block stays (04.11.2026). */
@@ -1049,16 +1013,9 @@
 .lab .cards.cards table.peer-table td[data-col="col-pct"]:has(.card-place) > :not(.card-place){ display: none; }
 .lab .cards.cards table.peer-table .card-place{ display: block; }
 .lab .cards.cards table.peer-table .card-place > span{ display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.lab .cards.cards table.peer-table .cp-land{ line-height: 18px; }
-.lab .cards.cards table.peer-table .cp-land .flag{ margin-right: 6px; }
-.lab .cards.cards table.peer-table .cp-land .hb{ line-height: 1; }
-.lab .cards.cards table.peer-table .cp-net{ margin-top: 2px; line-height: 16px; font-size: 12px; color: var(--muted); }
-.lab .cards.cards table.peer-table .cp-num{ margin-top: 2px; line-height: 16px; font-size: 12px; color: var(--muted); }
-.lab .cards.cards table.peer-table .cp-num b{ color: var(--text); }
-.lab .cards.cards table.peer-table tr:not(.open) .cp-num{ display: none; }
+
 .lab .cards.cards table.peer-table tr{ align-items: start; }
-.lab .cards.cards table.peer-table tr:not(.open):has(.card-place) td[data-col="col-status"],
-.lab .cards.cards table.peer-table tr:not(.open):has(.card-place) td.row-actions{ display: none; }
+.lab .cards.cards table.peer-table tr:not(.open):has(.card-place) td[data-col="col-status"]{ display: none; }
 /* The place is on the right now; the manual peers' own line would say it twice. */
 .lab .cards.cards table.peer-table tr:has(.card-place) .addr-place{ display: none; }
 /* In a table a row without a button is not something to click. */
