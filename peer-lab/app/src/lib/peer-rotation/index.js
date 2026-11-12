@@ -212,7 +212,9 @@ async function pass() {
 // again every 15 seconds, it waits for the ten-minute pass.
 let firstPassFor;
 function waitsForFirstPass() {
-  if (!isEnabled() || readStatus() != null) return false;
+  // A pass still under way (the timer's, from before the switch) would make
+  // tick() return without one; the switching on is then asked for next poll.
+  if (running || !isEnabled() || readStatus() != null) return false;
   const row = db.instance.prepare('SELECT value FROM meta WHERE key = ?').get(ON_AT_KEY);
   const on = row ? row.value : null;
   if (firstPassFor === on) return false;

@@ -17,7 +17,7 @@ test('peerInfo hands on a good answer and turns every bad one into null', async 
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
   const old = process.env.PEERS_URL;
   process.env.PEERS_URL = `http://127.0.0.1:${server.address().port}/`;
-  t.after(() => { server.close(); process.env.PEERS_URL = old; });
+  t.after(() => { server.close(); if (old === undefined) delete process.env.PEERS_URL; else process.env.PEERS_URL = old; });
 
   const at = Date.now() - 4000;
   let path = '';
@@ -30,7 +30,7 @@ test('peerInfo hands on a good answer and turns every bad one into null', async 
   const future = await peersService.peerInfo();
   assert.ok(Math.abs(future.atMs - Date.now()) < 1000, 'a time from the future is replaced by now');
 
-  for (const bad of [{ status: 503, body: 'no fresh answer' }, { status: 200, body: '{not json' }, { status: 200, body: '{"result":{}}' }]) {
+  for (const bad of [{ status: 503, body: JSON.stringify({ at_ms: Date.now(), result: [] }) }, { status: 200, body: '{not json' }, { status: 200, body: '{"result":{}}' }]) {
     reply = () => bad;
     // eslint-disable-next-line no-await-in-loop
     assert.equal(await peersService.peerInfo(), null, JSON.stringify(bad));
