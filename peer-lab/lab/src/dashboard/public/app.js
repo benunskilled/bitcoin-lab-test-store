@@ -156,15 +156,7 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (c) => ESCAPE_MAP[c]);
 }
 
-// Address and Client can both be long enough to blow up the whole table's
-// width (a long subver string in particular forces every other column wide
-// too under auto table layout) - cap them visually with an ellipsis. The full
-// value goes into a tooltip only when the ellipsis actually cut it; a tooltip
-// that repeats the cell says nothing (see the mouseover handler below).
-function truncatedCell(text, cls = '') {
-  const safe = escapeHtml(text);
-  return `<td class="cell-truncate${cls ? ' ' + cls : ''}" data-full="${safe}">${safe}</td>`;
-}
+
 
 // A table that does not fit its panel first gives up its least important
 // columns, a step at a time (data-drop="1".."4" on the <th>: sessions, then
@@ -881,26 +873,36 @@ async function refreshRotation() {
   renderRotationLog(lastRotationLog);
 }
 
-// On a phone each entry is a card, and where and why are one grey line under
-// the address; the table's own cells for them are hidden there
-// (style.css).
-function logCardLine(entry) {
-  const parts = [
-    entry.where ? placeHtml(entry.where) : '',
-    entry.note ? escapeHtml(entry.note) : '',
-  ].filter(Boolean);
-  return parts.length ? `<small class="log-card-line">${parts.map((x) => `<span>${x}</span>`).join(' · ')}</small>` : '';
+// Where a peer is, in the words of a peer card: its country with the flag,
+// or the network it came by when the place is not known.
+function logPlace(entry) {
+  const w = entry.where;
+  if (w && w.country) return `<span class="flag">${flagOf(w.country)}</span>${escapeHtml(countryName(w.country))}`;
+  if (w && HIDDEN_FLAG[w.region]) return `<span class="flag">${HIDDEN_FLAG[w.region]}</span>${escapeHtml(w.regionName)}`;
+  const a = entry.address;
+  const net = /\.onion/.test(a) ? 'Tor' : /\.i2p/.test(a) ? 'I2P' : a.startsWith('[') ? 'IPv6' : 'IPv4';
+  const flag = HIDDEN_FLAG[net.toUpperCase()];
+  return flag ? `<span class="flag">${flag}</span>${net}` : net;
 }
 
-// Where the peer is goes under its address, as for the manual peers above.
+// A table row on a wide screen, where the place goes under the address as
+// for the manual peers above; on a phone a card like a peer's (the last
+// cell, hidden in the table): place and action, then address, why and when.
 function rotationEntryRow(entry) {
-  const address = withPlaceLine(truncatedCell(entry.address), entry).replace(/<\/td>$/, () => `${logCardLine(entry)}</td>`);
+  // An address can be long (Tor): cut with an ellipsis, the whole of it in a
+  // tooltip only when it was cut (the mouseover handler below).
+  const addr = `<span class="addr-txt">${escapeHtml(entry.address)}</span>`;
+  const address = withPlaceLine(`<td class="cell-truncate" data-full="${escapeHtml(entry.address)}">${addr}</td>`, entry);
+  const pill = `<span class="pill ${rotationActionClass(entry.action)}">${escapeHtml(rotationActionLabel(entry.action))}</span>`;
+  const when = `${fmtDuration(Date.now() - entry.at)} ago`;
+  const why = entry.note ? ` \u00b7 ${escapeHtml(entry.note)}` : '';
   return `
     <tr>
-      <td class="hint" title="${escapeHtml(new Date(entry.at).toLocaleString())}">${fmtDuration(Date.now() - entry.at)} ago</td>
-      <td><span class="pill ${rotationActionClass(entry.action)}">${escapeHtml(rotationActionLabel(entry.action))}</span></td>
+      <td class="hint" title="${escapeHtml(new Date(entry.at).toLocaleString())}">${when}</td>
+      <td>${pill}</td>
       ${address}
       <td class="hint"${entry.replacedAddress ? ` title="In for ${escapeHtml(entry.replacedAddress)}"` : ''}>${escapeHtml(entry.note || '-')}</td>
+      <td class="log-card" data-label=""><div class="lc-top"><span class="lc-place">${logPlace(entry)}</span>${pill}</div><div class="lc-sub"><span class="lc-what">${addr}${why}</span><span class="lc-when">${when}</span></div></td>
     </tr>`;
 }
 

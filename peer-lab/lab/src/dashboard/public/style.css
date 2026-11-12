@@ -855,7 +855,7 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 .card.panel {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 10px;
   padding: 18px 20px;
 }
 /* The panels re-render every few seconds and keepPlace in app.js holds the
@@ -906,7 +906,7 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
 .hero-card .stat {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 10px;
   padding: 12px 14px;
   position: relative;
   overflow: hidden;
@@ -940,7 +940,7 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.panel th { color: var(--faint); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+.panel th { color: var(--faint); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
 .panel tr:hover td { background: #17202a; }
 /* A peer that can never deliver a block first: dimmed, and its First % cell
    says "never first" (firstPctCell). */
@@ -998,7 +998,8 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
   border: 1px solid var(--border);
   color: var(--text);
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: 6px;
+  font: inherit;
   font-size: 13px;
 }
 .panel .inline-form input#pool-port { width: 90px; }
@@ -1168,7 +1169,7 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
 .hero-card .hero-stat {
   min-width: 0;
   padding: 12px 14px;
-  border-radius: 14px;
+  border-radius: 10px;
   border: 1px solid #3a2a12;
   background: radial-gradient(120% 140% at 0% 0%, rgba(247,147,26,.16), transparent 60%), var(--panel);
 }
@@ -1331,7 +1332,7 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
   .panel .traffic-totals { grid-template-columns: 1fr; }
   /* iPhone Safari zooms into any field with text under 16px when it is tapped,
      and leaves the page zoomed. */
-  .panel input { font-size: 16px; }
+  .panel .inline-form input { font-size: 16px; }
 }
 /* A tight table gives up its least important columns first (fitTables sets
    data-drops on the wrapper, data-drop on the cells). The peer tables' floor
@@ -1408,19 +1409,22 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
 }
 /* The rotation log's note is a sentence: on its own line, wrapping. */
 .panel .cards.cards table tr td.hint { grid-column: 1 / -1; white-space: normal; }
-/* The log is a log, not a table to compare: no labels, three lines - what
-   and when, the address, then where and why in one grey line. */
-.panel .log-card-line { display: none; }
-.panel .cards.cards #rotation-log-table tr { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; padding: 10px 14px; }
-.panel .cards.cards #rotation-log-table tr td[data-label]::before { content: none; }
-.panel .cards.cards #rotation-log-table tr td:nth-child(2) { grid-column: 1; grid-row: 1; }
-.panel .cards.cards #rotation-log-table tr td:first-child { grid-column: 2; grid-row: 1; justify-self: end; font-size: 12px; }
-.panel .cards.cards #rotation-log-table tr td:nth-child(3) { grid-column: 1 / -1; grid-row: 2; }
-.panel .cards.cards #rotation-log-table tr td:nth-child(4), .panel .cards.cards #rotation-log-table .addr-place { display: none; }
-.panel .cards.cards #rotation-log-table .log-card-line { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); white-space: normal; }
-.panel .cards.cards #rotation-log-table .log-card-line > span { white-space: nowrap; }
-.panel .cards.cards #rotation-log-table .log-card-line .flag { margin-right: 6px; }
-.panel .cards.cards #rotation-log-table tr td[colspan] { grid-column: 1 / -1; grid-row: auto; justify-self: stretch; }
+/* The log on a phone: each entry a card like a peer's, two lines, the same
+   height for every entry - the place in bold with its flag and the action on
+   the right, then address and why in grey with the time on the right. Drawn
+   from the row's last cell, which the table does not show. */
+.panel .log-card { display: none; }
+.panel .cards.cards #rotation-log-table tr { display: block; padding: 10px 0; }
+.panel .cards.cards #rotation-log-table tr > td { display: none; }
+.panel .cards.cards #rotation-log-table tr > td.log-card, .panel .cards.cards #rotation-log-table tr > td[colspan] { display: block; overflow: visible; white-space: normal; }
+.panel .lc-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; height: 20px; }
+.panel .lc-place { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.panel .lc-place .flag { display: inline-block; width: 22px; margin-right: 7px; font-size: 15px; line-height: 1; text-align: center; vertical-align: -1px; }
+.panel .lc-top .pill { flex: none; }
+.panel .lc-sub { display: flex; gap: 10px; margin-top: 2px; font-size: 12px; color: var(--muted); }
+.panel .log-card:has(.lc-place .flag) .lc-sub { padding-left: 29px; }
+.panel .lc-what { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel .lc-when { flex: none; }
 /* ---- V2 design ---- */
 /* Tiles: the label on top, the number under it; the block height twice as
    wide as a count, with who mined it. */
@@ -1437,7 +1441,7 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
 .panel td { border-bottom-color: var(--row); }
 .panel td.client { color: var(--muted); font-size: 12.5px; }
 /* Buttons in rows: smaller than a form button, the destructive ones tinted red. */
-:is(.panel, .pd-actions) .action-slot, .panel table button.secondary { font-size: 12px; font-weight: 500; padding: 5px 9px; border-radius: 7px; background: #1b2531; border: 1px solid var(--border); color: var(--text); }
+:is(.panel, .pd-actions) .action-slot, .panel table button.secondary { font-size: 12px; font-weight: 500; padding: 5px 9px; border-radius: 6px; background: #1b2531; border: 1px solid var(--border); color: var(--text); }
 :is(.panel, .pd-actions) button.danger, .panel table button.secondary.danger, :is(.panel, .pd-actions) .action-slot[data-action="disconnect"] { color: #e5534b; background: rgba(248,81,73,.08); border-color: rgba(229,83,75,.4); }
 /* "Add as Manual" in the blue that means manual everywhere in both apps - red removes, blue adds. Laid over the
    panel colour so it reads the same on a plain, green or orange row. */
@@ -1589,5 +1593,3 @@ details.card.panel summary { gap: 8px; }
 details.card.panel summary::before { margin: 0 2px 0 1px; width: 6px; height: 6px; }
 .card.panel h2.fold-title::before { margin: 0 2px 0 1px; width: 6px; height: 6px; }
 
-/* Kept as before for the comparison; removed in the design step. */
-.panel, .hero-card, .pd-actions { line-height: normal; }
