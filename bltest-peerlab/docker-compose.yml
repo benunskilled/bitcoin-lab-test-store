@@ -4,7 +4,7 @@ services:
       APP_HOST: bltest-peerlab_dashboard_1
       APP_PORT: 8788
   dashboard:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.15.1@sha256:d8b7d7d521dbfdbbedcecc760412457e57824d9db4b9837300e17b7fb58e0353
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.16.1@sha256:22bfb36b31cec43fe757bf4fc0185c955daa3254e30e635f71335158ee055be6
     user: 1000:1000
     init: true
     restart: on-failure
@@ -30,8 +30,8 @@ services:
       DATA_DIR: /data
       DASHBOARD_PORT: '8788'
       TRUSTED_PROXY_HOST: bltest-peerlab_app_proxy_1
-      PEERS_HEALTH_URL: http://bltest-peerlab_peer-map_1:8789/api/health
-      PEERS_URL: http://bltest-peerlab_peer-map_1:8789
+      PEERS_HEALTH_URL: http://bltest-peerlab_peers_1:8789/api/health
+      PEERS_URL: http://bltest-peerlab_peers_1:8789
     healthcheck:
       test:
       - CMD
@@ -44,7 +44,7 @@ services:
       retries: 3
       start_period: 30s
   peer-profiler:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.15.1@sha256:d8b7d7d521dbfdbbedcecc760412457e57824d9db4b9837300e17b7fb58e0353
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.16.1@sha256:22bfb36b31cec43fe757bf4fc0185c955daa3254e30e635f71335158ee055be6
     user: 1000:1000
     init: true
     restart: on-failure
@@ -79,7 +79,7 @@ services:
       retries: 2
       start_period: 60s
   relay-profiler:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.15.1@sha256:d8b7d7d521dbfdbbedcecc760412457e57824d9db4b9837300e17b7fb58e0353
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.16.1@sha256:22bfb36b31cec43fe757bf4fc0185c955daa3254e30e635f71335158ee055be6
     user: 1000:1000
     init: true
     restart: on-failure
@@ -114,7 +114,7 @@ services:
       retries: 2
       start_period: 60s
   stratum-race:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.15.1@sha256:d8b7d7d521dbfdbbedcecc760412457e57824d9db4b9837300e17b7fb58e0353
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.16.1@sha256:22bfb36b31cec43fe757bf4fc0185c955daa3254e30e635f71335158ee055be6
     user: 1000:1000
     init: true
     restart: on-failure
@@ -148,8 +148,8 @@ services:
       timeout: 10s
       retries: 2
       start_period: 60s
-  peer-map:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.15.1@sha256:d8b7d7d521dbfdbbedcecc760412457e57824d9db4b9837300e17b7fb58e0353
+  peers:
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.16.1@sha256:22bfb36b31cec43fe757bf4fc0185c955daa3254e30e635f71335158ee055be6
     user: 1000:1000
     restart: on-failure
     read_only: true
