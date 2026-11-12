@@ -5,9 +5,9 @@ of them brings new blocks first, Slot Fill for Core's manual slots, and Stratum
 Race for mining pools. Test build, app ID `bltest-peerlab`, port **8796**.
 Bitcoin Node is the only dependency.
 
-The test build starts read-only (`READ_ONLY=1`): it never adds, removes or
-disconnects Core's peers, so it can run next to other apps. It keeps its own
-data and starts empty.
+The test build changes Core's peers (Slot Fill, Add a Peer, Remove,
+Disconnect), so it should not run next to Bitcoin Lab. It keeps its own data.
+`READ_ONLY=1` turns a copy read-only; see the configuration.
 
 ## Layout
 

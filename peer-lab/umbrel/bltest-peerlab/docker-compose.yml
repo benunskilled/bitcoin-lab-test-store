@@ -32,7 +32,6 @@ services:
       TRUSTED_PROXY_HOST: bltest-peerlab_app_proxy_1
       PEERS_HEALTH_URL: http://bltest-peerlab_peer-map_1:8789/api/health
       PEERS_URL: http://bltest-peerlab_peer-map_1:8789
-      READ_ONLY: '1'
     healthcheck:
       test:
       - CMD
@@ -69,7 +68,6 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
-      READ_ONLY: '1'
     healthcheck:
       test:
       - CMD
@@ -105,7 +103,6 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
-      READ_ONLY: '1'
     healthcheck:
       test:
       - CMD
@@ -141,7 +138,6 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
-      READ_ONLY: '1'
     healthcheck:
       test:
       - CMD
