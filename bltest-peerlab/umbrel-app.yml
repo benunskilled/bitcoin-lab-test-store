@@ -2,7 +2,7 @@ manifestVersion: 1
 id: bltest-peerlab
 category: bitcoin
 name: Peer Lab (Test)
-version: "0.1.0-test.5.1"
+version: "0.1.0-test.6.1"
 tagline: Pre-release test build - not for general use
 description: 'Test build of Peer Lab: peer map and classification, block delivery ranking, Slot Fill and Stratum Race in one app. It starts read-only, so it never adds, removes or disconnects peers and can run next to other apps. It keeps its own data on port 8796. Geolocation and ASN data by DB-IP (CC BY 4.0); map data by Natural Earth.'
 releaseNotes: ''
