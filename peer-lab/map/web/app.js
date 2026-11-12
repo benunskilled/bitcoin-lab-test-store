@@ -360,6 +360,15 @@
   // its script on the same page): blocks delivered first, blocks connected
   // for, the share of the last N blocks. Nothing where that half is absent.
   const lab = () => window.peerLab || null;
+  // A row for a manual peer Core is not connected to, built from the
+  // measuring half's record of it: where it is, what it last called itself.
+  const offlinePeer = (r) => ({
+    addr: r.address, group: "manual", type: "manual", offline: true, offline_ms: r.offlineSinceMs,
+    network: /\.onion/.test(r.address) ? "onion" : /\.i2p/.test(r.address) ? "i2p" : r.address.startsWith("[") ? "ipv6" : "ipv4",
+    cc: (r.where && r.where.country) || "", region: "", operator: (r.where && r.where.operator) || "",
+    kind: "Offline", subver: r.client || "", services: [], bytes_sent: 0, bytes_recv: 0, min_ping_ms: null, conntime: 0,
+    about: "Not connected right now. It still holds its manual slot" + (r.kept ? ", and it is locked." : "."),
+  });
   const rankOf = (p) => (lab() ? lab().peer(p.addr) : null);
   const rankPct = (r) => (100 * (r.recentFirst || 0)) / lab().windowBlocks;
 
@@ -2147,6 +2156,7 @@
   // known. Never empty, so every card in a filter is one height.
   const probablyOf = (p) => ((p.about || "").split("\n").find((l) => l.startsWith("Probably: ")) || "").slice("Probably: ".length);
   const cardLine = (p) => {
+    if (p.offline) return "holds its slot";
     if (p.sync_mb) return "syncing " + mbText(p.sync_mb);
     if (p.kind === POOL_KIND) return (p.pool || UNKNOWN_POOL) + (/block relay/i.test(p.about || "") ? " \u00b7 block relay" : "");
     if (p.linking_lion) return p.tell || "on 0xB10C's list";
@@ -2415,7 +2425,7 @@
           const what = span("pc-what");
           const label = p.linking_lion ? "LinkingLion" : p.kind;
           // Under a kind filter every card has the same word: then the line the pill cannot say.
-          const pill = span("kind " + (p.linking_lion ? "lion" : p.kind === "Disguised" ? "disg" : p.no_relay ? "never" : "first"),
+          const pill = span("kind " + (p.offline ? "never" : p.linking_lion ? "lion" : p.kind === "Disguised" ? "disg" : p.no_relay ? "never" : "first"),
             (p.no_relay ? "\u2298 " : "") + (state.kind ? cardLine(p) || label : label));
           what.append(pill);
           for (const [active, symbol] of [[p.hb_to, "\u26a1"], [p.hb_from, "\ud83d\udce1"]]) if (active) what.append(span("hb", symbol));
@@ -2432,7 +2442,7 @@
             pc.append(n, s);
           }
           pc.append(span("pc-y pc-ping", p.min_ping_ms == null ? "\u2013" : fmtPing(p.min_ping_ms)),
-            span("pc-y pc-sub", p.conntime ? ago(Date.now() / 1000 - p.conntime) : ""));
+            span("pc-y pc-sub", p.offline ? "offline" : p.conntime ? ago(Date.now() / 1000 - p.conntime) : ""));
           who.appendChild(pc);
         }
         td.appendChild(who);
@@ -2490,7 +2500,7 @@
         // that never can, red for a disguise or LinkingLion even when it could.
         // LinkingLion has its own pill whatever software it claims; the
         // software stays in the line under it.
-        pill.className = "kind " + (p.linking_lion ? "lion" : p.kind === "Disguised" ? "disg" : p.no_relay ? "never" : "first");
+        pill.className = "kind " + (p.offline ? "never" : p.linking_lion ? "lion" : p.kind === "Disguised" ? "disg" : p.no_relay ? "never" : "first");
         // The pill says the kind and nothing else, for every peer: what Core
         // saw (no services, no tx, no headers) is in the panel. Software that
         // passes no blocks on gets the ⊘ and a muted row; "never first" is
@@ -2566,7 +2576,7 @@
         td.textContent = fmtPing(p.min_ping_ms);
       },
     },
-    { key: "conntime", label: "Connected", cls: "num", val: (p) => p.conntime, show: (p) => ago(Date.now() / 1000 - p.conntime) },
+    { key: "conntime", label: "Connected", cls: "num", val: (p) => p.conntime, show: (p) => (p.offline ? "offline" + (p.offline_ms ? " " + ago(p.offline_ms / 1000) : "") : ago(Date.now() / 1000 - p.conntime)) },
   ];
   // How often a peer was first: "46/1276", blocks delivered first out of the
   // blocks it was connected for, and beside it its share of the last N blocks.
@@ -2699,6 +2709,7 @@
     const facts = el("div", "pd-facts");
     if (p.min_ping_ms != null) facts.appendChild(fact("Ping", fmtPing(p.min_ping_ms)));
     if (p.conntime) facts.appendChild(fact("Connected", ago(Date.now() / 1000 - p.conntime)));
+    if (p.offline) facts.appendChild(fact("Offline", p.offline_ms ? "for " + ago(p.offline_ms / 1000) : "now"));
     const r = rankOf(p);
     if (r && r.eligible) {
       facts.appendChild(fact("First / blocks", r.first + " / " + r.eligible));
@@ -2716,6 +2727,8 @@
     }
     const total = Math.max(1, p.bytes_sent + p.bytes_recv);
     const traffic = el("div", "pd-traffic");
+    // Nothing flows to a peer that is not connected.
+    if (p.offline) traffic.hidden = true;
     const bar = el("div", "pd-bar");
     const sent = el("span", "pd-sent"), got = el("span", "pd-got");
     sent.style.flexGrow = String(Math.max(p.bytes_sent / total, 0.02));
@@ -2870,6 +2883,8 @@
     const focusKey = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.focusKey;
     // A panel left open for a peer that is gone must not pop open when its address comes back.
     const live = new Set(state.data.peers.map((p) => p.group + " " + p.addr));
+    // An offline manual peer is a row too, and stays open like any other.
+    if (lab()) for (const r of lab().offlineManual()) live.add("manual " + r.address);
     for (const k of state.openRows) if (!live.has(k)) state.openRows.delete(k);
     const root = $("tables");
     root.textContent = "";
@@ -2882,6 +2897,9 @@
       if (state.place) peers = peers.filter(peerMatchesPlace);
       const kindPool = peers;
       if (state.group) peers = peers.filter(matchesKind);
+      // A manual peer that is not connected still holds its slot: it stands
+      // in the list with the others, from what the measuring half knows of it.
+      if (g === "manual" && lab() && !state.place && !state.group) peers = peers.concat(lab().offlineManual().map(offlinePeer));
 
       const card = document.createElement("section");
       card.className = "card group-card";
@@ -2956,7 +2974,8 @@
       if (peers.length) {
         const spread = document.createElement("p");
         spread.className = "kinds spread";
-        spread.textContent = spreadText(peers);
+        spread.textContent = spreadText(peers) + (g === "manual" && lab() ? " \u00b7 " + lab().manualSummary() : "")
+          + (g === "inbound" && lab() && lab().fedCount() ? " \u00b7 \ud83d\udce1 " + lab().fedCount() + " peers take new blocks from you first" : "");
         card.appendChild(spread);
       }
 
@@ -3030,7 +3049,7 @@
         // A connection that has brought this node a block, at least once: its address in green, also on an orange or
         // focused row (as in Bitcoin Lab).
         if (deliveredEver.has(p.addr) || deliveredNow.has(p.addr)) tr.classList.add("delivered-ever");
-        if (p.no_relay) tr.classList.add("weak");
+        if (p.no_relay || p.offline) tr.classList.add("weak");
         for (const c of cols) {
           const td = document.createElement("td");
           if (c.cls) td.className = c.cls;
