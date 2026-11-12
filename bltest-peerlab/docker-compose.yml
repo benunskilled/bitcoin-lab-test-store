@@ -4,7 +4,7 @@ services:
       APP_HOST: bltest-peerlab_dashboard_1
       APP_PORT: 8788
   dashboard:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.4.1@sha256:68c8b3cc46359073d770b2555ef6270eee6e92c9df2f98db8a0269a225db28ce
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.5.1@sha256:5732aa861328176801eaec255f7f4fba02b501d8513521f4f7b8db1f7a70d43a
     user: 1000:1000
     init: true
     restart: on-failure
@@ -45,7 +45,7 @@ services:
       retries: 3
       start_period: 30s
   peer-profiler:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.4.1@sha256:68c8b3cc46359073d770b2555ef6270eee6e92c9df2f98db8a0269a225db28ce
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.5.1@sha256:5732aa861328176801eaec255f7f4fba02b501d8513521f4f7b8db1f7a70d43a
     user: 1000:1000
     init: true
     restart: on-failure
@@ -81,7 +81,7 @@ services:
       retries: 2
       start_period: 60s
   relay-profiler:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.4.1@sha256:68c8b3cc46359073d770b2555ef6270eee6e92c9df2f98db8a0269a225db28ce
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.5.1@sha256:5732aa861328176801eaec255f7f4fba02b501d8513521f4f7b8db1f7a70d43a
     user: 1000:1000
     init: true
     restart: on-failure
@@ -117,7 +117,7 @@ services:
       retries: 2
       start_period: 60s
   stratum-race:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.4.1@sha256:68c8b3cc46359073d770b2555ef6270eee6e92c9df2f98db8a0269a225db28ce
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.5.1@sha256:5732aa861328176801eaec255f7f4fba02b501d8513521f4f7b8db1f7a70d43a
     user: 1000:1000
     init: true
     restart: on-failure
@@ -153,7 +153,7 @@ services:
       retries: 2
       start_period: 60s
   peer-map:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.4.1@sha256:68c8b3cc46359073d770b2555ef6270eee6e92c9df2f98db8a0269a225db28ce
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.5.1@sha256:5732aa861328176801eaec255f7f4fba02b501d8513521f4f7b8db1f7a70d43a
     user: 1000:1000
     restart: on-failure
     read_only: true
