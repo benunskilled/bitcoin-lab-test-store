@@ -818,8 +818,14 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
   .cards.cards .pc > .pc-y { display: block; }
 }
 
-/* Six jumps do not fit a phone's width in one row: the bar keeps to the
-   screen and its buttons slide sideways under the finger. */
-.jump-bar { max-width: calc(100vw - 16px); overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
-.jump-bar::-webkit-scrollbar { display: none; }
+/* All jumps fit on every width without sliding sideways: where one row is
+   too narrow they wrap into a second, centred, and the pill becomes a
+   rounded box. */
+.jump-bar { width: max-content; max-width: calc(100vw - 16px); box-sizing: border-box; flex-wrap: wrap; justify-content: center; row-gap: 2px; }
+/* On a phone two even rows instead of a lone last button: the peer groups
+   above, the cards below. */
+@media (max-width: 459px) {
+  .jump-bar:has(> button:nth-child(5)) { display: grid; grid-template-columns: repeat(4, auto); justify-content: center; border-radius: 18px; }
+  .jump-bar button { padding: 8px 9px; }
+}
 .jump-bar button { flex: none; }

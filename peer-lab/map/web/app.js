@@ -1130,10 +1130,11 @@
     go("\u2191 Top", null);
     for (const g of GROUPS) {
       const c = document.getElementById("group-" + g);
-      if (c) go(LABEL[g], c);
+      // Short, so the bar fits a phone without sliding sideways.
+      if (c) go(window.peerLab ? { inbound: "In", outbound: "Out", manual: "Manual" }[g] : LABEL[g], c);
     }
     // The cards under the list, where the page has them.
-    for (const [label, id] of [["Slot Fill", "slot-fill"], ["Stratum", "stratum-race"]]) {
+    for (const [label, id] of [["Slot Fill", "slot-fill"], ["Stratum", "stratum-race"], ["Traffic", "traffic-card"]]) {
       const c = document.getElementById(id);
       if (c) go(label, c);
     }
