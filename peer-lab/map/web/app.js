@@ -2407,7 +2407,8 @@
           const span = (cls, text) => { const e = document.createElement("span"); e.className = cls; if (text != null) e.textContent = text; return e; };
           const addr = span("pc-addr addr-txt", HIDDEN[p.network] || p.network === "not_publicly_routable" ? title : p.addr);
           const land = span("pc-land");
-          land.append(span("flag", HIDDEN_FLAG[p.network] || flagOf(p.cc)), p.cc ? regionName(p.cc) : HIDDEN[p.network] ? title : "");
+          land.append(span("flag", HIDDEN_FLAG[p.network] || flagOf(p.cc)), p.cc ? regionName(p.cc) : HIDDEN[p.network] ? HIDDEN[p.network].short
+            : ["onion", "i2p", "cjdns"].includes(p.network) ? netLabel(p.network) : "");
           if (deliveredNow.has(p.addr)) land.append(" ", span("star", "\u2605"));
           const what = span("pc-what");
           const label = p.linking_lion ? "LinkingLion" : p.kind;

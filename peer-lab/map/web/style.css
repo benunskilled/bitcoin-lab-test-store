@@ -795,7 +795,11 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 .cards.cards table tr td.k-kind, .cards.cards table tr td.k-operator, .cards.cards table tr td.k-net, .cards.cards table tr td.k-conntime { display: none; }
 .cards.cards table tr td.k-peer .who { display: block; }
 .cards.cards table tr td.k-peer .pc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 46%); gap: 3px 12px; align-items: center; min-width: 0; }
-.cards.cards .pc > span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 20px; }
+.cards.cards .pc > span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 20px; height: 20px; }
+/* Every card one height: a flag, a mark or a smaller pill must not add a pixel. */
+.cards.cards .pc .pc-what { display: flex; align-items: center; }
+.cards.cards .pc .pc-what .kind { flex: 0 1 auto; min-width: 0; }
+.cards.cards .pc .pc-what .hb { flex: none; line-height: 1; }
 .cards.cards .pc .pc-addr { font-size: 13px; color: var(--text); }
 .cards.cards .peers tr.weak .pc .pc-addr { color: var(--muted); }
 .cards.cards .peers tr.delivered-ever .pc .pc-addr { color: #56d364; }
