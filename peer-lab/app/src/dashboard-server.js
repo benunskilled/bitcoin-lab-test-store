@@ -809,6 +809,8 @@ async function router(req, res, pathname, url) {
   if (req.method === 'GET' && pathname === '/api/rotation') {
     return sendJson(res, 200, {
       enabled: peerRotation.isEnabled(),
+      // What the last pass saw and decided: the line at the top of the card.
+      status: peerRotation.readStatus(),
       log: peerRotation.recentLog(),
     });
   }

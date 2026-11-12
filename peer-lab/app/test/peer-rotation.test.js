@@ -1319,3 +1319,42 @@ test('slot fill: a Tor candidate is recorded as tor', async () => {
 
   assert.equal(triedRow(tor).network, 'tor');
 });
+
+// --- What the page says Slot Fill is doing ----------------------------------
+
+test('a pass with every slot taken says so, and when an offline peer frees its slot', async () => {
+  for (let i = 0; i < 7; i += 1) seedLivePeer({ connectionType: 'manual', trusted: true });
+  seedOfflineTrustedPeer({ eligible: 10, first: 0, offlineHours: 0.5 });
+  peerRotation.setEnabled(true);
+  assert.equal(peerRotation.readStatus(), null, 'switching on clears what an older pass saw');
+
+  await peerRotation.tick();
+
+  const st = peerRotation.readStatus();
+  assert.equal(st.state, 'full');
+  assert.equal(st.slots.used, 8);
+  assert.equal(st.slots.offline.length, 1);
+  const left = st.slots.offline[0].freesInMs;
+  assert.ok(left > 20 * 60 * 1000 && left <= 30 * 60 * 1000, `about half an hour of its hour left, got ${left} ms`);
+  assert.ok(st.nextAt - st.at === peerRotation.PASS_EVERY_MS, 'the next check is the next pass');
+  peerRotation.setEnabled(false);
+});
+
+test('a pass with a free slot and nothing to try says why', async () => {
+  peerRotation.setEnabled(true);
+  // getpeerinfo empty (the default here): no outbound connection, so no
+  // network a candidate could come from.
+  await peerRotation.tick();
+  const st = peerRotation.readStatus();
+  assert.equal(st.state, 'looking');
+  assert.equal(st.look.why, 'no_network');
+  peerRotation.setEnabled(false);
+});
+
+test('Core not answering is said, not left as an old status', async () => {
+  peerRotation.setEnabled(true);
+  mock.method(rpc, 'getPeerInfo', async () => { throw new Error('connection refused'); });
+  await peerRotation.tick();
+  assert.equal(peerRotation.readStatus().state, 'core');
+  peerRotation.setEnabled(false);
+});

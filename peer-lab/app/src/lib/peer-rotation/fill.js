@@ -208,28 +208,35 @@ async function settle(peers, chain, now = Date.now(), { force = false } = {}) {
   return 'reverted';
 }
 
+// What the last look for a candidate found, for the line on the page that
+// says what Slot Fill is doing (index.js, status): why nothing went in, and
+// how many addresses were left after each step. Read right after start().
+let lastLook = null;
+const looked = (why, counts = {}) => { lastLook = { why, ...counts }; return 0; };
+
 /**
  * Put the next candidate on trial, if a slot is free. `peers` is getpeerinfo
  * from this pass. Returns the candidate's address, or 0.
  */
 async function start(ranking, peers, chain, now = Date.now()) {
+  lastLook = null;
   // A node still catching up has no tip to test a candidate against.
-  if (chain.initialblockdownload) return 0;
+  if (chain.initialblockdownload) return looked('catching_up');
   const trusted = ranking.filter((p) => p.trusted);
   const max = config.maxManualPeers;
-  if (trusted.length >= max) return 0;
+  if (trusted.length >= max) return looked('full');
 
   let networkInfo;
   try {
     networkInfo = await rpc.getNetworkInfo();
   } catch (err) {
     logger.debug('slot fill: getnetworkinfo failed', { error: err.message });
-    return 0;
+    return looked('core');
   }
   const nets = usableNetworks(networkInfo, peers);
-  if (!nets.size) return 0;
+  if (!nets.size) return looked('no_network');
   const banned = await bannedMatcher();
-  if (!banned) return 0;
+  if (!banned) return looked('core');
 
   // Core's own address too: an address book can hold the node itself.
   const inUse = new Set([
@@ -238,8 +245,12 @@ async function start(ranking, peers, chain, now = Date.now()) {
     ...(networkInfo.localaddresses || []).map((a) => hostFromAddress(String(a.address))),
   ]);
   const failed = recentlyFailed(now);
-  const book = (await bookEntries(now))
-    .filter((c) => nets.has(c.network) && !inUse.has(hostFromAddress(c.address)) && !banned(c.address) && !failed.has(c.address));
+  const all = await bookEntries(now);
+  const reachable = all.filter((c) => nets.has(c.network));
+  const book = reachable
+    .filter((c) => !inUse.has(hostFromAddress(c.address)) && !banned(c.address) && !failed.has(c.address));
+  const counts0 = { known: all.length, reachable: reachable.length, untried: book.length };
+  if (!all.length) return looked('no_book', counts0);
 
   // Counted over all outbound connections, Core's own too (spread.js).
   const coreRegions = spread.coreRegionsOf(ranking);
@@ -270,6 +281,8 @@ async function start(ranking, peers, chain, now = Date.now()) {
   // empty for want of a perfect candidate.
   const ordered = [...tried.filter(inGap), ...stand, ...tried.filter((c) => !inGap(c))];
 
+  const fitting = ordered.filter((c) => spread.admit(c, trusted, max, coreKeys)).length;
+  if (!fitting) return looked('none_fit', { ...counts0, fitting });
   let attempts = 0;
   for (const c of ordered) {
     if (!spread.admit(c, trusted, max, coreKeys)) continue;
@@ -299,11 +312,24 @@ async function start(ranking, peers, chain, now = Date.now()) {
     // wrong with the candidate, and nothing more to do this pass. Nor is a
     // refusal held against it: it may be Core not answering, and a week's
     // cooldown for that would cost good addresses.
-    if (result.count >= max) return 0;
+    if (result.count >= max) return looked('full');
     attempts += 1;
-    if (attempts >= ATTEMPTS_PER_PASS) return 0;
+    if (attempts >= ATTEMPTS_PER_PASS) return looked('refused', { ...counts0, fitting });
   }
-  return 0;
+  return looked('refused', { ...counts0, fitting });
+}
+
+// How the candidate on trial stands, for the page: what Core has to show for
+// it so far and how long the trial may still run - the same limits settle()
+// judges by.
+function trialView(trial, peers, now = Date.now()) {
+  const session = manualSession(peers, trial.address);
+  const headersOpen = Boolean(session) && servesBlocks(session.services) && !(Number(session.synced_headers) >= 0);
+  const phase = !session ? 'connecting' : headersOpen ? 'headers' : 'checking';
+  const limit = !session
+    ? NO_CONNECT_MS[unreachableNetwork(trial.address)] || NO_CONNECT_MS.clearnet
+    : headersOpen ? HEADERS_OPEN_MS : TRIAL_MS;
+  return { address: trial.address, what: trial.what, note: trial.note, startedAt: trial.startedAt, phase, decideBy: trial.startedAt + limit };
 }
 
 // Take a candidate out at once, trial or not: the slot fill was switched off
@@ -314,4 +340,4 @@ async function abandon(address, now = Date.now()) {
   logger.info('slot fill: candidate taken out, switched off while adding', { address, at: now });
 }
 
-module.exports = { settle, start, abandon, currentTrial, works, withoutSession };
+module.exports = { settle, start, abandon, currentTrial, works, withoutSession, trialView, lastLook: () => lastLook };

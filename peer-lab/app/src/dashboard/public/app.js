@@ -919,9 +919,81 @@ async function refreshRotation() {
   if (toggle && rotationToggleEpoch === epochAtRequest) toggle.checked = Boolean(data.enabled);
   foldSums();
 
+  lastSlotStatus = { enabled: Boolean(data.enabled), status: data.status || null };
+  renderSlotStatus();
   lastRotationLog = data.log || [];
   renderRotationLog(lastRotationLog);
 }
+
+// What Slot Fill is doing, in a sentence, from its last check (the server's
+// status, written by the pass itself). "Checked 3 min ago" moves on between
+// two fetches of it, so the line is drawn again every half minute.
+let lastSlotStatus = null;
+const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+const inMinutes = (ms) => (ms < 90 * 1000 ? 'a minute' : ms < 90 * 60 * 1000 ? `${Math.round(ms / 60000)} min` : `${Math.round(ms / 3600000)} h`);
+function slotStatusText(st, now) {
+  if (!st) return { state: 'new', now: 'Switched on. The first check comes within 10 minutes.', short: 'on · first check soon' };
+  const slots = st.slots || { used: 0, max: MAX_MANUAL_PEERS, offline: [] };
+  const free = slots.max - slots.used;
+  switch (st.state) {
+    case 'core':
+      return { state: 'core', now: 'Paused: Bitcoin Core did not answer at the last check.', short: 'on · waiting for Core' };
+    case 'catching_up':
+      return { state: 'core', now: 'Waiting: Bitcoin Core is still catching up with the chain.', short: 'on · waiting for Core' };
+    case 'trial': {
+      const t = st.trial;
+      const doing = { connecting: 'Core is connecting to it', headers: 'Core is connected and waits for its first block header', checking: 'Core is connected and checks it is on your chain' }[t.phase] || 'Core is testing it';
+      return {
+        state: 'trial',
+        now: `Trying <span class="addr-txt">${escapeHtml(t.address)}</span> in ${escapeHtml(t.what || 'a free slot')} for ${inMinutes(Math.max(0, now - t.startedAt))}: ${doing}. `
+          + `${t.note ? `${escapeHtml(t.note)}. ` : ''}Decided within ${inMinutes(Math.max(60000, t.decideBy - now))}.`,
+        short: 'on · trying a peer',
+      };
+    }
+    case 'full': {
+      const off = slots.offline || [];
+      let text = `Waiting: all ${slots.max} slots are taken${off.length ? `, ${plural(off.length, 'peer')} offline` : ' and connected'}. `;
+      for (const o of off) {
+        const who = escapeHtml(o.where || o.address);
+        text += o.keeps ? `${who} is locked and keeps its slot. `
+          : o.freesInMs == null ? `${who} keeps its slot until Core has seen it offline. `
+          : `${who} gives up its slot in about ${inMinutes(o.freesInMs)} unless it comes back. `;
+      }
+      if (!off.length) text += 'Slot Fill adds a peer only when a slot frees up: one stays offline too long, or you remove one.';
+      return { state: 'full', now: text.trim(), short: `on · all ${slots.max} slots taken` };
+    }
+    default: {
+      const l = st.look || {};
+      const head = `Looking: ${plural(free, 'slot')} free`;
+      const why = {
+        no_book: ", but Core's address book gave nothing to choose from. Next check tries again.",
+        no_network: ', but Core holds no outbound connection on a network to pick from.',
+        core: ', but Bitcoin Core did not answer.',
+        refused: '. Core did not take the last candidates; the next check tries others.',
+        none_fit: `, no candidate this time. Of ${plural(l.known || 0, 'address', 'addresses')} Core knows that serve blocks, `
+          + `${l.reachable || 0} are on networks this node uses and ${l.untried || 0} are not connected or tried lately; `
+          + 'none from a missing region or a provider not yet used.',
+      }[l.why] || '.';
+      return { state: 'looking', now: head + why, short: `on · ${plural(free, 'slot')} free` };
+    }
+  }
+}
+function renderSlotStatus() {
+  const box = document.getElementById('slot-status');
+  if (!box || !lastSlotStatus) return;
+  box.hidden = !lastSlotStatus.enabled;
+  if (!lastSlotStatus.enabled) return;
+  const now = Date.now();
+  const st = lastSlotStatus.status;
+  const t = slotStatusText(st, now);
+  box.dataset.state = t.state;
+  document.getElementById('slot-now').innerHTML = t.now;
+  document.getElementById('slot-when').textContent = st
+    ? `Checked ${now - st.at < 60000 ? 'just now' : `${inMinutes(now - st.at)} ago`} · ${st.nextAt > now ? `next check in ${inMinutes(st.nextAt - now)}` : 'next check due'}`
+    : '';
+  foldSums();
+}
+setInterval(renderSlotStatus, 30 * 1000);
 
 // Where a peer is, in the words of a peer card: its country with the flag,
 // or the network it came by when the place is not known.
@@ -1260,7 +1332,9 @@ for (const card of document.querySelectorAll('main > section.panel')) {
 // title: the switches and how many pools race. Traffic writes its own.
 function foldSums() {
   const rot = document.getElementById('rotation-toggle');
-  document.getElementById('rotation-sum').textContent = rot.checked ? 'on' : 'off';
+  // Folded, the card says what Slot Fill is doing in a few words.
+  document.getElementById('rotation-sum').textContent = !rot.checked ? 'off'
+    : lastSlotStatus && lastSlotStatus.enabled ? slotStatusText(lastSlotStatus.status, Date.now()).short : 'on';
   const pools = document.querySelectorAll('#pool-table input[data-action="toggle-pool"]:checked').length;
   document.getElementById('stratum-sum').textContent = document.getElementById('stratum-toggle').checked
     ? `on · ${pools} ${pools === 1 ? 'pool' : 'pools'}` : 'off';

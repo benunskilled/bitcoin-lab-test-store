@@ -18,7 +18,9 @@ const queries = require('./lib/queries');
 const traffic = require('./lib/traffic');
 const peerRotation = require('./lib/peer-rotation');
 
-const PEER_SYNC_INTERVAL_MS = 10 * 60 * 1000;
+// The sync and Slot Fill's pass share one timer; the page's "next check"
+// reads the same number.
+const PEER_SYNC_INTERVAL_MS = peerRotation.PASS_EVERY_MS;
 const MAINTENANCE_INTERVAL_MS = 24 * 60 * 60 * 1000;
 // How often the "still offline" reminder may repeat for a peer that stays
 // down. Transitions are always logged immediately; this only governs the

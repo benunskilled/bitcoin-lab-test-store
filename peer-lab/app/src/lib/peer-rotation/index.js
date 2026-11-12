@@ -31,9 +31,46 @@ const logger = require('../logger').make('peer-rotation');
 const { logAction, recentLog } = require('./log');
 const { retireOfflineManualPeers } = require('./retire');
 const fill = require('./fill');
-const { offlineGraceMs } = require('./rules');
+const { offlineGraceMs, offlineForMs } = require('./rules');
 
 const META_KEY = 'peer_rotation_enabled';
+// A pass every ten minutes (peer-profiler.js), every minute while a candidate
+// is on trial (watchTrial).
+const PASS_EVERY_MS = 10 * 60 * 1000;
+const TRIAL_CHECK_MS = 60 * 1000;
+
+// What the last pass saw and decided, for the line on the page that says what
+// Slot Fill is doing. Written by the pass in the profiler, read by the
+// dashboard, so it lives in the database. Nothing here asks Core anything
+// the pass did not ask anyway.
+const STATUS_KEY = 'slot_fill_status';
+function writeStatus(status) {
+  db.instance
+    .prepare(`INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
+    .run(STATUS_KEY, JSON.stringify(status));
+}
+function readStatus() {
+  try {
+    const row = db.instance.prepare('SELECT value FROM meta WHERE key = ?').get(STATUS_KEY);
+    return row ? JSON.parse(row.value) : null;
+  } catch {
+    return null;
+  }
+}
+
+// The manual set as the page tells it: how full, and of the peers that are
+// offline, which keeps its slot (locked, and Core has held it before) and when
+// each other one gives its slot back.
+function slotsOf(ranking, now) {
+  const trusted = ranking.filter((p) => p.trusted);
+  const offline = trusted.filter((p) => !p.live).map((p) => {
+    const where = p.where ? p.where.regionName : null;
+    if (p.kept && p.everManual) return { address: p.address, where, keeps: true };
+    const off = offlineForMs(p, now);
+    return { address: p.address, where, freesInMs: off == null ? null : Math.max(0, offlineGraceMs(p.firstPct) - off) };
+  });
+  return { used: trusted.length, max: config.maxManualPeers, offline };
+}
 
 function isEnabled() {
   if (config.readOnly) return false;
@@ -45,6 +82,8 @@ function setEnabled(enabled) {
   db.instance
     .prepare(`INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
     .run(META_KEY, enabled ? '1' : '0');
+  // What a pass saw before the switch is not what Slot Fill is doing now.
+  db.instance.prepare('DELETE FROM meta WHERE key = ?').run(STATUS_KEY);
   logger.info('manual slot fill toggled', { enabled: Boolean(enabled) });
 }
 
@@ -117,6 +156,7 @@ async function pass() {
     [peers, chain] = await Promise.all([rpc.getPeerInfo(), rpc.getBlockchainInfo()]);
   } catch (err) {
     logger.debug('slot fill: Core not answering, skipping this pass', { error: err.message });
+    writeStatus({ at: Date.now(), nextAt: Date.now() + (fill.currentTrial() ? TRIAL_CHECK_MS : PASS_EVERY_MS), state: 'core' });
     return { ...idle, enabled: true };
   }
   const trialBefore = fill.currentTrial();
@@ -129,6 +169,7 @@ async function pass() {
       peers = fill.withoutSession(await rpc.getPeerInfo(), trialBefore.address);
     } catch (err) {
       logger.debug('slot fill: Core not answering after a candidate went, next pass', { error: err.message });
+      writeStatus({ at: Date.now(), nextAt: Date.now() + PASS_EVERY_MS, state: 'core' });
       return { ...idle, enabled: true, reverted: 1 };
     }
   }
@@ -153,12 +194,29 @@ async function pass() {
     await fill.abandon(started);
     started = 0;
   }
+  if (isEnabled()) reportPass(peers, chain);
   return {
     enabled: true, retired, started: started ? 1 : 0, confirmed: settled === 'confirmed' ? 1 : 0, reverted: settled === 'reverted' ? 1 : 0,
   };
 }
 
+// The status after a pass: a candidate on trial, the set full, or why no
+// candidate went into a free slot.
+function reportPass(peers, chain) {
+  const now = Date.now();
+  const trial = fill.currentTrial();
+  const slots = slotsOf(queries.peerRanking(), now);
+  const base = { at: now, nextAt: now + (trial ? TRIAL_CHECK_MS : PASS_EVERY_MS), slots };
+  if (trial) return writeStatus({ ...base, state: 'trial', trial: fill.trialView(trial, peers, now) });
+  if (chain.initialblockdownload) return writeStatus({ ...base, state: 'catching_up' });
+  if (slots.used >= slots.max) return writeStatus({ ...base, state: 'full' });
+  const look = fill.lastLook() || { why: 'none_fit' };
+  return writeStatus({ ...base, state: 'looking', look });
+}
+
 module.exports = {
+  PASS_EVERY_MS,
+  readStatus,
   isEnabled,
   setEnabled,
   settleOnSwitchOff,
