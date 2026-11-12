@@ -846,8 +846,6 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 .key-head { margin: 0; font-size: 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
 .key-card.folded .key-head { border-bottom: 0; }
 .key-card.folded > :not(.key-head) { display: none; }
-.key-short { display: none; }
-@media (max-width: 600px) { .key-long { display: none; } .key-short { display: inline; } }
 .key-list { list-style: none; margin: 0; padding: 14px 20px 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 28px; color: var(--muted); font-size: 12px; }
 @media (max-width: 760px) { .key-list { grid-template-columns: minmax(0, 1fr); } }
 .key-list li { display: grid; grid-template-columns: 104px 1fr; align-items: center; gap: 10px; }
@@ -865,3 +863,26 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 .scroll:not(.cards) table.peers > tbody > tr[data-anchor] > td { height: 60px; box-sizing: border-box; }
 .cards.cards table tr[data-anchor] { border-bottom: 1px solid var(--border); }
 .cards.cards table tr[data-anchor]:last-of-type { border-bottom-color: transparent; }
+
+/* The block card's two lines under its head: who brought it, how your pool
+   did. Label left in grey, the answer beside it. */
+.b-verdict { padding: 0 16px 10px; display: grid; gap: 6px; font-size: 14px; }
+.b-verdict .b-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.b-verdict .b-label { color: var(--muted); font-size: 13px; }
+.b-verdict .b-value { color: var(--text); min-width: 0; }
+.b-verdict .b-own { color: var(--accent); }
+.b-verdict .b-place { font-weight: 600; }
+.b-verdict .hb { font-size: 12px; }
+.block-more .block-route { padding-top: 4px; }
+
+/* On a wide screen the details keep to a readable width: a time 1,300px from
+   its name could not be read as belonging to it. */
+.block-more .block-body { max-width: 560px; }
+
+/* The pool list folds like every <details>: its title in the small caps of
+   the other headings in Details, a chevron in front. */
+.pool-fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 10px 0 6px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.pool-fold > summary::-webkit-details-marker { display: none; }
+.pool-fold > summary::before { content: ""; flex: none; width: 5px; height: 5px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform .15s ease; }
+.pool-fold[open] > summary::before { transform: translateY(-2px) rotate(45deg); }
+

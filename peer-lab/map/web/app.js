@@ -205,7 +205,10 @@
   }
   // The block card folds to its summary line, but only when a route is drawn
   // under it (has-route): without one it is a single line already.
-  foldable($("blockCard"), $("blockSummary"), "block");
+  // The block card does not fold itself (12.11.2026): its head is two short
+  // lines, and everything else is in its one fold, "Details". Under Peer Lab
+  // only; Peer Map alone keeps the card it had.
+  if (!window.peerLab) foldable($("blockCard"), $("blockSummary"), "block");
 
   // ---------- projection: same Natural Earth polynomial as tools/genmap ----------
   function nePoly(lon, lat) {
@@ -389,12 +392,92 @@
   // Mined by (from Bitcoin Lab's coinbase reading), delivered by (the peers
   // Core credited), raced by (the pools that turned it into work). Each of the
   // three can be missing, and then it says so rather than leaving a gap.
+  // Who brought the block and how the own pool did, in two lines (12.11.2026,
+  // "I was 2 ms behind him and cannot see it anywhere"). The route, the
+  // compact block and every pool are under "Details".
+  const ordinal = (n) => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] || "th");
+  function renderVerdict(box, b) {
+    box.textContent = "";
+    const row = (label, ...value) => {
+      const r = document.createElement("div");
+      r.className = "b-row";
+      const l = document.createElement("span");
+      l.className = "b-label";
+      l.textContent = label;
+      const v = document.createElement("span");
+      v.className = "b-value";
+      v.append(...value);
+      r.append(l, v);
+      box.appendChild(r);
+      return v;
+    };
+    const span = (cls, text, title) => { const e = document.createElement("span"); if (cls) e.className = cls; e.textContent = text; if (title) e.title = title; return e; };
+
+    const firsts = b.first_peers || [];
+    const known = new Map(((state.data && state.data.peers) || []).map((p) => [p.addr, p]));
+    const lead = firsts.map((a) => known.get(a)).find(Boolean);
+    const more = firsts.length > 1 ? ` +${firsts.length - 1}` : "";
+    if (!firsts.length) row("Brought by", span("miss", "nobody credited"));
+    else {
+      const where = lead ? (HIDDEN_FLAG[lead.network] ? HIDDEN_FLAG[lead.network] + " " + netLabel(lead.network)
+        : lead.cc ? flagOf(lead.cc) + " " + regionName(lead.cc) : netLabel(lead.network)) : "a peer no longer connected";
+      const v = row("Brought by", span("", where + more, firsts.join("\n")));
+      if (b.first_hb === 1) v.append(" ", span("hb", "\u26a1", HB_TITLE));
+    }
+
+    const entries = ((b.stratum && b.stratum.entries) || []).filter((e) => !e.miss && e.latency_ms != null)
+      .sort((x, y) => x.latency_ms - y.latency_ms);
+    const own = ((b.stratum && b.stratum.entries) || []).find((e) => e.own);
+    if (own) {
+      const v = row("Your pool", span("b-own", own.label), " ");
+      if (own.miss || own.latency_ms == null) v.append(span("miss", "no job for this block"));
+      else {
+        const place = entries.indexOf(entries.find((e) => e === own)) + 1;
+        const best = entries[0], next = entries.find((e) => e !== own);
+        const ms = (x) => Math.max(0, Math.round(x)) + "\u00a0ms";
+        v.append(span("b-place", ordinal(place)),
+          place === 1
+            ? (next ? ` \u00b7 ${ms(next.latency_ms - own.latency_ms)} ahead of ${next.label.replace(/ /g, "\u00a0")}` : "")
+            : ` \u00b7 ${ms(own.latency_ms - best.latency_ms)} behind ${best.label.replace(/ /g, "\u00a0")}`);
+      }
+    } else if (entries.length) {
+      row("First job", span("", entries[0].label));
+    }
+  }
+
   function renderBlockCard() {
     const card = $("blockCard");
     if (!card) return;
     const b = state.data && state.data.last_block;
     card.hidden = !b;
     if (!b) return;
+    if (window.peerLab) {
+      const more = $("blockMore");
+      // The route and the compact block line belong to the details.
+      for (const id of ["blockRoute", "blockRecon"]) if ($(id).parentElement !== more) more.insertBefore($(id), $("blockBody"));
+      $("blockSummary").hidden = false;
+      fillSummary($("blockSummary"), b, true);
+      let verdict = $("blockVerdict");
+      if (!verdict) { verdict = document.createElement("div"); verdict.id = "blockVerdict"; verdict.className = "b-verdict"; $("blockSummary").after(verdict); }
+      renderVerdict(verdict, b);
+      more.classList.add("minor");
+      $("blockMoreLabel").textContent = "Details";
+      const own = routeStops(b), typical = medianStops(b);
+      const view = state.routeView === "median" && typical ? "median" : "block";
+      const stops = own || typical ? (view === "median" ? typical : own || typical) : null;
+      $("blockRoute").hidden = !stops;
+      if (stops) {
+        // The route as Peer Map draws it, without the winning pool: only your
+        // own path, to scale on a wide screen and down a line on a phone, the
+        // same stretches and times on both.
+        renderRoute($("blockRoute"), b, stops.filter((s) => s.kind !== "win"),
+          { view: stops === typical ? "median" : "block", canSwitch: Boolean(own && typical), noRaceHere: !own });
+      }
+      // Who brought it is in the head; the details need not list it again.
+      renderBlockBody(b, true);
+      renderRecon($("blockRecon"), b, own && typical ? view : null);
+      return;
+    }
 
     // With a route the card stays open: the summary and the route are the
     // point, and only the full pool list folds away. Without one - Stratum
@@ -508,7 +591,7 @@
   // The line is parts, not words: "mined by Foundry USA" moves to the next
   // line as one, and the dot in front of a part that starts a line is clipped
   // (see .b-parts), so no line begins with a stray "·" on a phone.
-  function fillSummary(sum, b) {
+  function fillSummary(sum, b, short = false) {
     sum.textContent = "";
     const line = document.createElement("span");
     line.className = "b-line";
@@ -547,10 +630,10 @@
       // that, or when it could not read it, nothing was checked yet.
       add(part(), "b-unknown", "Unknown", "Mined by a pool we do not know: neither the payout address nor the coinbase text matched");
     }
-    const n = (b.first_peers || []).length;
+    const n = short ? -1 : (b.first_peers || []).length;
     // One peer and a known place: say where it came from, with its flag.
     const one = n === 1 && state.data.peers.find((p) => p.addr === b.first_peers[0]);
-    add(part(), null, n === 0 ? "nobody credited" : one && one.cc ? `delivered from ${flagOf(one.cc)} ${regionName(one.cc)}`
+    if (n >= 0) add(part(), null, n === 0 ? "nobody credited" : one && one.cc ? `delivered from ${flagOf(one.cc)} ${regionName(one.cc)}`
       : n === 1 ? "delivered by 1 peer" : `delivered by ${n} peers`,
       b.eligible ? `${b.eligible} peers were connected when it arrived` : "");
     add(part(), "miss", ago(blockAgeMs(b) / 1000) + " ago", "How long ago your node saw this block");
@@ -920,7 +1003,9 @@
       ? `Each stop is its median over the last ${n} blocks. `
       : "When the block was found cannot be measured; the hop into your node is estimated from the peer's ping.")
       ).trim();
-    box.appendChild(note);
+    // Peer Lab draws no winning pool on the route, so there is no first job
+    // to explain here.
+    if (!window.peerLab) box.appendChild(note);
   }
 
   function renderBlockBody(b, routed) {
@@ -963,9 +1048,18 @@
     }
 
     // --- who turned it into work ---------------------------------------
-    const race = document.createElement("div");
-    const h2 = document.createElement("h3");
-    h2.textContent = "Stratum race";
+    // Under Peer Lab the list folds (12.11.2026): with every public pool in it
+    // it is long. Open by default up to four pools, folded above that, and
+    // kept as the reader set it while the page refreshes.
+    const n = ((b.stratum && b.stratum.entries) || []).length;
+    const race = document.createElement(window.peerLab ? "details" : "div");
+    const h2 = document.createElement(window.peerLab ? "summary" : "h3");
+    if (window.peerLab) {
+      race.className = "pool-fold";
+      h2.textContent = `Pools \u00b7 relative to the fastest${n ? " \u00b7 " + n : ""}`;
+      race.open = state.poolsOpen != null ? state.poolsOpen : n <= 4;
+      race.addEventListener("toggle", () => { state.poolsOpen = race.open; });
+    } else h2.textContent = "Stratum race";
     race.appendChild(h2);
     if (!b.stratum || !(b.stratum.entries || []).length) {
       const p = document.createElement("p");
@@ -997,7 +1091,7 @@
       const note = document.createElement("p");
       note.className = "note";
       note.textContent = "Times are relative to the first job seen here, not to the moment the block was found.";
-      race.appendChild(note);
+      if (!window.peerLab) race.appendChild(note);
     }
     body.appendChild(race);
   }
