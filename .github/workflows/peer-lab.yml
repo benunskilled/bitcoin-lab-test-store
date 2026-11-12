@@ -24,30 +24,30 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: npm ci --no-audit --no-fund
-        working-directory: peer-lab/lab
+        working-directory: peer-lab/app
       - run: npm test
-        working-directory: peer-lab/lab
+        working-directory: peer-lab/app
         env:
-          PEER_MAP_DIR: ../map
+          PEERS_DIR: ../peers
   go:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version-file: peer-lab/map/go.mod
+          go-version-file: peer-lab/peers/go.mod
           cache: false
       - run: go test -race ./...
-        working-directory: peer-lab/map
+        working-directory: peer-lab/peers
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22'
       - run: npm ci --no-audit --no-fund
-        working-directory: peer-lab/lab
-      - run: go build -o "$RUNNER_TEMP/peermap" .
-        working-directory: peer-lab/map
-      - run: PEERLAB_MAP_BINARY="$RUNNER_TEMP/peermap" node scripts/smoke-peer-lab.js
-        working-directory: peer-lab/lab
+        working-directory: peer-lab/app
+      - run: go build -o "$RUNNER_TEMP/peers" .
+        working-directory: peer-lab/peers
+      - run: PEERS_BINARY="$RUNNER_TEMP/peers" node scripts/smoke-peer-lab.js
+        working-directory: peer-lab/app
   image:
     needs: [node, go]
     runs-on: ubuntu-latest

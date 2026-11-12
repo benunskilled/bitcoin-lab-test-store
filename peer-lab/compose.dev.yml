@@ -25,9 +25,9 @@ services:
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
       DASHBOARD_PORT: '8788'
-      TRUSTED_PROXY_HOST: bitcoinlab-peerlab_app_proxy_1
-      PEERMAP_HEALTH_URL: http://peer-map:8789/api/health
-      PEERLAB_MAP_URL: http://peer-map:8789
+      TRUSTED_PROXY_HOST: peerlab_app_proxy_1
+      PEERS_HEALTH_URL: http://peer-map:8789/api/health
+      PEERS_URL: http://peer-map:8789
     healthcheck:
       test:
       - CMD
@@ -174,20 +174,20 @@ services:
       APP_BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
       APP_BITCOIN_TOR_PROXY_IP: $APP_BITCOIN_TOR_PROXY_IP
       APP_BITCOIN_I2P_DAEMON_IP: $APP_BITCOIN_I2P_DAEMON_IP
-      PEERMAP_PORT: '8789'
-      PEERMAP_SIBLING_HEALTH_URL: http://dashboard:8788/api/health
+      PEERS_PORT: '8789'
+      DASHBOARD_HEALTH_URL: http://dashboard:8788/api/health
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: ${APP_BITCOIN_ZMQ_HASHBLOCK_PORT:-28334}
     healthcheck:
       test:
       - CMD
-      - /peermap
+      - /peers
       - healthcheck
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
     command:
-    - /peermap
+    - /peers
     volumes: []
     extra_hosts:
     - host.docker.internal:host-gateway

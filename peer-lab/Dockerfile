@@ -5,19 +5,19 @@
 # The Go release is the one go.mod names, pinned by digest - the multi-arch
 # index, so this stage resolves on any build machine - like the images the
 # store pins. toolchain_test.go keeps the two in step.
-FROM --platform=$BUILDPLATFORM golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf AS map-build
+FROM --platform=$BUILDPLATFORM golang:1.27.4-alpine@sha256:0a5f7fe796599ff487605987432e7619ae45beeb2fba4c2ce0b907879932aebf AS peers-build
 ARG TARGETOS
 ARG TARGETARCH
 ARG VERSION=dev
 WORKDIR /src
-COPY map/go.mod ./
-COPY map/*.go ./
-COPY map/geo ./geo
-COPY map/asn ./asn
-COPY map/torexit ./torexit
-COPY map/web ./web
+COPY peers/go.mod ./
+COPY peers/*.go ./
+COPY peers/geo ./geo
+COPY peers/asn ./asn
+COPY peers/torexit ./torexit
+COPY peers/web ./web
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
-    go build -trimpath -ldflags="-s -w -X main.Version=${VERSION}" -o /out/peermap .
+    go build -trimpath -ldflags="-s -w -X main.Version=${VERSION}" -o /out/peers .
 
 
 # Debian slim (glibc) rather than Alpine: the zeromq native bindings have
@@ -45,7 +45,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # artifact", so the build has to actually be reproducible. The old
 # `package-lock.json*` glob meant a missing lockfile still produced a happy
 # build from whatever the registry served that day.
-COPY lab/package.json lab/package-lock.json ./
+COPY app/package.json app/package-lock.json ./
 RUN npm ci --omit=dev --no-audit --no-fund
 
 # Both native packages ship more than this image can ever load. zeromq
@@ -71,7 +71,7 @@ RUN rm -rf node_modules/zeromq/build/win32 \
            node_modules/better-sqlite3/prebuilds/linuxmusl-* \
     && find node_modules/zeromq/build/linux -type d -name 'musl-*' -prune -exec rm -rf {} +
 
-COPY lab/src ./src
+COPY app/src ./src
 
 FROM node:22-bookworm-slim@sha256:5ec23b7c622b00547753bc6ffd78085dd868a68aeb41c8e0a1418f033e13d96d
 WORKDIR /app
@@ -79,11 +79,11 @@ ENV NODE_ENV=production
 
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/src ./src
-COPY lab/package.json ./
+COPY app/package.json ./
 
 # The stock node:* image already ships a non-root "node" user at uid/gid
 # 1000, matching what Umbrel expects to own ${APP_DATA_DIR}.
-COPY --from=map-build /out/peermap /peermap
+COPY --from=peers-build /out/peers /peers
 
 RUN mkdir -p /data/sqlite && chown -R node:node /data
 

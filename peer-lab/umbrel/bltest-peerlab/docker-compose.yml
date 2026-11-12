@@ -30,9 +30,9 @@ services:
       DATA_DIR: /data
       DASHBOARD_PORT: '8788'
       TRUSTED_PROXY_HOST: bltest-peerlab_app_proxy_1
-      PEERMAP_HEALTH_URL: http://bltest-peerlab_peer-map_1:8789/api/health
-      PEERLAB_MAP_URL: http://bltest-peerlab_peer-map_1:8789
-      LAB_READ_ONLY: '1'
+      PEERS_HEALTH_URL: http://bltest-peerlab_peer-map_1:8789/api/health
+      PEERS_URL: http://bltest-peerlab_peer-map_1:8789
+      READ_ONLY: '1'
     healthcheck:
       test:
       - CMD
@@ -69,7 +69,7 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
-      LAB_READ_ONLY: '1'
+      READ_ONLY: '1'
     healthcheck:
       test:
       - CMD
@@ -105,7 +105,7 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
-      LAB_READ_ONLY: '1'
+      READ_ONLY: '1'
     healthcheck:
       test:
       - CMD
@@ -141,7 +141,7 @@ services:
       APP_BITCOIN_ZMQ_HASHBLOCK_PORT: $APP_BITCOIN_ZMQ_HASHBLOCK_PORT
       APP_BITCOIN_NETWORK: $APP_BITCOIN_NETWORK
       DATA_DIR: /data
-      LAB_READ_ONLY: '1'
+      READ_ONLY: '1'
     healthcheck:
       test:
       - CMD
@@ -168,16 +168,16 @@ services:
       APP_BITCOIN_RPC_PASS: $APP_BITCOIN_RPC_PASS
       APP_BITCOIN_TOR_PROXY_IP: $APP_BITCOIN_TOR_PROXY_IP
       APP_BITCOIN_I2P_DAEMON_IP: $APP_BITCOIN_I2P_DAEMON_IP
-      PEERMAP_PORT: '8789'
-      PEERMAP_SIBLING_HEALTH_URL: http://bltest-peerlab_dashboard_1:8788/api/health
+      PEERS_PORT: '8789'
+      DASHBOARD_HEALTH_URL: http://bltest-peerlab_dashboard_1:8788/api/health
     healthcheck:
       test:
       - CMD
-      - /peermap
+      - /peers
       - healthcheck
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
     command:
-    - /peermap
+    - /peers

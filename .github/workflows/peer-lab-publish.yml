@@ -38,7 +38,7 @@ jobs:
           import json, pathlib, re, sys
           version = sys.argv[1]
           for name in ['package.json', 'package-lock.json']:
-              p = pathlib.Path('peer-lab/lab') / name
+              p = pathlib.Path('peer-lab/app') / name
               data = json.loads(p.read_text())
               data['version'] = version
               if 'packages' in data:
@@ -63,12 +63,12 @@ jobs:
           for arch in amd64 arm64; do
             docker run --rm --platform "linux/$arch" --read-only --tmpfs /tmp \
               -e DATA_DIR=/tmp/data "$IMAGE" node -e "const db=require('./src/lib/db'); db.open(); if(db.instance.pragma('integrity_check',{simple:true})!=='ok')process.exit(1); db.instance.close()"
-            name="peerlab-map-$arch"
+            name="peerlab-peers-$arch"
             docker run -d --name "$name" --platform "linux/$arch" --read-only \
-              -e PEERMAP_MOCK=1 "$IMAGE" /peermap
+              -e PEERS_DEMO=1 "$IMAGE" /peers
             ready=0
             for attempt in $(seq 1 30); do
-              if docker exec "$name" /peermap healthcheck; then ready=1; break; fi
+              if docker exec "$name" /peers healthcheck; then ready=1; break; fi
               sleep 1
             done
             docker logs "$name"
@@ -86,6 +86,6 @@ jobs:
           GIT_COMMITTER_NAME: github-actions[bot]
           GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
         run: |
-          git add peer-lab/lab/package.json peer-lab/lab/package-lock.json peer-lab/umbrel/bltest-peerlab/umbrel-app.yml bltest-peerlab
+          git add peer-lab/app/package.json peer-lab/app/package-lock.json peer-lab/umbrel/bltest-peerlab/umbrel-app.yml bltest-peerlab
           git -c commit.gpgsign=false commit -m "Publish verified Peer Lab test build"
           git push origin HEAD
