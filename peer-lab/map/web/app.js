@@ -2414,27 +2414,29 @@
         }
         text.append(b, sub);
         who.append(f, text);
-        // A phone card (12.11.2026): the address and what the peer is on the
-        // left, its country and provider on the right - two lines, every
-        // card. Hidden in a table (style.css), where the columns say it.
+        // A wide card (12.11.2026), where a table would have had to drop
+        // columns: the place and the address as on a phone card, then the kind
+        // with the provider under it, and with more width First/Blocks, ping
+        // and time connected. A phone keeps the card it always had; this one
+        // is hidden there and in a table (style.css).
         {
           const pc = document.createElement("div");
           pc.className = "pc";
           const span = (cls, text) => { const e = document.createElement("span"); e.className = cls; if (text != null) e.textContent = text; return e; };
-          const addr = span("pc-addr addr-txt", HIDDEN[p.network] || p.network === "not_publicly_routable" ? title : p.addr);
           const land = span("pc-land");
-          land.append(span("flag", HIDDEN_FLAG[p.network] || flagOf(p.cc)), p.cc ? regionName(p.cc) : HIDDEN[p.network] ? HIDDEN[p.network].short
-            : ["onion", "i2p", "cjdns"].includes(p.network) ? netLabel(p.network) : "");
+          land.append(span("flag", HIDDEN_FLAG[p.network] || flagOf(p.cc)), title);
           if (deliveredNow.has(p.addr)) land.append(" ", span("star", "\u2605"));
+          const sub = span("pc-sub2");
+          if (p.region && p.cc) sub.append(regionName(p.cc) + " ");
+          sub.append(span("addr-txt", p.addr));
           const what = span("pc-what");
           const label = p.linking_lion ? "LinkingLion" : p.kind;
-          // Under a kind filter every card has the same word: then the line the pill cannot say.
           const pill = span("kind " + (p.offline ? "never" : p.linking_lion ? "lion" : p.kind === "Disguised" ? "disg" : p.no_relay ? "never" : "first"),
-            (p.no_relay ? "\u2298 " : "") + (state.kind ? cardLine(p) || label : label));
-          what.append(pill);
+            (p.no_relay ? "\u2298 " : "") + label);
           for (const [active, symbol] of [[p.hb_to, "\u26a1"], [p.hb_from, "\ud83d\udce1"]]) if (active) what.append(span("hb", symbol));
+          what.append(pill);
           // Filled column by column (style.css): each pair is one column of the card.
-          pc.append(addr, what, land, span("pc-net", p.operator || (p.tor_exit ? "Tor exit" : "")));
+          pc.append(land, sub, what, span("pc-net", p.operator || (p.tor_exit ? "Tor exit" : "")));
           // A wider card has room for what a table would have had to drop: how
           // often the peer was first, then ping and time connected. Shown by
           // the card's width; all of it is in the opened row at any width.

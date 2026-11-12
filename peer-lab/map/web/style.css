@@ -786,40 +786,37 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 .pd-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
 .pd-actions .action-slot:empty { display: none; }
 
-/* A phone card (12.11.2026): address and what the peer is on the left, country
-   and provider on the right. Two lines, every card; the rest is in the panel. */
+/* Cards (12.11.2026). A phone has the card the map always had: place and
+   kind, country and address under them. A wider card - where a table would
+   have had to drop columns - is drawn from .pc instead: the same place and
+   address, the kind with the provider under it, then First/Blocks from 520px
+   of card and ping and time connected from 700px. */
 .pc { display: none; }
-.cards.cards table tr td.k-peer .who-text, .cards.cards table tr td.k-peer .who > .flag { display: none; }
-.cards.cards table tr td.k-kind, .cards.cards table tr td.k-operator, .cards.cards table tr td.k-net, .cards.cards table tr td.k-conntime { display: none; }
-.cards.cards table tr td.k-peer .who { display: block; }
 .scroll.cards { container: pcards / inline-size; }
-.cards.cards table tr td.k-peer .pc { display: grid; grid-auto-flow: column; grid-template-rows: 20px 20px; grid-template-columns: minmax(0, 1fr) minmax(0, 46%); gap: 3px 12px; align-items: center; min-width: 0; }
-/* A wider card: first/blocks from 520px of card, ping and time connected from 700px. */
-.cards.cards .pc > .pc-x, .cards.cards .pc > .pc-y { display: none; text-align: right; font-variant-numeric: tabular-nums; }
-.cards.cards .pc > .pc-first, .cards.cards .pc > .pc-ping { font-weight: 600; }
-.cards.cards .pc > .pc-sub { font-size: 12px; font-weight: 400; color: var(--muted); }
 @container pcards (min-width: 520px) {
-  .cards.cards table tr td.k-peer .pc { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 132px; }
-  .cards.cards .pc > .pc-x { display: block; }
+  .cards.cards table tr td.k-peer .who-text, .cards.cards table tr td.k-peer .who > .flag { display: none; }
+  .cards.cards table tr td.k-kind, .cards.cards table tr td.k-operator, .cards.cards table tr td.k-net, .cards.cards table tr td.k-conntime { display: none; }
+  .cards.cards table tr td.k-peer .who { display: block; }
+  .cards.cards table tr td.k-peer .pc { display: grid; grid-auto-flow: column; grid-template-rows: 20px 20px; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 96px; gap: 3px 14px; align-items: center; min-width: 0; }
+  .cards.cards .pc > span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 20px; height: 20px; }
+  .cards.cards .pc > .pc-y { display: none; }
+  .cards.cards .pc > .pc-x, .cards.cards .pc > .pc-y { text-align: right; font-variant-numeric: tabular-nums; }
+  .cards.cards .pc > .pc-first, .cards.cards .pc > .pc-ping { font-weight: 600; }
+  .cards.cards .pc > .pc-sub { font-size: 12px; font-weight: 400; color: var(--muted); }
+  .cards.cards .pc .pc-land { font-weight: 600; }
+  .cards.cards .peers tr.weak .pc .pc-land { color: var(--muted); font-weight: 500; }
+  .cards.cards .pc .pc-land .flag { display: inline-block; width: 22px; margin-right: 7px; font-size: 15px; line-height: 1; text-align: center; vertical-align: -1px; }
+  .cards.cards .pc .pc-sub2 { font-size: 12px; color: var(--muted); padding-left: 29px; }
+  .cards.cards .pc .pc-net { font-size: 12px; color: var(--muted); }
+  /* Every card one height: a mark or a smaller pill must not add a pixel. */
+  .cards.cards .pc .pc-what { display: flex; align-items: center; gap: 5px; }
+  .cards.cards .pc .pc-what .kind { flex: 0 1 auto; min-width: 0; margin-left: 0; max-width: 100%; line-height: 16px; }
+  .cards.cards .pc .pc-what .hb { flex: none; line-height: 1; font-size: 12px; }
 }
 @container pcards (min-width: 700px) {
-  .cards.cards table tr td.k-peer .pc { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) 132px 84px; }
+  .cards.cards table tr td.k-peer .pc { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) 96px 84px; }
   .cards.cards .pc > .pc-y { display: block; }
 }
-.cards.cards .pc > span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 20px; height: 20px; }
-/* Every card one height: a flag, a mark or a smaller pill must not add a pixel. */
-.cards.cards .pc .pc-what { display: flex; align-items: center; }
-.cards.cards .pc .pc-what .kind { flex: 0 1 auto; min-width: 0; }
-.cards.cards .pc .pc-what .hb { flex: none; line-height: 1; }
-.cards.cards .pc .pc-addr { font-size: 13px; color: var(--text); }
-.cards.cards .peers tr.weak .pc .pc-addr { color: var(--muted); }
-.cards.cards .peers tr.delivered-ever .pc .pc-addr { color: #56d364; }
-.cards.cards .pc .pc-land { font-weight: 600; }
-.cards.cards .pc .pc-land .flag { display: inline-block; width: 22px; margin-right: 6px; font-size: 15px; line-height: 1; text-align: center; vertical-align: -1px; }
-.cards.cards .pc .pc-net { font-size: 12px; color: var(--muted); }
-.cards.cards .pc .pc-what .kind { margin-left: 0; max-width: 100%; vertical-align: middle; line-height: 16px; }
-.cards.cards .pc .pc-what .kind.never { margin-left: 0; }
-.cards.cards .pc .pc-what .hb { margin-left: 5px; font-size: 12px; }
 
 /* Six jumps do not fit a phone's width in one row: the bar keeps to the
    screen and its buttons slide sideways under the finger. */
