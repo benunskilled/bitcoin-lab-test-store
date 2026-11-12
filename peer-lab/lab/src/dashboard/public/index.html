@@ -29,6 +29,19 @@
     <div id="readonly-banner" class="service-banner" hidden role="status">Read-only test copy: this Peer Lab does not add, remove or disconnect any of Core's peers.</div>
     <div id="service-banner" class="service-banner" hidden role="status"></div>
     <div id="refresh-banner" class="service-banner" hidden role="status"></div>
+    <section class="card hero-card">
+      <div class="hero-grid">
+        <div class="hero-stat">
+          <div class="hero-l">Block Height</div>
+          <div class="hero-n" id="block-height-number">–</div>
+          <!-- Who mined it, when the block says so. Empty is a normal answer
+               and takes no room: not every miner is on a list, and not every
+               coinbase carries a name. -->
+          <div class="hero-sub" id="block-pool" hidden></div>
+        </div>
+        <div class="stat-grid" id="live-stats"></div>
+      </div>
+    </section>
     </div>
 
     <p class="banner banner-demo" id="demo" hidden>Demo data - this instance runs with <code>PEERMAP_MOCK=1</code> and is not connected to a node.</p>
@@ -39,9 +52,9 @@
     </div>
 
     <div class="filters" role="group" aria-label="Show connection types">
-      <button class="chip" data-group="inbound" aria-pressed="true"><span class="swatch"></span>Inbound <b data-count="inbound">0</b></button>
-      <button class="chip" data-group="outbound" aria-pressed="true"><span class="swatch"></span>Outbound <b data-count="outbound">0</b></button>
-      <button class="chip" data-group="manual" aria-pressed="true"><span class="swatch"></span>Manual <b data-count="manual">0</b></button>
+      <button class="chip" data-group="inbound" aria-pressed="true" hidden><span class="swatch"></span>Inbound <b data-count="inbound">0</b></button>
+      <button class="chip" data-group="outbound" aria-pressed="true" hidden><span class="swatch"></span>Outbound <b data-count="outbound">0</b></button>
+      <button class="chip" data-group="manual" aria-pressed="true" hidden><span class="swatch"></span>Manual <b data-count="manual">0</b></button>
       <span class="place-filter" id="placeFilter" hidden>
         Showing <b id="placeFilterName"></b>
         <button class="linkish" id="placeFilterClear" aria-label="Clear location filter">×</button>
@@ -336,20 +349,6 @@
       <div id="block-wave"></div>
       <div id="lab-status"></div>
       <a id="lab-sibling-link" hidden></a>
-      <!-- Height and counts: the block card and the chips say them. -->
-    <section class="card hero-card">
-      <div class="hero-grid">
-        <div class="hero-stat">
-          <div class="hero-l">Block Height</div>
-          <div class="hero-n" id="block-height-number">–</div>
-          <!-- Who mined it, when the block says so. Empty is a normal answer
-               and takes no room: not every miner is on a list, and not every
-               coinbase carries a name. -->
-          <div class="hero-sub" id="block-pool" hidden></div>
-        </div>
-        <div class="stat-grid" id="live-stats"></div>
-      </div>
-    </section>
     <!--
       Folds by its title like every card (app.js, foldable). The top-10 toggle
       inside only narrows the list; the chevron makes it vanish.

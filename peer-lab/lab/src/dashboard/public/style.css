@@ -1070,3 +1070,6 @@
 /* Its cards one under the other, spaced like the page's own. */
 main > .lab { display: flex; flex-direction: column; gap: 16px; }
 main > .lab:empty, main > .lab:not(:has(> :not([hidden]))) { display: none; }
+/* The three group chips are hidden on this page (the tiles say their numbers);
+   the row is there only while a place or kind filter is on. */
+.filters:not(:has(> :not([hidden]))) { display: none; }
