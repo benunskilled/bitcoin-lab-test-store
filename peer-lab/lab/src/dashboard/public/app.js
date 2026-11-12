@@ -13,15 +13,9 @@ const REFRESH_MS = 20000;
 const ROTATION_REFRESH_MS = 2 * 60 * 1000;
 // New blocks no longer arrive by polling at all. /api/events is a
 // Server-Sent Events stream the dashboard process feeds from Core's own ZMQ
-// notification, so the wave fires when the block actually lands instead of
-// up to five seconds later - and the old 5s poll (720 requests an hour to
-// catch roughly six events) is gone entirely.
-const HIGHLIGHT_MS = 2 * 60 * 1000; // how long the first-peer row(s) stay tinted after a new block
-
-// address -> expiry timestamp (ms). Rebuilt into row classes on every
-// refreshPeers() render, since the table bodies are fully re-rendered each
-// poll rather than patched in place.
-const highlightUntil = new Map();
+// notification, so the ranking follows the block when it actually lands -
+// and the old 5s poll (720 requests an hour to catch roughly six events) is
+// gone entirely.
 let lastRaceId = null; // null = "haven't loaded the latest race yet", not "no races"
 let lastKnownHeight = null;
 let MAX_MANUAL_PEERS = 8; // overwritten from /api/status once loaded (config.maxManualPeers)
@@ -296,15 +290,6 @@ async function refreshStatus() {
   if (readOnlyBanner) readOnlyBanner.hidden = !s.readOnly;
   const rotationToggleBox = document.getElementById('rotation-toggle');
   if (rotationToggleBox && s.readOnly) rotationToggleBox.disabled = true;
-  // The peer count comes from SQLite and the block height from a Bitcoin
-  // Core RPC call. Tying them together meant a single RPC hiccup (Core
-  // restarting, still in IBD, a timeout) replaced a perfectly good peer
-  // count with "connecting…" - reporting the app as broken when only the
-  // one cosmetic value was missing.
-  const el = document.getElementById('lab-status');
-  const parts = [s.network, `${s.live.total} peers connected`];
-  el.textContent = parts.join(' · ');
-  el.prepend(liveDot);
 
   setBlockHeight(s.blockHeight);
 
@@ -385,13 +370,6 @@ function setBlockPool(race) {
   if (known || raw || unknown) el.hidden = false;
 }
 
-function triggerBlockWave() {
-  const wave = document.getElementById('block-wave');
-  wave.classList.remove('roll');
-  void wave.offsetWidth; // restart the CSS animation
-  wave.classList.add('roll');
-}
-
 // Called with the payload of a `block` event from /api/events (and once on
 // connect with the current state), so this no longer fetches anything.
 function applyBlockUpdate(race) {
@@ -410,13 +388,6 @@ function applyBlockUpdate(race) {
   lastRaceId = race.id;
   if (!isNewRace) return;
 
-  triggerBlockWave();
-  const expiry = Date.now() + HIGHLIGHT_MS;
-  // Only the newest block's peers are tinted: a second block inside the two
-  // minutes left two orange rows, and which one brought the new block was a
-  // guess (05.11.2026).
-  highlightUntil.clear();
-  for (const peer of race.firstPeers) highlightUntil.set(peer.address, expiry);
   refreshPeers();
 }
 
@@ -613,26 +584,6 @@ function foldInPlace({ anchor, box, set, open }) {
   };
 }
 
-// A peer that was not there at the last refresh lights up once, so what
-// changed since the last look is seen without searching. Not on the first
-// load: then everything would be new.
-const arrivedAt = new Map();
-let knownAddresses = null;
-function markArrivals(ranking) {
-  const now = Date.now();
-  const seen = new Set();
-  const walk = (v) => {
-    if (Array.isArray(v)) v.forEach(walk);
-    else if (v && typeof v === 'object') {
-      if (typeof v.address === 'string') seen.add(v.address);
-      else Object.values(v).forEach(walk);
-    }
-  };
-  walk(ranking);
-  if (knownAddresses) for (const a of seen) if (!knownAddresses.has(a)) arrivedAt.set(a, now);
-  for (const [a, t] of arrivedAt) if (now - t > 3000 || !seen.has(a)) arrivedAt.delete(a);
-  knownAddresses = seen;
-}
 let lastRotationLog = null; // kept so "Show all" can open without refetching
 
 // The most recent ranking payload, kept so purely visual changes (the "show
@@ -657,7 +608,6 @@ async function refreshPeers() {
   }
   lastPeerRanking = peers;
   rankingByAddress = new Map(peers.map((p) => [p.address, p]));
-  markArrivals(peers);
   window.dispatchEvent(new Event('peerlab:ranking'));
 }
 
@@ -1038,7 +988,7 @@ function renderPools(pools) {
 // then, and it comes back into view. Storage is left out - its buttons
 // delete data, and a tap beside one must not do anything at all.
 // Only its own: the map's legend and folds belong to the map's script.
-for (const box of document.querySelectorAll('.lab details.key, .lab details.how')) {
+for (const box of document.querySelectorAll('.panel details.how')) {
   box.addEventListener('click', (e) => {
     if (!box.open || e.target.closest('summary, a, button, input')) return;
     if (String(window.getSelection()).length > 0) return;
@@ -1148,28 +1098,10 @@ async function refreshAll() {
   // the rejection, nothing was logged, and the tables simply kept showing
   // whatever they had - hours-old numbers presented exactly like fresh ones.
   const failed = results.filter((r) => r.status === 'rejected');
-  beat(failed.length === 0);
   foldSums();
   reportRefreshHealth(failed.map((r) => r.reason));
 }
 
-// A dot in front of the status line beats once when fresh numbers arrive and
-// goes grey when a round failed: the page says it is alive without a clock
-// that ticks. The time is in its title.
-const liveDot = document.createElement('span');
-liveDot.className = 'live-dot';
-liveDot.setAttribute('aria-hidden', 'true');
-// Off again once it has beaten: the status line is rewritten on every
-// refresh, and putting the dot back with the class on beats it anew.
-liveDot.addEventListener('animationend', () => liveDot.classList.remove('beat'));
-function beat(ok) {
-  liveDot.classList.toggle('stale', !ok);
-  if (!ok) return;
-  liveDot.title = `Updated ${new Date().toLocaleTimeString()}`;
-  liveDot.classList.remove('beat');
-  void liveDot.offsetWidth; // restart the animation
-  liveDot.classList.add('beat');
-}
 
 // Two consecutive failed rounds before saying anything: a single miss during
 // a container restart or a brief RPC hiccup is normal and self-corrects on
@@ -1207,7 +1139,7 @@ const folded = (() => { try { return new Set(JSON.parse(localStorage.getItem(FOL
 // The card was called Manual Slot Fill until 10.11.2026: folded under that
 // name, it stays folded under the new one.
 if (folded.delete('Manual Slot Fill')) folded.add('Slot Fill');
-for (const card of document.querySelectorAll('main > .lab > section.card')) {
+for (const card of document.querySelectorAll('main > section.panel')) {
   const title = card.querySelector(':scope > h2');
   if (!title) continue;
   const id = card.id || title.firstChild.textContent.trim();
@@ -1832,7 +1764,7 @@ function wireReset(scope) {
 // Every <details> folds in place too: its summary stays, its text rolls out
 // below and back up.
 document.addEventListener('click', (e) => {
-  const summary = e.target.closest && e.target.closest('.lab details > summary');
+  const summary = e.target.closest && e.target.closest('.panel details > summary, details.panel > summary');
   if (!summary || e.target.closest('a, button, input')) return;
   e.preventDefault();
   const details = summary.parentElement;

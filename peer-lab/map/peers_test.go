@@ -350,7 +350,7 @@ func TestCSPClosesBaseAndForm(t *testing.T) {
 func TestHTTP(t *testing.T) {
 	s := &source{now: time.Now, fetch: mockPeers}
 	h := newHandler(s, offSibling())
-	for _, path := range []string{"/world.json", "/app.js", "/style.css", "/api/health"} {
+	for _, path := range []string{"/world.json", "/app.js", "/api/health"} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest("GET", path, nil))
 		if rec.Code != 200 {

@@ -8,14 +8,13 @@
   <link rel="icon" href="/favicon.png" type="image/png" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <meta name="theme-color" content="#0b0f14" />
-  <link rel="stylesheet" href="/map/style.css" />
   <link rel="stylesheet" href="/style.css" />
   <script src="/map/app.js" defer></script>
 </head>
 <body>
   <!-- Rolls across the page once when a new block lands. -->
   <div class="block-wave" id="blockWave" aria-hidden="true"></div>
-  <div class="lab"><div id="action-toast" class="action-toast" role="status" aria-live="polite" hidden></div></div>
+  <div id="action-toast" class="action-toast" role="status" aria-live="polite" hidden></div>
 
   <header class="topbar">
     <h1>Peer Lab</h1>
@@ -23,9 +22,6 @@
   </header>
 
   <main>
-    <!-- One page, two sources: the map and the peer list are drawn by
-         /map/app.js, everything inside .lab by /app.js. -->
-    <div class="lab">
     <div id="readonly-banner" class="service-banner" hidden role="status">Read-only test copy: this Peer Lab does not add, remove or disconnect any of Core's peers.</div>
     <div id="service-banner" class="service-banner" hidden role="status"></div>
     <div id="refresh-banner" class="service-banner" hidden role="status"></div>
@@ -42,7 +38,6 @@
         <div class="stat-grid" id="live-stats"></div>
       </div>
     </section>
-    </div>
 
     <p class="banner banner-demo" id="demo" hidden>Demo data - this instance runs with <code>PEERMAP_MOCK=1</code> and is not connected to a node.</p>
     <p class="banner banner-error" id="error" hidden></p>
@@ -141,8 +136,8 @@
       <ul class="key-list">
           <li><b class="hb">⚡</b> May send you new blocks without being asked (high-bandwidth peer)</li>
           <li><b class="hb">📡</b> Gets new blocks from you without asking (you are its high-bandwidth peer)</li>
-          <li class="lab-only"><b class="star">★</b> Delivered the newest block first</li>
-          <li class="lab-only"><b class="addr-txt delivered">green address</b> Has delivered a block first</li>
+          <li><b class="star">★</b> Delivered the newest block first</li>
+          <li><b class="addr-txt delivered">green address</b> Has delivered a block first</li>
           <li><b>🔒</b> In an opened manual peer: it keeps its slot, even while offline (locked)</li>
           <li><b class="never-mark">⊘</b> Passes no blocks on, e.g. a wallet (never first)</li>
           <li><span class="kind disg">Disguised</span> Probably not the software it says it is</li>
@@ -153,7 +148,6 @@
 
     <div class="tables" id="tables" aria-busy="true"><section class="card group-card skeleton-card"><div class="group-head"><h2>Inbound</h2></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div></section><section class="card group-card skeleton-card"><div class="group-head"><h2>Outbound</h2></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div></section><section class="card group-card skeleton-card"><div class="group-head"><h2>Manual</h2></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div><div class="sk-row"><i></i><i></i></div></section></div>
 
-    <div class="lab">
     <!--
       Its own section, right under the panel it writes into, next to Slot Fill:
       the two ways a peer gets into the manual slots. It used to live inside
@@ -164,7 +158,7 @@
       Test answers "is anything listening there, and on which port" and changes
       nothing at all - no row, no addnode, no disconnected session.
     -->
-    <section class="card">
+    <section class="card panel">
       <h2>Add a Peer</h2>
       <p class="panel-note">
         <strong>Add &amp; Keep</strong> makes a peer manual and locks it, so it keeps its slot even while
@@ -185,7 +179,7 @@
       <div id="manual-add-result" class="hint"></div>
     </section>
 
-    <section class="card panel" id="slot-fill">
+    <section class="card panel spaced" id="slot-fill">
       <h2>Slot Fill <span class="hint fold-sum" id="rotation-sum"></span></h2>
       <div class="inline-form">
         <label class="switch-label" for="rotation-toggle">
@@ -230,7 +224,7 @@
       </div>
     </section>
 
-    <section class="card" id="stratum-race">
+    <section class="card panel" id="stratum-race">
       <h2>Stratum Race <span class="hint fold-sum" id="stratum-sum"></span></h2>
       <div class="inline-form">
         <label class="switch-label" for="stratum-toggle">
@@ -308,7 +302,7 @@
     </section>
 
     <!-- What the node sends and receives, per UTC day. -->
-    <section class="card panel" id="traffic-card">
+    <section class="card panel spaced" id="traffic-card">
       <h2>Traffic <span class="hint fold-sum" id="traffic-sum"></span></h2>
       <div id="traffic-totals" class="traffic-totals"></div>
       <div id="traffic-chart" class="traffic-chart" role="img" aria-label="Traffic per day, last 30 days"></div>
@@ -317,7 +311,7 @@
 
     <!-- Closed by default and last on the page: nothing here is part of daily
          use, and both buttons destroy data that cannot be recovered. -->
-    <details class="card" id="storage-card">
+    <details class="card panel" id="storage-card">
       <summary><h2>Data &amp; Settings <span id="storage-total" class="hint"></span></h2></summary>
 
       <div class="reset-group">
@@ -344,14 +338,7 @@
         </div>
       </div>
     </details>
-    </div>
 
-    <!-- Filled by /app.js and not shown: the page's own script draws the
-         status line and the block wave. -->
-    <div class="lab" hidden>
-      <div id="block-wave"></div>
-      <div id="lab-status"></div>
-    </div>
   </main>
 
   <footer class="foot">

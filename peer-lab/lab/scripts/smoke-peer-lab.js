@@ -49,7 +49,7 @@ async function main() {
     const peers = await (await fetch(base + '/map/api/peers')).json();
     assert.ok(peers.peers.length > 0, 'real map module returns mock peers');
     assert.equal(peers.sibling, true, 'map can reach the integrated measurement module');
-    for (const resource of ['/app.js', '/style.css', '/favicon.png', '/map/app.js', '/map/style.css', '/map/world.json', '/api/widget/traffic']) {
+    for (const resource of ['/app.js', '/style.css', '/favicon.png', '/map/app.js', '/map/world.json', '/api/widget/traffic']) {
       assert.equal((await fetch(base + resource)).status, 200, resource);
     }
     console.log('Peer Lab cross-module HTTP smoke test passed. No live node or peer writes used.');

@@ -986,18 +986,18 @@
   // below and back up.
   document.addEventListener("click", (ev) => {
     const summary = ev.target.closest && ev.target.closest("details > summary");
-    // What is inside .lab folds by the measuring half's own script: two
-    // handlers on one fold opened it and shut it again (12.11.2026).
-    if (!summary || summary.closest(".lab") || ev.target.closest("a, button, input")) return;
+    // The panels under the peer list fold by the other script: two handlers
+    // on one fold opened it and shut it again (12.11.2026).
+    if (!summary || summary.closest(".panel") || ev.target.closest("a, button, input")) return;
     ev.preventDefault();
     const box = summary.parentElement;
     foldInPlace({ anchor: summary, box, open: !box.open, set: (open) => { box.open = open; } });
   });
 
-  // The legend and the block's pool list fold shut again with a tap anywhere
-  // on them, not only on their title: on a phone the title has scrolled away
-  // by then, and it comes back into view.
-  for (const box of [...document.querySelectorAll("details.key, #blockMore")].filter((b) => !b.closest(".lab"))) {
+  // The block's details fold shut again with a tap anywhere on them, not only
+  // on their title: on a phone the title has scrolled away by then, and it
+  // comes back into view.
+  for (const box of [$("blockMore")]) {
     box.addEventListener("click", (ev) => {
       if (!box.open || ev.target.closest("summary, a, button, input")) return;
       if (String(window.getSelection()).length > 0) return;
@@ -2697,11 +2697,11 @@
     if (p.version) who.appendChild(el("p", "pd-small", "Protocol " + p.version));
     const where = [p.region, p.cc].filter(Boolean).join(", ");
     if (where || p.operator) who.appendChild(el("p", "pd-where", [where, p.operator ? p.operator + (p.asn ? " (AS" + p.asn + ")" : "") : ""].filter(Boolean).join(" \u00b7 ")));
-    // What can be done with this peer: the measuring half's own buttons, in
-    // its own dress (.lab) and handled by its script.
+    // What can be done with this peer: the buttons come from the other
+    // script, which also handles their clicks.
     const acts = lab().actionsHtml(p.addr);
     if (/<button/.test(acts)) {
-      const row = el("div", "pd-actions lab");
+      const row = el("div", "pd-actions");
       row.innerHTML = acts;
       panel.appendChild(row);
     }
