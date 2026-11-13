@@ -370,3 +370,20 @@ func TestNodeSetupLabels(t *testing.T) {
 		t.Errorf("MiniBolt on Knots: kind %q", k)
 	}
 }
+
+// A word an operator put in the brackets does not describe the node: the
+// about rules read the bare name, as the kinds do, unless a rule asks for a
+// bracket itself ("Labelled by ...", 13.11.2026).
+func TestAboutReadsTheBareName(t *testing.T) {
+	for ua, want := range map[string]string{
+		"/Satoshi:29.0.0(my-monitor)/":                  "",
+		"/Satoshi:28.0.0(neutrino)/":                    "",
+		"/Satoshi:28.1.0(FutureBit-Apollo-Node)/":       "Labelled by FutureBit Apollo",
+		"/Satoshi:29.1.0(PyBLOCK-POOL)/Knots:20250903/": "PyBLOCK",
+	} {
+		got := aboutOf(ua)
+		if want == "" && got != "" || want != "" && !strings.HasPrefix(got, want) {
+			t.Errorf("%s: about %q, want %q", ua, got, want)
+		}
+	}
+}

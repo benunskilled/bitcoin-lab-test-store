@@ -211,7 +211,8 @@ var aboutRules = []aboutRule{
 	// pushed unannounced 66-byte transactions, the size of such a sweep.
 	{regexp.MustCompile(`(?i)^/p2aburn:`), "p2aburn, a bot that sweeps P2A anchors (outputs anyone may spend) behind a Runes minting fleet", "p2aburn anchor sweeper", ""},
 	{regexp.MustCompile(`(?i)python-bitcoinlib`), "python-bitcoinlib, a Python library scripts use to talk to nodes", "python-bitcoinlib", ""},
-	{regexp.MustCompile(`(?i)pyblock`), "PyBLOCK, a node dashboard", "PyBLOCK dashboard", ""},
+	// Mostly a label in the brackets, "(PyBLOCK-POOL)": asked for as one.
+	{regexp.MustCompile(`(?i)\(PyBLOCK|pyblock`), "PyBLOCK, a node dashboard", "PyBLOCK dashboard", ""},
 	// Projects whose name matches; none of them publishes the exact string,
 	// so "Named like".
 	// Urbit reaches Bitcoin through its %btc-provider (github.com/urbit/urbit);
@@ -284,7 +285,6 @@ var aboutRules = []aboutRule{
 	{regexp.MustCompile(`^/bitcoin-s:`), "bitcoin-s, a Bitcoin toolkit in Scala with a light client on compact block filters", "bitcoin-s toolkit (Scala)", ""},
 	{regexp.MustCompile(`^Stacks/`), "A Stacks node: follows Bitcoin's blocks for the Stacks chain built on it", "Stacks node", ""},
 	{regexp.MustCompile(`/utreexod:`), "utreexod, a Utreexo full node built on btcd", "utreexod Utreexo node", ""},
-	{regexp.MustCompile(`^/python-bitcoinlib:`), "python-bitcoinlib, a Python library for scripts and tests", "python-bitcoinlib", ""},
 	{regexp.MustCompile(`^/nakamoto:`), "nakamoto, a light client on compact block filters", "nakamoto light client", ""},
 	{regexp.MustCompile(`(?i)/spvwallet:`), "spvwallet, the wallet of OpenBazaar, a marketplace closed in 2021", "OpenBazaar's spvwallet", ""},
 	// Autarkysoft's C# toolkit (Configuration.cs); it pushes transactions
@@ -477,10 +477,19 @@ type aboutRule = struct {
 	label, name string
 }
 
-// ruleOf is the first rule that knows the user agent.
+// ruleOf is the first rule that knows the user agent. A rule reads the
+// operator's brackets only when it asks for one itself (a "\(" in it, the
+// "Labelled by" rules): a word an operator put there, "(my-monitor)" or
+// "(neutrino)", does not describe a Core node as a census or a wallet -
+// the kind reads the bare name the same way (readsBareName, 13.11.2026).
 func ruleOf(subver string) (aboutRule, bool) {
+	bare := bracketed.ReplaceAllString(subver, "")
 	for _, r := range aboutRules {
-		if r.re.MatchString(subver) {
+		s := bare
+		if strings.Contains(r.re.String(), `\(`) {
+			s = subver
+		}
+		if r.re.MatchString(s) {
 			return r, true
 		}
 	}
