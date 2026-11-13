@@ -727,19 +727,7 @@
     box.textContent = "";
     const median = view === "median";
     const n = (b.route_median && b.route_median.blocks) || 0;
-    if (canSwitch) {
-      const sw = document.createElement("div");
-      sw.className = "rt-switch";
-      for (const [v, label] of [["block", "This block"], ["median", `Typical \u00b7 last ${n}`]]) {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.textContent = label;
-        btn.className = v === view ? "on" : "";
-        btn.addEventListener("click", () => setRouteView(v));
-        sw.appendChild(btn);
-      }
-      box.appendChild(sw);
-    }
+    if (canSwitch) routeSwitch(box, view, n);
     const miner = median ? "Miner" : b.pool || (b.pool_tag ? `"${b.pool_tag}"` : "unknown miner");
     const W = box.clientWidth - 12;
     // The last label is centred on its dot like the others, so the dot keeps
@@ -747,124 +735,144 @@
     const left = ROUTE_STUB, right = W - 60;
 
     const need = segNeeds(box, stops);
-    if (need.slice(1).reduce((x, y) => x + y, 0) > right - left) {
-      // Narrow: the same stops down a line. Between two stops, what that
-      // stretch is and - on the right, flush - how long it took. One rule
-      // for every stretch: from the stop above, so never negative. The hop
-      // into Core says in short how the compact block went; the compact
-      // block line under the route says it in full, as on a wide screen.
-      const ol = document.createElement("ol");
-      ol.className = "rt-v";
-      const li = (cls, parts, title) => {
-        const e = document.createElement("li");
-        e.className = cls;
-        for (const [text, c] of parts) {
-          const s = document.createElement(c === "name" ? "b" : "span");
-          s.textContent = text;
-          if (c && c !== "name") s.className = c;
-          e.appendChild(s);
-        }
-        if (title) e.title = title;
-        ol.appendChild(e);
-      };
-      li("stop pool", [[miner, "name"], ["mined it"]]);
-      // The first job is the zero, not a station (as on the wide route):
-      // when it falls inside the hop into Core - a far peer, a long hop -
-      // it stands up here with how far before your node it was, and the
-      // hop stays whole underneath.
-      const win = stops.find((st) => st.kind === "win");
-      // As on the wide route: the first job against the first station after
-      // it, the peer or - with no peer to place - Core (review 11.11.2026).
-      const firstStation = stops.find((st) => st.kind !== "win");
-      const line = win && firstStation && win.t > firstStation.t ? stops.filter((st) => st !== win) : stops;
-      if (line !== stops) {
-        li("gap lead", []);
-        li("stop win", [[win.name, "name"], ["first job"]]);
-        li("gap lead", [[firstJobWords(win, stops)]]);
-      } else li("gap lead", []);
-      line.forEach((s, i) => {
-        if (i > 0) {
-          const prev = line[i - 1];
-          // The first job's stretch to the peer says only its time here:
-          // the first job's own line says what it is.
-          const [what, time, why] = prev.kind === "win" ? ["", ...stretch(prev, s).slice(1)] : stretch(prev, s);
-          li("gap", [[what || " "], [time, "t"]], why);
-        }
-        // Where the peer is stands on the card's first line; here only
-        // which one, so every stop fits one line.
-        const peer = s.kind === "peer" && !median;
-        li("stop " + s.kind + (s.group ? " " + s.group : ""),
-          [[peer ? "Your peer" : s.name, "name"], peer ? [s.name, "addr"] : [s.sub.join(" · ")]], s.title);
-      });
-      box.appendChild(ol);
-      // "at least" in words; where it would squeeze its stretch's text past
-      // two lines, the sign - a bare number would read as the estimate.
-      for (const t of ol.querySelectorAll(".gap .t")) {
-        if (!t.textContent.startsWith("at least")) continue;
-        const what = t.previousElementSibling;
-        const cs = getComputedStyle(what);
-        const lh = parseFloat(cs.lineHeight) || 1.3 * parseFloat(cs.fontSize);
-        if (what.getBoundingClientRect().height > 2.5 * lh) {
-          t.textContent = t.textContent.replace("at least\u00a0", "≥");
-        }
-      }
-    } else {
-      const rt = document.createElement("div");
-      rt.className = "rt";
-      box.appendChild(rt);
-      const el = (cls, x, html) => {
-        const e = document.createElement("div");
-        e.className = cls;
-        if (x != null) e.style.left = x + "px"; // CSSOM, which the CSP allows
-        if (html) e.append(...html);
-        rt.appendChild(e);
-        return e;
-      };
-      const txt = (tag, text, cls) => {
-        const e = document.createElement(tag);
-        e.textContent = text;
-        if (cls) e.className = cls;
-        return e;
-      };
-      const xs = placeStops(stops, left, right, need);
+    if (need.slice(1).reduce((x, y) => x + y, 0) > right - left) routeDown(box, stops, miner, median);
+    else routeAcross(box, stops, miner, placeStops(stops, left, right, need));
+  }
 
-      const stub = el("rt-stub", 6);
-      stub.style.width = (xs[0] - 6) + "px";
-      const track = el("rt-track", xs[0]);
-      track.style.width = (xs[xs.length - 1] - xs[0]) + "px";
-      el("rt-dot pool", 6);
-      // A raw coinbase text can be long; it stops short of the first stop's
-      // label instead of running underneath it.
-      const minerLab = el("rt-lab pool first", 0, [fit(txt("b", miner), miner), txt("small", "mined it")]);
-      minerLab.style.maxWidth = (xs[0] - 50) + "px";
-
-      stops.forEach((s, i) => {
-        el("rt-dot " + s.kind + (s.group ? " " + s.group : ""), xs[i]);
-        const name = fit(txt("b", s.name), s.name, s.title);
-        const lab = el("rt-lab " + s.kind + (s.plain ? " plain" : ""), xs[i],
-          [name, ...s.sub.map((line) => txt("small", line)), ...(s.kind === "win" ? [txt("small", firstJobWords(s, stops))] : [])]);
-        if (s.title) lab.title = s.title;
-      });
-
-      // Stretches run between the stations the block actually passes -
-      // peer, Core, template, your pool. The first job is the zero the times
-      // are counted from, not a station: when the peer had the block before
-      // any pool sent a job, the zero falls inside the ping, and splitting the
-      // ping there would only produce two pieces nobody can read. So the zero
-      // keeps its dot and its label below, and the stretch above it stays
-      // whole. Only when the zero comes before the peer is there a stretch
-      // from it to the peer.
-      const at = (st) => xs[stops.indexOf(st)];
-      const seg = (a, z) => {
-        const [label, why] = segLabel(a, z);
-        const e = el("rt-seg", (at(a) + at(z)) / 2, [txt("span", label)]);
-        if (why) e.title = why;
-      };
-      const journey = stops.filter((st) => st.kind !== "win");
-      const win = stops.find((st) => st.kind === "win");
-      if (win && journey.length && win.t <= journey[0].t) seg(win, journey[0]);
-      for (let i = 1; i < journey.length; i++) seg(journey[i - 1], journey[i]);
+  // The switch between this block's route and the typical one.
+  function routeSwitch(box, view, n) {
+    const sw = document.createElement("div");
+    sw.className = "rt-switch";
+    for (const [v, label] of [["block", "This block"], ["median", `Typical \u00b7 last ${n}`]]) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = label;
+      btn.className = v === view ? "on" : "";
+      btn.addEventListener("click", () => setRouteView(v));
+      sw.appendChild(btn);
     }
+    box.appendChild(sw);
+  }
+
+  // Narrow: the same stops down a line. Between two stops, what that
+  // stretch is and - on the right, flush - how long it took. One rule
+  // for every stretch: from the stop above, so never negative. The hop
+  // into Core says in short how the compact block went; the compact
+  // block line under the route says it in full, as on a wide screen.
+  function routeDown(box, stops, miner, median) {
+    const ol = document.createElement("ol");
+    ol.className = "rt-v";
+    const li = (cls, parts, title) => {
+      const e = document.createElement("li");
+      e.className = cls;
+      for (const [text, c] of parts) {
+        const s = document.createElement(c === "name" ? "b" : "span");
+        s.textContent = text;
+        if (c && c !== "name") s.className = c;
+        e.appendChild(s);
+      }
+      if (title) e.title = title;
+      ol.appendChild(e);
+    };
+    li("stop pool", [[miner, "name"], ["mined it"]]);
+    // The first job is the zero, not a station (as on the wide route):
+    // when it falls inside the hop into Core - a far peer, a long hop -
+    // it stands up here with how far before your node it was, and the
+    // hop stays whole underneath.
+    const win = stops.find((st) => st.kind === "win");
+    // As on the wide route: the first job against the first station after
+    // it, the peer or - with no peer to place - Core (review 11.11.2026).
+    const firstStation = stops.find((st) => st.kind !== "win");
+    const line = win && firstStation && win.t > firstStation.t ? stops.filter((st) => st !== win) : stops;
+    if (line !== stops) {
+      li("gap lead", []);
+      li("stop win", [[win.name, "name"], ["first job"]]);
+      li("gap lead", [[firstJobWords(win, stops)]]);
+    } else li("gap lead", []);
+    line.forEach((s, i) => {
+      if (i > 0) {
+        const prev = line[i - 1];
+        // The first job's stretch to the peer says only its time here:
+        // the first job's own line says what it is.
+        const [what, time, why] = prev.kind === "win" ? ["", ...stretch(prev, s).slice(1)] : stretch(prev, s);
+        li("gap", [[what || " "], [time, "t"]], why);
+      }
+      // Where the peer is stands on the card's first line; here only
+      // which one, so every stop fits one line.
+      const peer = s.kind === "peer" && !median;
+      li("stop " + s.kind + (s.group ? " " + s.group : ""),
+        [[peer ? "Your peer" : s.name, "name"], peer ? [s.name, "addr"] : [s.sub.join(" · ")]], s.title);
+    });
+    box.appendChild(ol);
+    // "at least" in words; where it would squeeze its stretch's text past
+    // two lines, the sign - a bare number would read as the estimate.
+    for (const t of ol.querySelectorAll(".gap .t")) {
+      if (!t.textContent.startsWith("at least")) continue;
+      const what = t.previousElementSibling;
+      const cs = getComputedStyle(what);
+      const lh = parseFloat(cs.lineHeight) || 1.3 * parseFloat(cs.fontSize);
+      if (what.getBoundingClientRect().height > 2.5 * lh) {
+        t.textContent = t.textContent.replace("at least\u00a0", "≥");
+      }
+    }
+  }
+
+  // Wide: the stops along one line, at the places xs (placeStops).
+  function routeAcross(box, stops, miner, xs) {
+    const rt = document.createElement("div");
+    rt.className = "rt";
+    box.appendChild(rt);
+    const el = (cls, x, html) => {
+      const e = document.createElement("div");
+      e.className = cls;
+      if (x != null) e.style.left = x + "px"; // CSSOM, which the CSP allows
+      if (html) e.append(...html);
+      rt.appendChild(e);
+      return e;
+    };
+    const txt = (tag, text, cls) => {
+      const e = document.createElement(tag);
+      e.textContent = text;
+      if (cls) e.className = cls;
+      return e;
+    };
+
+    const stub = el("rt-stub", 6);
+    stub.style.width = (xs[0] - 6) + "px";
+    const track = el("rt-track", xs[0]);
+    track.style.width = (xs[xs.length - 1] - xs[0]) + "px";
+    el("rt-dot pool", 6);
+    // A raw coinbase text can be long; it stops short of the first stop's
+    // label instead of running underneath it.
+    const minerLab = el("rt-lab pool first", 0, [fit(txt("b", miner), miner), txt("small", "mined it")]);
+    minerLab.style.maxWidth = (xs[0] - 50) + "px";
+
+    stops.forEach((s, i) => {
+      el("rt-dot " + s.kind + (s.group ? " " + s.group : ""), xs[i]);
+      const name = fit(txt("b", s.name), s.name, s.title);
+      const lab = el("rt-lab " + s.kind + (s.plain ? " plain" : ""), xs[i],
+        [name, ...s.sub.map((line) => txt("small", line)), ...(s.kind === "win" ? [txt("small", firstJobWords(s, stops))] : [])]);
+      if (s.title) lab.title = s.title;
+    });
+
+    // Stretches run between the stations the block actually passes -
+    // peer, Core, template, your pool. The first job is the zero the times
+    // are counted from, not a station: when the peer had the block before
+    // any pool sent a job, the zero falls inside the ping, and splitting the
+    // ping there would only produce two pieces nobody can read. So the zero
+    // keeps its dot and its label below, and the stretch above it stays
+    // whole. Only when the zero comes before the peer is there a stretch
+    // from it to the peer.
+    const at = (st) => xs[stops.indexOf(st)];
+    const seg = (a, z) => {
+      const [label, why] = segLabel(a, z);
+      const e = el("rt-seg", (at(a) + at(z)) / 2, [txt("span", label)]);
+      if (why) e.title = why;
+    };
+    const journey = stops.filter((st) => st.kind !== "win");
+    const win = stops.find((st) => st.kind === "win");
+    if (win && journey.length && win.t <= journey[0].t) seg(win, journey[0]);
+    for (let i = 1; i < journey.length; i++) seg(journey[i - 1], journey[i]);
   }
 
   function renderBlockBody(b) {
@@ -2472,47 +2480,66 @@
   const NO_SERVICES_WHY = "This peer announced no services at all: it has nothing to offer other nodes";
   const NO_TX_WHY = "Wants no transactions from your node";
   const bytesText = (n) => n >= 1e9 ? (n / 1e9).toFixed(1) + "\u00a0GB" : n >= 1e6 ? Math.round(n / 1e6) + "\u00a0MB" : n >= 1e3 ? Math.round(n / 1e3) + "\u00a0kB" : n + "\u00a0B";
-  function peerDetail(p) {
-    const el = (tag, cls, text) => {
-      const e = document.createElement(tag);
-      if (cls) e.className = cls;
-      if (text != null) e.textContent = text;
-      return e;
-    };
-    const panel = el("div", "pd");
-    const block = (title) => {
-      const b = el("section", "pd-block");
-      b.appendChild(el("h4", "", title));
-      panel.appendChild(b);
-      return b;
-    };
-    // One line of the connection: name on the left, value on the right, in
-    // the size of the traffic table under it. These were tiles in 17px, the
-    // largest type in the panel, and at 960px too narrow for "Inbound".
-    const fact = (label, value) => {
-      const s = el("div", "pd-fact");
-      s.append(el("span", "", label), el("span", "", value));
-      return s;
-    };
+  // The detail panel's parts: an element, a block with a heading, and one
+  // line of the connection.
+  const pdEl = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  const pdBlock = (panel, title) => {
+    const b = pdEl("section", "pd-block");
+    b.appendChild(pdEl("h4", "", title));
+    panel.appendChild(b);
+    return b;
+  };
+  // One line of the connection: name on the left, value on the right, in
+  // the size of the traffic table under it. These were tiles in 17px, the
+  // largest type in the panel, and at 960px too narrow for "Inbound".
+  const pdFact = (label, value) => {
+    const s = pdEl("div", "pd-fact");
+    s.append(pdEl("span", "", label), pdEl("span", "", value));
+    return s;
+  };
 
-    // What it is, and why each word in the row is there.
-    const what = block("What it is");
+  // A peer's open detail: what it is, its connection, what it announced, and
+  // the buttons for it.
+  function peerDetail(p) {
+    const panel = pdEl("div", "pd");
+    detailWhat(panel, p);
+    detailConnection(panel, p);
+    detailAnnounced(panel, p);
+    // What can be done with this peer: the buttons come from the other
+    // script, which also handles their clicks.
+    const acts = dashboard().actionsHtml(p.addr);
+    if (/<button/.test(acts)) {
+      const row = pdEl("div", "pd-actions");
+      row.innerHTML = acts;
+      panel.appendChild(row);
+    }
+    return panel;
+  }
+
+  // What it is, and why each word in the row is there.
+  function detailWhat(panel, p) {
+    const what = pdBlock(panel, "What it is");
     // Under a kind filter the row shows only part of it; the panel has all of it.
     if (p.about) {
       for (const line of p.about.split("\n")) {
         const m = /^(Claims|Probably|Also):\s*(.*)$/.exec(line);
-        const row = el("p", "pd-about");
+        const row = pdEl("p", "pd-about");
         if (m) {
           row.classList.add("tagged");
           // Further reasons stand under the first one, without a word of their own.
-          row.append(el("span", "pd-tag " + m[1].toLowerCase(), m[1] === "Also" ? "" : m[1]), el("span", "", m[2]));
+          row.append(pdEl("span", "pd-tag " + m[1].toLowerCase(), m[1] === "Also" ? "" : m[1]), pdEl("span", "", m[2]));
         }
         else row.textContent = line;
         what.appendChild(row);
       }
     }
-    if (p.seen) what.appendChild(el("p", "pd-about", "In this session: " + p.seen));
-    if (p.pool_proof) what.appendChild(el("p", "pd-about", p.pool_proof));
+    if (p.seen) what.appendChild(pdEl("p", "pd-about", "In this session: " + p.seen));
+    if (p.pool_proof) what.appendChild(pdEl("p", "pd-about", p.pool_proof));
     const flags = [];
     // Each fact once: "never first" already says the peer offers no services or
     // is on a chain of its own, so those flags are folded into it, and "no tx"
@@ -2532,8 +2559,8 @@
       flags.push([(p.min_fee < 10 ? p.min_fee.toFixed(1).replace(/\.0$/, "") : Math.round(p.min_fee)) + " sat/vB", "Min fee: cheaper transactions are not sent to it", "", true]);
     if (p.app) flags.push(["Umbrel app", p.app, "", true]);
     for (const [word, why, cls] of flags) {
-      const row = el("p", "pd-flag-row");
-      row.append(el("span", "pd-flag" + (cls ? " " + cls : ""), word), " " + why);
+      const row = pdEl("p", "pd-flag-row");
+      row.append(pdEl("span", "pd-flag" + (cls ? " " + cls : ""), word), " " + why);
       what.appendChild(row);
     }
     // Pruned, the fee filter and the Umbrel app only add context; they do not
@@ -2549,100 +2576,101 @@
         if (!p.chain_unknown) good.push("shares its block headers");
         // Ten minutes is what the behaviour rules need before they speak: sooner, only "so far".
         const settled = p.conntime && Date.now() / 1000 - p.conntime >= 600;
-        what.insertBefore(el("p", "pd-about", (settled ? "Nothing odd: it " : "Nothing odd so far: it ") + andList(good) + "."), what.querySelector("p"));
+        what.insertBefore(pdEl("p", "pd-about", (settled ? "Nothing odd: it " : "Nothing odd so far: it ") + andList(good) + "."), what.querySelector("p"));
       } else if (!what.querySelector("p")) {
         // Nothing to say about the others either: no block rather than a made-up one.
         what.remove();
         panel.classList.add("pd-two");
       }
     }
+  }
 
-    // The line: how it is connected, how fast, how long, how much each way.
-    const line = block("Connection");
-    const facts = el("div", "pd-facts");
-    if (p.min_ping_ms != null) facts.appendChild(fact("Ping", fmtPing(p.min_ping_ms)));
-    if (p.conntime) facts.appendChild(fact("Connected", ago(Date.now() / 1000 - p.conntime)));
-    if (p.offline) facts.appendChild(fact("Offline", p.offline_ms ? "for " + ago(p.offline_ms / 1000) : "now"));
+  // The line: how it is connected, how fast, how long, how much each way.
+  function detailConnection(panel, p) {
+    const line = pdBlock(panel, "Connection");
+    const facts = pdEl("div", "pd-facts");
+    if (p.min_ping_ms != null) facts.appendChild(pdFact("Ping", fmtPing(p.min_ping_ms)));
+    if (p.conntime) facts.appendChild(pdFact("Connected", ago(Date.now() / 1000 - p.conntime)));
+    if (p.offline) facts.appendChild(pdFact("Offline", p.offline_ms ? "for " + ago(p.offline_ms / 1000) : "now"));
     const r = rankOf(p);
     if (r && r.eligible) {
-      facts.appendChild(fact("First / blocks", r.first + " / " + r.eligible));
+      facts.appendChild(pdFact("First / blocks", r.first + " / " + r.eligible));
     }
-    if (r && r.sessionsCount) facts.appendChild(fact("Sessions", String(r.sessionsCount)));
-    facts.appendChild(fact("Link", [LABEL[p.group], typeLabel(p.type).toLowerCase() === p.group ? "" : typeLabel(p.type),
+    if (r && r.sessionsCount) facts.appendChild(pdFact("Sessions", String(r.sessionsCount)));
+    facts.appendChild(pdFact("Link", [LABEL[p.group], typeLabel(p.type).toLowerCase() === p.group ? "" : typeLabel(p.type),
       netLabel(p.network), p.transport].filter(Boolean).join(" \u00b7 ")));
 
     line.appendChild(facts);
     if (p.tor_exit) {
-      const tor = el("p", "pd-flag-row");
-      tor.append(el("span", "pd-flag", "Tor exit"), " " + TOR_EXIT_TITLE.replace(/^Tor exit: /, "Reached through a Tor exit: "));
+      const tor = pdEl("p", "pd-flag-row");
+      tor.append(pdEl("span", "pd-flag", "Tor exit"), " " + TOR_EXIT_TITLE.replace(/^Tor exit: /, "Reached through a Tor exit: "));
       line.appendChild(tor);
     }
     const total = Math.max(1, p.bytes_sent + p.bytes_recv);
-    const traffic = el("div", "pd-traffic");
+    const traffic = pdEl("div", "pd-traffic");
     // Nothing flows to a peer that is not connected.
     if (p.offline) traffic.hidden = true;
-    const bar = el("div", "pd-bar");
-    const sent = el("span", "pd-sent"), got = el("span", "pd-got");
+    const bar = pdEl("div", "pd-bar");
+    const sent = pdEl("span", "pd-sent"), got = pdEl("span", "pd-got");
     sent.style.flexGrow = String(Math.max(p.bytes_sent / total, 0.02));
     got.style.flexGrow = String(Math.max(p.bytes_recv / total, 0.02));
     bar.append(sent, got);
-    traffic.append(el("span", "pd-label", "Traffic"), bar,
-      el("span", "pd-small", `\u2191 ${bytesText(p.bytes_sent)} sent to it \u00b7 \u2193 ${bytesText(p.bytes_recv)} from it`));
+    traffic.append(pdEl("span", "pd-label", "Traffic"), bar,
+      pdEl("span", "pd-small", `\u2191 ${bytesText(p.bytes_sent)} sent to it \u00b7 \u2193 ${bytesText(p.bytes_recv)} from it`));
     if (p.traffic_sent || p.traffic_recv) {
-      const breakdown = el("div", "pd-traffic-types");
-      breakdown.setAttribute("role", "table");
-      breakdown.setAttribute("aria-label", "Traffic by message type, since connection began");
-      const headers = el("div", "pd-traffic-group");
-      const header = el("div", "pd-traffic-row");
-      header.setAttribute("role", "row");
-      for (const label of ["Type", "To peer ↑", "From peer ↓"]) {
-        const th = el("span", "pd-traffic-heading", label);
-        th.setAttribute("role", "columnheader");
-        header.appendChild(th);
-      }
-      headers.setAttribute("role", "rowgroup");
-      headers.appendChild(header);
-      breakdown.appendChild(headers);
-      const body = el("div", "pd-traffic-group");
-      for (const [key, label] of [["transactions", "Transactions"], ["blocks", "Blocks / headers"], ["addresses", "Addresses"], ["other", "Other messages"]]) {
-        const row = el("div", "pd-traffic-row");
-        row.setAttribute("role", "row");
-        const name = el("span", "", label);
-        name.setAttribute("role", "rowheader");
-        row.appendChild(name);
-        for (const counters of [p.traffic_sent, p.traffic_recv]) {
-          const value = el("span", "", counters && counters[key] != null ? bytesText(counters[key]) : "–");
-          value.setAttribute("role", "cell");
-          row.appendChild(value);
-        }
-        body.appendChild(row);
-      }
-      body.setAttribute("role", "rowgroup");
-      breakdown.appendChild(body);
-      traffic.append(breakdown, el("span", "pd-small", "Bytes since this connection began."));
+      traffic.append(trafficTypes(p), pdEl("span", "pd-small", "Bytes since this connection began."));
     }
     line.appendChild(traffic);
-
-    // What it announced and where it sits.
-    const who = block("Announced");
-    who.appendChild(el("p", "pd-ua", p.subver || "no name sent"));
-    const svc = el("div", "pd-svc");
-    if (p.services && p.services.length) for (const s of p.services) svc.appendChild(el("span", "pd-chip", s));
-    else svc.appendChild(el("span", "pd-chip none", p.no_services ? "no services" : "services unknown"));
-    who.appendChild(svc);
-    if (p.version) who.appendChild(el("p", "pd-small", "Protocol " + p.version));
-    const where = [p.region, p.cc].filter(Boolean).join(", ");
-    if (where || p.operator) who.appendChild(el("p", "pd-where", [where, p.operator ? p.operator + (p.asn ? " (AS" + p.asn + ")" : "") : ""].filter(Boolean).join(" \u00b7 ")));
-    // What can be done with this peer: the buttons come from the other
-    // script, which also handles their clicks.
-    const acts = dashboard().actionsHtml(p.addr);
-    if (/<button/.test(acts)) {
-      const row = el("div", "pd-actions");
-      row.innerHTML = acts;
-      panel.appendChild(row);
-    }
-    return panel;
   }
+
+  // What it announced and where it sits.
+  function detailAnnounced(panel, p) {
+    const who = pdBlock(panel, "Announced");
+    who.appendChild(pdEl("p", "pd-ua", p.subver || "no name sent"));
+    const svc = pdEl("div", "pd-svc");
+    if (p.services && p.services.length) for (const s of p.services) svc.appendChild(pdEl("span", "pd-chip", s));
+    else svc.appendChild(pdEl("span", "pd-chip none", p.no_services ? "no services" : "services unknown"));
+    who.appendChild(svc);
+    if (p.version) who.appendChild(pdEl("p", "pd-small", "Protocol " + p.version));
+    const where = [p.region, p.cc].filter(Boolean).join(", ");
+    if (where || p.operator) who.appendChild(pdEl("p", "pd-where", [where, p.operator ? p.operator + (p.asn ? " (AS" + p.asn + ")" : "") : ""].filter(Boolean).join(" \u00b7 ")));
+  }
+
+  // The traffic by message type, as a small table of four rows.
+  function trafficTypes(p) {
+    const breakdown = pdEl("div", "pd-traffic-types");
+    breakdown.setAttribute("role", "table");
+    breakdown.setAttribute("aria-label", "Traffic by message type, since connection began");
+    const headers = pdEl("div", "pd-traffic-group");
+    const header = pdEl("div", "pd-traffic-row");
+    header.setAttribute("role", "row");
+    for (const label of ["Type", "To peer ↑", "From peer ↓"]) {
+      const th = pdEl("span", "pd-traffic-heading", label);
+      th.setAttribute("role", "columnheader");
+      header.appendChild(th);
+    }
+    headers.setAttribute("role", "rowgroup");
+    headers.appendChild(header);
+    breakdown.appendChild(headers);
+    const body = pdEl("div", "pd-traffic-group");
+    for (const [key, label] of [["transactions", "Transactions"], ["blocks", "Blocks / headers"], ["addresses", "Addresses"], ["other", "Other messages"]]) {
+      const row = pdEl("div", "pd-traffic-row");
+      row.setAttribute("role", "row");
+      const name = pdEl("span", "", label);
+      name.setAttribute("role", "rowheader");
+      row.appendChild(name);
+      for (const counters of [p.traffic_sent, p.traffic_recv]) {
+        const value = pdEl("span", "", counters && counters[key] != null ? bytesText(counters[key]) : "–");
+        value.setAttribute("role", "cell");
+        row.appendChild(value);
+      }
+      body.appendChild(row);
+    }
+    body.setAttribute("role", "rowgroup");
+    breakdown.appendChild(body);
+    return breakdown;
+  }
+
   // The detail is a row of its own under the peer, as wide as the table. It
   // adds no width to any column: its content is 0 wide and as wide as the cell.
   function detailRow(tr, p, key) {
@@ -2736,93 +2764,12 @@
     root.removeAttribute("aria-busy");
     let picksShown = false;
     for (const g of GROUPS) {
-      let peers = state.data.peers.filter((p) => p.group === g);
-      const all = peers.length;
-      if (state.place) peers = peers.filter(peerMatchesPlace);
-      const kindPool = peers;
-      if (state.group) peers = peers.filter(matchesKind);
-      // A manual peer that is not connected still holds its slot: it stands
-      // in the list with the others, from what the dashboard knows of it.
-      // Connected again by the time this list was asked for, though the
-      // dashboard's picture is older: it stands once, as connected.
-      if (g === "manual" && !state.place && !state.group) {
-        const here = new Set(state.data.peers.map((p) => p.addr));
-        peers = peers.concat(dashboard().offlineManual().filter((r) => !here.has(r.address)).map(offlinePeer));
-      }
-
+      const { peers, all, kindPool } = groupPeers(g);
       const card = document.createElement("section");
       card.className = "card group-card";
       card.id = "group-" + g;
-      const summary = document.createElement("div");
-      summary.className = "group-head";
-      const h = document.createElement("h2");
-      const sw = document.createElement("span");
-      sw.className = "swatch s-" + g;
-      h.append(sw, LABEL[g]);
-      foldable(card, h, "group-" + g);
-      // The count beside the name - it picks nothing, so it is not among the
-      // chips below. Those are the mix of kinds, counted before this group's
-      // own kind filter, so a group the filter emptied still offers the way
-      // back - and switching kinds is one click.
-      const count = document.createElement("span");
-      count.className = "kinds chips head-count";
-      const n = document.createElement("span");
-      n.className = "chip count";
-      const ni = document.createElement("i");
-      ni.textContent = state.place || state.group ? `${peers.length} of ${all}` : String(all);
-      n.append(ni, " peers");
-      count.appendChild(n);
-      const mix = document.createElement("span");
-      mix.className = "kinds chips";
-      // How many are catching up from this node right now, and what they took.
-      const syncing = kindPool.filter((p) => p.sync_mb);
-      if (syncing.length && (!state.group || state.group === SYNCING)) {
-        const sc = document.createElement("button");
-        sc.type = "button";
-        sc.className = "chip kind-pick syncing" + (state.group === SYNCING ? " on" : "");
-        const taken = `${syncing.length} syncing from this node, ${mbText(syncing.reduce((t, p) => t + p.sync_mb, 0))} of blocks taken so far`;
-        sc.title = state.group === SYNCING ? "Show every kind again" : taken + " - click to show only these";
-        sc.setAttribute("aria-pressed", String(state.group === SYNCING));
-        const si = document.createElement("i");
-        si.textContent = syncing.length;
-        const ico = document.createElement("span");
-        ico.className = "sync-ico";
-        ico.setAttribute("aria-hidden", "true");
-        ico.textContent = "\u21bb";
-        sc.append(ico, si, " syncing");
-        sc.addEventListener("click", () => steady(sc, () => setGroup(SYNCING)));
-        mix.appendChild(sc);
-      }
-      const forked = kindPool.filter(offChain);
-      if (forked.length && (!state.group || state.group === FORKED)) {
-        const fc = document.createElement("button");
-        fc.type = "button";
-        fc.className = "chip kind-pick forked" + (state.group === FORKED ? " on" : "");
-        fc.title = state.group === FORKED ? "Show every kind again"
-          : `${forked.length} not on your chain (${[...new Set(forked.map((p) => p.fork || OTHER_CHAIN))].join(", ")}) - click to show only these`;
-        fc.setAttribute("aria-pressed", String(state.group === FORKED));
-        const fi = document.createElement("i");
-        fi.textContent = forked.length;
-        fc.append(fi, " other chain");
-        fc.addEventListener("click", () => steady(fc, () => setGroup(FORKED)));
-        mix.appendChild(fc);
-      }
-      if (kindPool.length) renderKindMix(mix, kindPool);
-      summary.append(h, count);
-      if (mix.childElementCount) summary.appendChild(mix);
-      card.appendChild(summary);
-      if (state.group && !special(state.group)) {
-        const inGroup = kindPool.filter((p) => groupOf(p.kind) === state.group);
-        renderKindPicks(card, inGroup);
-        // The names belong to one kind: the one picked, or the only one there is.
-        const kinds = new Set(inGroup.map((p) => p.kind));
-        const kind = state.kind || (kinds.size === 1 ? [...kinds][0] : null);
-        if (kind) {
-          picksShown = true;
-          renderSubMix(card, kind, inGroup.filter((p) => p.kind === kind));
-          renderLabelMix(card, inGroup.filter((p) => p.kind === kind));
-        }
-      }
+      const head = groupHead(card, g, peers, all, kindPool);
+      if (head.picksShown) picksShown = true;
 
       if (peers.length) {
         const spread = document.createElement("p");
@@ -2845,119 +2792,12 @@
         continue;
       }
 
-      const s = state.sort[g] || { key: "first", dir: 1 };
-      const col = COLS.find((c) => c.key === s.key) || COLS[COLS.length - 1];
-      peers.sort((a, b) => {
-        const x = col.val(a), y = col.val(b);
-        return (x < y ? -1 : x > y ? 1 : 0) * s.dir;
-      });
-
-      const wrap = document.createElement("div");
-      wrap.className = "scroll";
-      const table = document.createElement("table");
-      table.className = "peers";
-      const thead = document.createElement("thead");
-      const hr = document.createElement("tr");
-      for (const c of COLS) {
-        const th = document.createElement("th");
-        th.scope = "col";
-        th.className = "k-" + c.key + (c.cls ? " " + c.cls : "");
-        if (c.key === col.key) th.setAttribute("aria-sort", s.dir > 0 ? "ascending" : "descending");
-        const b = document.createElement("button");
-        b.textContent = c.label;
-        b.dataset.focusKey = "sort " + g + " " + c.key;
-        b.addEventListener("click", () => steady(b, () => {
-          state.sort[g] = { key: c.key, dir: c.key === col.key ? -s.dir : 1 };
-          renderTables();
-        }));
-        if (c.title) b.title = c.title;
-        th.appendChild(b);
-        hr.appendChild(th);
-      }
-      thead.appendChild(hr);
-      table.appendChild(thead);
       // Inbound runs to a couple of hundred rows and pushed Outbound and Manual
       // far down the page, so it shows its top ten - in the order of the
       // current sort - with a toggle for the rest. The others never get long.
-      let shown = peers;
       const limited = g === "inbound" && peers.length > INBOUND_LIMIT;
-      if (limited && !state.showAllInbound) shown = peers.slice(0, INBOUND_LIMIT);
-      const tbody = document.createElement("tbody");
-      for (const p of shown) {
-        const tr = document.createElement("tr");
-        tr.dataset.anchor = g + " " + p.addr;
-        // The peer that brought the newest block, for as long as the star
-        // is up - one rule for "just delivered", in the row and on the map.
-        if (deliveredNow.has(p.addr)) tr.className = "delivered-now";
-        // A connection that has brought this node a block, at least once: its address in green, also on an orange row.
-        if (deliveredEver.has(p.addr) || deliveredNow.has(p.addr)) tr.classList.add("delivered-ever");
-        if (p.no_relay || p.offline) tr.classList.add("weak");
-        for (const c of COLS) {
-          const td = document.createElement("td");
-          if (c.cls) td.className = c.cls;
-          td.classList.add("k-" + c.key);
-          td.dataset.label = c.label;
-          if (c.cell) {
-            c.cell(td, p);
-          } else {
-            const text = c.show ? c.show(p) : c.val(p);
-            td.textContent = text === "" ? "–" : text;
-            if (text === "") td.classList.add("dim");
-          }
-          tr.appendChild(td);
-        }
-        const rowKey = g + " " + p.addr;
-        if (arrivedAt.has(rowKey)) tr.classList.add("arrived");
-        const reopen = state.openRows.has(rowKey);
-        if (reopen) {
-          tr.classList.add("open");
-          tr.querySelector(".chev")?.setAttribute("aria-expanded", "true");
-        }
-        // With a mouse, the row's place lights up on the map.
-        tr.addEventListener("mouseenter", () => hoverPlace(p, true));
-        tr.addEventListener("mouseleave", () => hoverPlace(p, false));
-        tr.tabIndex = -1;
-        tr.addEventListener("click", (ev) => {
-          // Links and buttons keep doing their own thing; so does selecting text.
-          if (ev.target.closest("a, button, input, select, textarea") && !ev.target.closest(".chev")) return;
-          if (String(window.getSelection()).length > 0) return;
-          toggleDetail(tr, p, rowKey);
-        });
-        tbody.appendChild(tr);
-        if (reopen) tbody.appendChild(detailRow(tr, p, rowKey));
-      }
-      table.appendChild(tbody);
-      wrap.appendChild(table);
-      card.appendChild(wrap);
-      if (limited) {
-        const more = document.createElement("button");
-        more.type = "button";
-        more.className = "more";
-        more.dataset.focusKey = "more " + g;
-        more.textContent = state.showAllInbound ? `Show top ${INBOUND_LIMIT} only` : `Show all ${peers.length}`;
-        more.addEventListener("click", () => showAllInbound(!state.showAllInbound));
-        card.appendChild(more);
-        // The whole list open: its name and the way back to the top ten ride
-        // along at the top of the screen once the head has scrolled away, so
-        // nobody has to scroll to the end to close it.
-        if (state.showAllInbound) {
-          const stick = document.createElement("div");
-          stick.className = "stick";
-          const bar = document.createElement("div");
-          const name = document.createElement("span");
-          const ssw = document.createElement("span");
-          ssw.className = "swatch s-" + g;
-          name.append(ssw, `${LABEL[g]} · ${peers.length}`);
-          const back = document.createElement("button");
-          back.type = "button";
-          back.className = "btn";
-          back.textContent = `Top ${INBOUND_LIMIT}`;
-          back.addEventListener("click", topOnly);
-          bar.append(name, back);
-          stick.appendChild(bar);
-          summary.after(stick);
-        }
-      }
+      card.appendChild(peerTable(g, peers, limited && !state.showAllInbound));
+      if (limited) showAllButton(card, head.summary, g, peers);
       root.appendChild(card);
     }
     // A second kind turned up since a name was picked: no card shows the name
@@ -2972,6 +2812,225 @@
     for (const row of root.querySelectorAll(".one-line")) fitOneLine(row);
     fitTables();
     stickOn();
+    restoreFocus(root, focused, focusKey);
+  }
+
+  // The peers of one group as the filters leave them: `all` before any
+  // filter, `kindPool` before this group's own kind filter (its chips count
+  // those), `peers` what the table shows.
+  function groupPeers(g) {
+    let peers = state.data.peers.filter((p) => p.group === g);
+    const all = peers.length;
+    if (state.place) peers = peers.filter(peerMatchesPlace);
+    const kindPool = peers;
+    if (state.group) peers = peers.filter(matchesKind);
+    // A manual peer that is not connected still holds its slot: it stands
+    // in the list with the others, from what the dashboard knows of it.
+    // Connected again by the time this list was asked for, though the
+    // dashboard's picture is older: it stands once, as connected.
+    if (g === "manual" && !state.place && !state.group) {
+      const here = new Set(state.data.peers.map((p) => p.addr));
+      peers = peers.concat(dashboard().offlineManual().filter((r) => !here.has(r.address)).map(offlinePeer));
+    }
+    return { peers, all, kindPool };
+  }
+
+  // The group's head: its name, the count, the chips of its kinds, and under
+  // it the picks of a kind's names. Says whether those picks are shown.
+  function groupHead(card, g, peers, all, kindPool) {
+    let picksShown = false;
+    const summary = document.createElement("div");
+    summary.className = "group-head";
+    const h = document.createElement("h2");
+    const sw = document.createElement("span");
+    sw.className = "swatch s-" + g;
+    h.append(sw, LABEL[g]);
+    foldable(card, h, "group-" + g);
+    // The count beside the name - it picks nothing, so it is not among the
+    // chips below. Those are the mix of kinds, counted before this group's
+    // own kind filter, so a group the filter emptied still offers the way
+    // back - and switching kinds is one click.
+    const count = document.createElement("span");
+    count.className = "kinds chips head-count";
+    const n = document.createElement("span");
+    n.className = "chip count";
+    const ni = document.createElement("i");
+    ni.textContent = state.place || state.group ? `${peers.length} of ${all}` : String(all);
+    n.append(ni, " peers");
+    count.appendChild(n);
+    const mix = document.createElement("span");
+    mix.className = "kinds chips";
+    // How many are catching up from this node right now, and what they took.
+    const syncing = kindPool.filter((p) => p.sync_mb);
+    if (syncing.length && (!state.group || state.group === SYNCING)) {
+      const sc = document.createElement("button");
+      sc.type = "button";
+      sc.className = "chip kind-pick syncing" + (state.group === SYNCING ? " on" : "");
+      const taken = `${syncing.length} syncing from this node, ${mbText(syncing.reduce((t, p) => t + p.sync_mb, 0))} of blocks taken so far`;
+      sc.title = state.group === SYNCING ? "Show every kind again" : taken + " - click to show only these";
+      sc.setAttribute("aria-pressed", String(state.group === SYNCING));
+      const si = document.createElement("i");
+      si.textContent = syncing.length;
+      const ico = document.createElement("span");
+      ico.className = "sync-ico";
+      ico.setAttribute("aria-hidden", "true");
+      ico.textContent = "\u21bb";
+      sc.append(ico, si, " syncing");
+      sc.addEventListener("click", () => steady(sc, () => setGroup(SYNCING)));
+      mix.appendChild(sc);
+    }
+    const forked = kindPool.filter(offChain);
+    if (forked.length && (!state.group || state.group === FORKED)) {
+      const fc = document.createElement("button");
+      fc.type = "button";
+      fc.className = "chip kind-pick forked" + (state.group === FORKED ? " on" : "");
+      fc.title = state.group === FORKED ? "Show every kind again"
+        : `${forked.length} not on your chain (${[...new Set(forked.map((p) => p.fork || OTHER_CHAIN))].join(", ")}) - click to show only these`;
+      fc.setAttribute("aria-pressed", String(state.group === FORKED));
+      const fi = document.createElement("i");
+      fi.textContent = forked.length;
+      fc.append(fi, " other chain");
+      fc.addEventListener("click", () => steady(fc, () => setGroup(FORKED)));
+      mix.appendChild(fc);
+    }
+    if (kindPool.length) renderKindMix(mix, kindPool);
+    summary.append(h, count);
+    if (mix.childElementCount) summary.appendChild(mix);
+    card.appendChild(summary);
+    if (state.group && !special(state.group)) {
+      const inGroup = kindPool.filter((p) => groupOf(p.kind) === state.group);
+      renderKindPicks(card, inGroup);
+      // The names belong to one kind: the one picked, or the only one there is.
+      const kinds = new Set(inGroup.map((p) => p.kind));
+      const kind = state.kind || (kinds.size === 1 ? [...kinds][0] : null);
+      if (kind) {
+        picksShown = true;
+        renderSubMix(card, kind, inGroup.filter((p) => p.kind === kind));
+        renderLabelMix(card, inGroup.filter((p) => p.kind === kind));
+      }
+    }
+    return { summary, picksShown };
+  }
+
+  // The table of one group, sorted as its header says; `top` shows only the
+  // first INBOUND_LIMIT rows.
+  function peerTable(g, peers, top) {
+    const s = state.sort[g] || { key: "first", dir: 1 };
+    const col = COLS.find((c) => c.key === s.key) || COLS[COLS.length - 1];
+    peers.sort((a, b) => {
+      const x = col.val(a), y = col.val(b);
+      return (x < y ? -1 : x > y ? 1 : 0) * s.dir;
+    });
+
+    const wrap = document.createElement("div");
+    wrap.className = "scroll";
+    const table = document.createElement("table");
+    table.className = "peers";
+    const thead = document.createElement("thead");
+    const hr = document.createElement("tr");
+    for (const c of COLS) {
+      const th = document.createElement("th");
+      th.scope = "col";
+      th.className = "k-" + c.key + (c.cls ? " " + c.cls : "");
+      if (c.key === col.key) th.setAttribute("aria-sort", s.dir > 0 ? "ascending" : "descending");
+      const b = document.createElement("button");
+      b.textContent = c.label;
+      b.dataset.focusKey = "sort " + g + " " + c.key;
+      b.addEventListener("click", () => steady(b, () => {
+        state.sort[g] = { key: c.key, dir: c.key === col.key ? -s.dir : 1 };
+        renderTables();
+      }));
+      if (c.title) b.title = c.title;
+      th.appendChild(b);
+      hr.appendChild(th);
+    }
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    const tbody = document.createElement("tbody");
+    for (const p of top ? peers.slice(0, INBOUND_LIMIT) : peers) peerRow(tbody, g, p);
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    return wrap;
+  }
+
+  // One peer's row, and its open detail below it if it was left open.
+  function peerRow(tbody, g, p) {
+    const tr = document.createElement("tr");
+    tr.dataset.anchor = g + " " + p.addr;
+    // The peer that brought the newest block, for as long as the star
+    // is up - one rule for "just delivered", in the row and on the map.
+    if (deliveredNow.has(p.addr)) tr.className = "delivered-now";
+    // A connection that has brought this node a block, at least once: its address in green, also on an orange row.
+    if (deliveredEver.has(p.addr) || deliveredNow.has(p.addr)) tr.classList.add("delivered-ever");
+    if (p.no_relay || p.offline) tr.classList.add("weak");
+    for (const c of COLS) {
+      const td = document.createElement("td");
+      if (c.cls) td.className = c.cls;
+      td.classList.add("k-" + c.key);
+      td.dataset.label = c.label;
+      if (c.cell) {
+        c.cell(td, p);
+      } else {
+        const text = c.show ? c.show(p) : c.val(p);
+        td.textContent = text === "" ? "–" : text;
+        if (text === "") td.classList.add("dim");
+      }
+      tr.appendChild(td);
+    }
+    const rowKey = g + " " + p.addr;
+    if (arrivedAt.has(rowKey)) tr.classList.add("arrived");
+    const reopen = state.openRows.has(rowKey);
+    if (reopen) {
+      tr.classList.add("open");
+      tr.querySelector(".chev")?.setAttribute("aria-expanded", "true");
+    }
+    // With a mouse, the row's place lights up on the map.
+    tr.addEventListener("mouseenter", () => hoverPlace(p, true));
+    tr.addEventListener("mouseleave", () => hoverPlace(p, false));
+    tr.tabIndex = -1;
+    tr.addEventListener("click", (ev) => {
+      // Links and buttons keep doing their own thing; so does selecting text.
+      if (ev.target.closest("a, button, input, select, textarea") && !ev.target.closest(".chev")) return;
+      if (String(window.getSelection()).length > 0) return;
+      toggleDetail(tr, p, rowKey);
+    });
+    tbody.appendChild(tr);
+    if (reopen) tbody.appendChild(detailRow(tr, p, rowKey));
+  }
+
+  // Inbound's "Show all", and with the whole list open the bar that rides
+  // along at the top of the screen.
+  function showAllButton(card, summary, g, peers) {
+    const more = document.createElement("button");
+    more.type = "button";
+    more.className = "more";
+    more.dataset.focusKey = "more " + g;
+    more.textContent = state.showAllInbound ? `Show top ${INBOUND_LIMIT} only` : `Show all ${peers.length}`;
+    more.addEventListener("click", () => showAllInbound(!state.showAllInbound));
+    card.appendChild(more);
+    // The whole list open: its name and the way back to the top ten ride
+    // along at the top of the screen once the head has scrolled away, so
+    // nobody has to scroll to the end to close it.
+    if (state.showAllInbound) {
+      const stick = document.createElement("div");
+      stick.className = "stick";
+      const bar = document.createElement("div");
+      const name = document.createElement("span");
+      const ssw = document.createElement("span");
+      ssw.className = "swatch s-" + g;
+      name.append(ssw, `${LABEL[g]} · ${peers.length}`);
+      const back = document.createElement("button");
+      back.type = "button";
+      back.className = "btn";
+      back.textContent = `Top ${INBOUND_LIMIT}`;
+      back.addEventListener("click", topOnly);
+      bar.append(name, back);
+      stick.appendChild(bar);
+      summary.after(stick);
+    }
+  }
+
+  function restoreFocus(root, focused, focusKey) {
     if (focused) {
       const back = root.querySelector(`tr[data-anchor="${CSS.escape(focused)}"]`);
       if (back) back.focus({ preventScroll: true });
