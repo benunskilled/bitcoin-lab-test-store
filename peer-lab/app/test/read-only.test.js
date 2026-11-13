@@ -73,8 +73,10 @@ test('every write route answers 403, the lock aside', async () => {
     assert.equal(res.status, 403, `${method} /api/pools/1`);
   }
   // The lock only marks a row in this copy's own table.
+  db.instance.prepare(`INSERT OR IGNORE INTO trusted_peer (address, label, kept, created_at) VALUES ('203.0.113.5:8333', NULL, 0, 1)`).run();
   const keep = await post('/api/peers/keep', { address: '203.0.113.5:8333', kept: true });
-  assert.notEqual(keep.status, 403);
+  assert.equal(keep.status, 200, 'the lock goes through');
+  assert.equal(db.instance.prepare(`SELECT kept FROM trusted_peer WHERE address = '203.0.113.5:8333'`).get().kept, 1);
 });
 
 test('/api/status tells the page it is read-only', async () => {

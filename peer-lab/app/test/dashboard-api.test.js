@@ -11,6 +11,10 @@ const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'peerlab-api-'));
 process.env.SQLITE_PATH = path.join(tmpDir, 'test.db');
 process.env.DATA_DIR = tmpDir;
 process.env.LOG_LEVEL = 'error';
+// No real Core: removing a peer sends addnode remove, which must not reach a
+// node that happens to run on this machine.
+process.env.BITCOIN_RPC_HOST = '127.0.0.1';
+process.env.BITCOIN_RPC_PORT = '9';
 // No neighbour in a test: 'off' skips the check entirely, so /api/status does
 // not spend a DNS lookup on a container name that only exists on Umbrel.
 process.env.PEERS_HEALTH_URL = 'off';

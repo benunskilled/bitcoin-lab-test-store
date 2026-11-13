@@ -153,8 +153,12 @@ test('a read-only copy sends no addnode of its own, even past the RPC guard', as
 test('the real app keeps a manual peer Core has forgotten (it re-adds it after a Core restart)', async () => {
   db.instance.prepare(`INSERT INTO trusted_peer (address, label, kept, created_at) VALUES ('203.0.113.1:8333', NULL, 0, 1)`).run();
   mock.method(rpc, 'getAddedNodeInfo', async () => []);
-  await adoptExternalManualPeers();
+  const sent = [];
+  mock.method(rpc, 'addNode', async (a, c) => { sent.push(`${c} ${a}`); });
+  const { addedNodes } = await adoptExternalManualPeers();
   assert.deepEqual(rows().map((r) => r.address), ['203.0.113.1:8333']);
+  await require('../src/lib/peer-sync').syncTrustedToAddnode(addedNodes);
+  assert.deepEqual(sent, ['add 203.0.113.1:8333'], 'and the sync hands it back to Core');
 });
 
 // Remove runs in the dashboard, adoption in the profiler: two processes. A
