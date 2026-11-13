@@ -383,18 +383,23 @@
     state.allSubs = false;
     applyFilters();
   }
-  function setKind(kind) {
+  // `group` is given when the pick comes from a card that shows its only
+  // group's kinds straight away, without a chip of the group to click first.
+  function setKind(kind, group) {
+    if (group) state.group = group;
     state.kind = state.kind === kind ? null : kind;
     state.sub = null;
     state.label = null;
     state.allSubs = false;
     applyFilters();
   }
-  function setSub(sub) {
+  function setSub(sub, group) {
+    if (group) state.group = group;
     state.sub = state.sub === sub ? null : sub;
     applyFilters();
   }
-  function setLabel(label) {
+  function setLabel(label, group) {
+    if (group) state.group = group;
     state.label = state.label === label ? null : label;
     applyFilters();
   }

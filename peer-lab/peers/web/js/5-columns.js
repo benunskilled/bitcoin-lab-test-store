@@ -61,6 +61,9 @@
     // Altcoins are in the "other chain" chip beside these, not a group of their own.
     for (const p of peers) if (p.kind !== OTHER_CHAIN) n.set(groupOf(p.kind), (n.get(groupOf(p.kind)) || 0) + 1);
     const entries = [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    // One kind of peer and nothing else: its chip would pick every peer there
+    // is, so it picks nothing. The caller shows what it would have opened.
+    if (!state.group && entries.length === 1 && entries[0][1] === peers.length) return entries[0][0];
     // Five groups fit a phone in two lines: no "+ n more" here.
     entries.forEach(([group, count]) => {
       // With one group picked the others step aside: on a phone they would
@@ -77,11 +80,13 @@
       b.addEventListener("click", () => steady(b, () => setGroup(group)));
       el.appendChild(b);
     });
+    return null;
   }
 
   // With a group picked, the kinds in it, when there is more than one: the
-  // second level, laid out like the names below it.
-  function renderKindPicks(card, peers) {
+  // second level, laid out like the names below it. `group` is the group
+  // these peers are in, picked or the only one there is: a pick here picks it.
+  function renderKindPicks(card, peers, group) {
     const n = new Map();
     for (const p of peers) n.set(p.kind, (n.get(p.kind) || 0) + 1);
     if (n.size < 2 && !state.kind) return;
@@ -96,7 +101,7 @@
       b.append(i, " " + kind);
       b.title = state.kind === kind ? "Show the whole group again" : `Show only ${kind}`;
       b.setAttribute("aria-pressed", String(state.kind === kind));
-      b.addEventListener("click", () => steady(b, () => setKind(kind)));
+      b.addEventListener("click", () => steady(b, () => setKind(kind, group)));
       el.appendChild(b);
     }
     card.appendChild(el);
@@ -104,7 +109,7 @@
 
   // With a kind picked, what those peers are one level down: one chip per
   // pool, version or name, the unknown ones last. Nothing to pick from one.
-  function renderSubMix(card, kind, peers) {
+  function renderSubMix(card, kind, peers, group) {
     const n = new Map();
     for (const p of peers) n.set(subOf(p), (n.get(subOf(p)) || 0) + 1);
     if (n.size < 2 && !state.sub) return;
@@ -127,7 +132,7 @@
       b.append(i, " " + sub);
       b.title = state.sub === sub ? "Show all of them again" : `Show only ${sub}`;
       b.setAttribute("aria-pressed", String(state.sub === sub));
-      b.addEventListener("click", () => steady(b, () => setSub(sub)));
+      b.addEventListener("click", () => steady(b, () => setSub(sub, group)));
       el.appendChild(b);
     }
     card.appendChild(el);
@@ -138,8 +143,9 @@
 
   // The operators' own labels on these nodes, those that more than one node
   // carries: one chip each, beside the versions. A label on a single node is
-  // somebody's name for their box, not something to filter by.
-  function renderLabelMix(card, peers) {
+  // somebody's name for their box, not something to filter by. Nor is one
+  // label that every node carries: it would pick them all.
+  function renderLabelMix(card, peers, group) {
     const n = new Map();
     for (const p of peers) {
       const l = labelOf(p);
@@ -147,6 +153,7 @@
     }
     const entries = [...n].filter(([l, c]) => c > 1 || l === state.label).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
     if (!entries.length) return;
+    if (entries.length === 1 && entries[0][1] === peers.length && !state.label) return;
     const el = document.createElement("div");
     el.className = "kinds chips pool-picks";
     const head = document.createElement("span");
@@ -162,7 +169,7 @@
       b.append(i, " " + l);
       b.title = state.label === l ? "Show all of them again" : `Show only the nodes labelled ${l}`;
       b.setAttribute("aria-pressed", String(state.label === l));
-      b.addEventListener("click", () => steady(b, () => setLabel(l)));
+      b.addEventListener("click", () => steady(b, () => setLabel(l, group)));
       el.appendChild(b);
     }
     card.appendChild(el);

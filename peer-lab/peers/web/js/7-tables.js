@@ -144,7 +144,8 @@
     mix.className = "kinds chips";
     // How many are catching up from this node right now, and what they took.
     const syncing = kindPool.filter((p) => p.sync_mb);
-    if (syncing.length && (!state.group || state.group === SYNCING)) {
+    // A chip that would pick every peer of the card picks nothing: left out.
+    if (syncing.length && (state.group === SYNCING || (!state.group && syncing.length < kindPool.length))) {
       const sc = document.createElement("button");
       sc.type = "button";
       sc.className = "chip kind-pick syncing" + (state.group === SYNCING ? " on" : "");
@@ -162,7 +163,7 @@
       mix.appendChild(sc);
     }
     const forked = kindPool.filter(offChain);
-    if (forked.length && (!state.group || state.group === FORKED)) {
+    if (forked.length && (state.group === FORKED || (!state.group && forked.length < kindPool.length))) {
       const fc = document.createElement("button");
       fc.type = "button";
       fc.className = "chip kind-pick forked" + (state.group === FORKED ? " on" : "");
@@ -175,20 +176,23 @@
       fc.addEventListener("click", () => steady(fc, () => setGroup(FORKED)));
       mix.appendChild(fc);
     }
-    if (kindPool.length) renderKindMix(mix, kindPool);
+    // Only one group here (Outbound and Manual are often all nodes): no chip
+    // for it, and its kinds, or their names, show straight away instead.
+    const only = kindPool.length ? renderKindMix(mix, kindPool) : null;
     summary.append(h, count);
     if (mix.childElementCount) summary.appendChild(mix);
     card.appendChild(summary);
-    if (state.group && !special(state.group)) {
-      const inGroup = kindPool.filter((p) => groupOf(p.kind) === state.group);
-      renderKindPicks(card, inGroup);
+    const group = state.group && !special(state.group) ? state.group : only;
+    if (group) {
+      const inGroup = kindPool.filter((p) => groupOf(p.kind) === group);
+      renderKindPicks(card, inGroup, group);
       // The names belong to one kind: the one picked, or the only one there is.
       const kinds = new Set(inGroup.map((p) => p.kind));
       const kind = state.kind || (kinds.size === 1 ? [...kinds][0] : null);
       if (kind) {
         picksShown = true;
-        renderSubMix(card, kind, inGroup.filter((p) => p.kind === kind));
-        renderLabelMix(card, inGroup.filter((p) => p.kind === kind));
+        renderSubMix(card, kind, inGroup.filter((p) => p.kind === kind), group);
+        renderLabelMix(card, inGroup.filter((p) => p.kind === kind), group);
       }
     }
     return { summary, picksShown };
