@@ -584,6 +584,11 @@
     if (state.world && state.data) placeMarkers(); // map width changed
   }
   $("sideToggle").addEventListener("click", () => setSide($("unplaced").hidden));
+  // Like every other fold, a tap on what it opened closes it again - unless
+  // the reader is selecting text.
+  $("unplaced").addEventListener("click", () => {
+    if (String(window.getSelection()).length === 0) setSide(false);
+  });
   setSide(store.get(SIDE_KEY) === "1"); // collapsed unless opened before
 
   function renderUnplaced() {

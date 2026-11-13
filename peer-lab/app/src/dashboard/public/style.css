@@ -248,8 +248,8 @@ th button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent
 .linkish { border: 0; background: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 4px 6px; }
 .linkish:hover { color: var(--text); }
 
-/* ---- map card: map | side tab | (optional) panel ---- */
-.map-card { display: flex; flex-wrap: wrap; overflow: hidden; }
+/* ---- map card: map, then "Not on the map" folded under it ---- */
+.map-card { display: flex; flex-direction: column; overflow: hidden; }
 .map-wrap { position: relative; flex: 1 1 auto; min-width: 0; touch-action: none; }
 #map { display: block; width: 100%; height: auto; cursor: grab; user-select: none; }
 #map.dragging { cursor: grabbing; }
@@ -320,18 +320,26 @@ th button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent
 .tooltip .row { display: flex; align-items: center; gap: 8px; color: var(--muted); }
 .tooltip .row b { margin-left: auto; color: var(--text); font-variant-numeric: tabular-nums; }
 
+/* "Not on the map" folds open under the map at every width, with the same
+   drawn chevron as the block card's Details: a tab beside the map took its
+   width on a laptop and opened sideways, unlike every other fold. */
 .side-tab {
-  flex: none; width: 34px; border: 0; border-left: 1px solid var(--border);
-  background: var(--panel-2); color: var(--muted); cursor: pointer; padding: 12px 0; font: inherit; font-size: 12px;
+  flex: none; width: 100%; border: 0; border-top: 1px solid var(--border); text-align: left;
+  background: var(--panel-2); color: var(--muted); cursor: pointer; padding: 10px 16px; font: inherit; font-size: 13px;
 }
 .side-tab:hover { color: var(--text); }
-.side-tab-label { writing-mode: vertical-rl; display: inline-flex; align-items: center; gap: 6px; }
-.side-tab-label::after { content: "◂"; }
-.side-tab[aria-expanded="true"] .side-tab-label::after { content: "▸"; }
+.side-tab-label { display: inline-flex; align-items: center; gap: 6px; }
+.side-tab-label::before {
+  content: ""; flex: none; width: 6px; height: 6px; margin: 0 4px 0 2px;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+  transform: rotate(-45deg); transition: transform .15s ease;
+}
+.side-tab:hover .side-tab-label::before { border-color: var(--text); }
+.side-tab[aria-expanded="true"] .side-tab-label::before { transform: translateY(-2px) rotate(45deg); }
 .side-tab b { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
 
-.unplaced { flex: none; width: 290px; border-left: 1px solid var(--border); padding: 16px; }
-.unplaced h2 { font-size: 15px; margin: 0 0 6px; }
+.unplaced { flex: none; width: 100%; padding: 4px 16px 16px; background: var(--panel-2); }
+.unplaced > * { max-width: 460px; }
 .hint { color: var(--muted); margin: 0 0 12px; font-size: 12px; }
 .mini { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 13px; }
 .mini th, .mini td { padding: 6px 4px; text-align: right; border-bottom: 1px solid var(--border); }
@@ -339,20 +347,12 @@ th button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent
 .mini th { font-weight: 500; color: var(--muted); font-size: 11px; white-space: nowrap; }
 .mini .swatch { width: 8px; height: 8px; margin-right: 4px; }
 
-@media (max-width: 860px) {
-  /* Stacked, the map takes the full width and the height that goes with it.
-     Still wrapping, the column was sized by the map's content, and the
-     browser took a map of no width yet as 300 px (131 high): in Chrome the
-     box stayed that low and the map ran over the legend, in Safari the map
-     itself shrank to 300 px, now one, now the other as the map redrew. */
-  .map-card { flex-direction: column; flex-wrap: nowrap; }
-  .map-wrap { flex: none; width: 100%; }
-  .side-tab { width: auto; border-left: 0; border-top: 1px solid var(--border); padding: 8px 12px; text-align: left; }
-  .side-tab-label { writing-mode: horizontal-tb; }
-  .side-tab-label::after { content: "▾"; }
-  .side-tab[aria-expanded="true"] .side-tab-label::after { content: "▴"; }
-  .unplaced { width: auto; border-left: 0; border-top: 1px solid var(--border); }
-}
+/* Stacked at every width: the map takes the full width and the height that
+   goes with it. Still wrapping, the column was sized by the map's content,
+   and the browser took a map of no width yet as 300 px (131 high): in Chrome
+   the box stayed that low and the map ran over the legend, in Safari the map
+   itself shrank to 300 px, now one, now the other as the map redrew. */
+.map-wrap { flex: none; width: 100%; }
 
 /* ---- tables: one card per group; inbound shows its top ten (see renderTables) ---- */
 .tables { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
