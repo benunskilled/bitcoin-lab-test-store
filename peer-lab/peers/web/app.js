@@ -78,37 +78,20 @@
   // open unless the reader closed it (28.10.2026).
   const FOLD_KEY = "peerlab.folded";
   const folded = new Set((() => { try { return JSON.parse(store.get(FOLD_KEY)) || []; } catch { return []; } })());
+  // The dashboard's foldable, with this script's store and fitting.
+  // window.peerLab, not dashboard(): this runs before that is declared.
   function foldable(card, title, id) {
-    const btn = window.peerLab.foldTitle(title);
-    const show = () => {
-      card.classList.toggle("folded", folded.has(id));
-      btn.setAttribute("aria-expanded", String(!folded.has(id)));
-    };
-    const flip = (e) => {
-      if (e.target.closest("a, button:not(.fold-btn)")) return;
-      // What is on screen: a card opened for a peer link is open, whatever
-      // the stored state says.
-      const opening = card.classList.contains("folded");
-      foldInPlace({ anchor: title, box: card, open: opening, set: (open) => {
-        if (open) folded.delete(id); else folded.add(id);
-        show();
-        // Folded, a chip row measured no width and was left whole: fit it
-        // now, and the tables with it, whose lines were measured folded too.
-        if (open) {
-          for (const row of card.querySelectorAll(".one-line")) fitOneLine(row);
-          fitTables();
-        }
-      } });
-      // Kept as the reader left it, not as it is half way: closing rolls up
-      // from open and is folded only at the end.
-      if (opening) folded.delete(id); else folded.add(id);
-      store.set(FOLD_KEY, JSON.stringify([...folded]));
-      if (id === "map" && opening) window.dispatchEvent(new Event("resize"));
-    };
-    title.addEventListener("click", flip);
-    // window.peerLab, not dashboard(): this runs before that is declared.
-    window.peerLab.foldsOnTap(card, flip);
-    show();
+    window.peerLab.foldable({
+      card, title, id, folded,
+      save: () => store.set(FOLD_KEY, JSON.stringify([...folded])),
+      // Folded, a chip row measured no width and was left whole: fit it
+      // now, and the tables with it, whose lines were measured folded too.
+      onOpened: () => {
+        for (const row of card.querySelectorAll(".one-line")) fitOneLine(row);
+        fitTables();
+      },
+      onOpening: id === "map" ? () => window.dispatchEvent(new Event("resize")) : null,
+    });
   }
   foldable($("mapCard"), $("mapHead"), "map");
   // The legend: folded on a phone the first time, open on a wide screen; after

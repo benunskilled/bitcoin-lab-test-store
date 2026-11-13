@@ -680,8 +680,7 @@ window.peerLab = {
   },
   // How many peers take new blocks from this node first.
   fedCount: () => (lastPeerRanking || []).filter((p) => p.live && p.hbFrom).length,
-  foldsOnTap,
-  foldTitle,
+  foldable,
   // The peer list's counts of connected peers per group, for the tiles.
   liveCounts: (counts) => { listCounts = counts; listCountsAt = Date.now(); drawTiles(counts); },
   foldInPlace,
@@ -1308,20 +1307,14 @@ function foldsOnTap(card, flip) {
   });
 }
 
-// Every card folds to its title on a tap and stays so on this device: open
-// unless the reader closed it (28.10.2026). Storage keeps its own <details>.
-const FOLD_KEY = 'peerlab.panelsFolded';
-const folded = (() => { try { return new Set(JSON.parse(localStorage.getItem(FOLD_KEY) || '[]')); } catch { return new Set(); } })();
-// The card was called Manual Slot Fill until 10.11.2026: folded under that
-// name, it stays folded under the new one.
-if (folded.delete('Manual Slot Fill')) folded.add('Slot Fill');
-for (const card of document.querySelectorAll('main > section.panel')) {
-  const title = card.querySelector(':scope > h2');
-  if (!title) continue;
-  const id = card.id || title.firstChild.textContent.trim();
+// A card that folds to its title, on a tap anywhere on it or with its title's
+// button, for every card of both scripts. `folded` is the set of folded ids,
+// written back with `save`. `onShow` runs before each draw of the state,
+// `onOpened` when an opening fold has rolled out, `onOpening` as it starts.
+function foldable({ card, title, id, folded, save, onShow, onOpened, onOpening }) {
   const btn = foldTitle(title);
   const show = () => {
-    foldSums();
+    if (onShow) onShow();
     card.classList.toggle('folded', folded.has(id));
     btn.setAttribute('aria-expanded', String(!folded.has(id)));
   };
@@ -1333,16 +1326,36 @@ for (const card of document.querySelectorAll('main > section.panel')) {
     foldInPlace({ anchor: title, box: card, open: opening, set: (open) => {
       if (open) folded.delete(id); else folded.add(id);
       show();
+      if (open && onOpened) onOpened();
     } });
     // Kept as the reader left it, not as it is half way: closing rolls up
     // from open and is folded only at the end.
     if (opening) folded.delete(id); else folded.add(id);
-    try { localStorage.setItem(FOLD_KEY, JSON.stringify([...folded])); } catch { /* private window */ }
-    if (opening) window.dispatchEvent(new Event('resize')); // the traffic chart measures its width
+    save();
+    if (opening && onOpening) onOpening();
   };
   title.addEventListener('click', flip);
   foldsOnTap(card, flip);
   show();
+}
+
+// Every card folds to its title on a tap and stays so on this device: open
+// unless the reader closed it (28.10.2026). Storage keeps its own <details>.
+const FOLD_KEY = 'peerlab.panelsFolded';
+const folded = (() => { try { return new Set(JSON.parse(localStorage.getItem(FOLD_KEY) || '[]')); } catch { return new Set(); } })();
+// The card was called Manual Slot Fill until 10.11.2026: folded under that
+// name, it stays folded under the new one.
+if (folded.delete('Manual Slot Fill')) folded.add('Slot Fill');
+for (const card of document.querySelectorAll('main > section.panel')) {
+  const title = card.querySelector(':scope > h2');
+  if (!title) continue;
+  foldable({
+    card, title, id: card.id || title.firstChild.textContent.trim(), folded,
+    save: () => { try { localStorage.setItem(FOLD_KEY, JSON.stringify([...folded])); } catch { /* private window */ } },
+    onShow: foldSums,
+    // The traffic chart measures its width.
+    onOpening: () => window.dispatchEvent(new Event('resize')),
+  });
 }
 {
   const storage = document.getElementById('storage-card');
