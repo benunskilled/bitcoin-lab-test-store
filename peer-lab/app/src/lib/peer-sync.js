@@ -555,12 +555,17 @@ function recentRemovals() {
     return {};
   }
 }
+// Read and written in one immediate transaction: the dashboard and the
+// profiler may each note a removal at the same moment, and one would lose
+// the other's mark.
 function noteRemoved(key) {
-  const all = recentRemovals();
-  all[key] = Date.now();
-  db.instance
-    .prepare(`INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
-    .run(RECENTLY_REMOVED_KEY, JSON.stringify(all));
+  db.instance.transaction(() => {
+    const all = recentRemovals();
+    all[key] = Date.now();
+    db.instance
+      .prepare(`INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
+      .run(RECENTLY_REMOVED_KEY, JSON.stringify(all));
+  }).immediate();
 }
 
 const notAdded = (err) => /not been added|not added/i.test((err && err.message) || '');
