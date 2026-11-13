@@ -925,7 +925,7 @@ function rotationActionClass(action) {
 function rotationActionLabel(action) {
   // From Core's address book into a free slot, and Core connected to it.
   if (action === 'promote') return 'Added';
-  // On trial right now: shown, never stored (trialEntry).
+  // On trial right now: shown, never stored (nowRow).
   if (action === 'trial') return 'Testing';
   // Offline past its grace: the slot is free for the next candidate.
   if (action === 'retire') return 'Removed';
@@ -996,12 +996,22 @@ function slotStatusText(st, now) {
   }
 }
 // What Slot Fill is doing is the log's top row (nowRow), not a line of its
-// own (13.11.2026). The log is drawn again only when that row reads
-// differently: a redraw every 30 s would take a selection away from somebody
-// copying an address.
+// own (13.11.2026). When only that row reads differently - a countdown,
+// "Trying again in 5 min" - only that row is replaced: a redraw of the whole
+// log every 30 s would take a selection away from somebody copying an
+// address further down.
 function renderSlotStatus() {
   if (!lastSlotStatus) return;
-  if (lastRotationLog && nowRow(Date.now()) !== shownNow) renderRotationLog(lastRotationLog);
+  const row = nowRow(Date.now());
+  const tbody = document.querySelector('#rotation-log-table tbody');
+  if (lastRotationLog && row !== shownNow) {
+    if (row && shownNow && tbody && tbody.firstElementChild) {
+      tbody.firstElementChild.outerHTML = row.trim();
+      shownNow = row;
+    } else {
+      renderRotationLog(lastRotationLog);
+    }
+  }
   foldSums();
 }
 setInterval(renderSlotStatus, 30 * 1000);
