@@ -791,6 +791,8 @@ const routes = {
       } catch (err) {
         logger.warn('rotation log entry for a removal failed', { address, error: err.message });
       }
+      // The freed slot is filled at once, after the log entry above.
+      peerRotation.passSoon();
     }
     return sendJson(res, 200, { ok: true });
   },

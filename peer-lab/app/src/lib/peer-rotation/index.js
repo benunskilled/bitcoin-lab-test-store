@@ -121,7 +121,19 @@ async function tick() {
     return await pass();
   } finally {
     running = false;
+    if (passWanted) { passWanted = false; passSoon(); }
   }
+}
+
+// A slot freed by hand (the Remove button) is filled now, not at the next
+// ten-minute pass: until then the card said "all slots taken" over a free
+// one (13.11.2026). A pass under way may have counted the slot before it was
+// freed, so one more runs after it.
+let passWanted = false;
+function passSoon() {
+  if (!isEnabled()) return;
+  if (running) { passWanted = true; return; }
+  tick().catch((err) => logger.warn('slot fill pass after a removal failed', { error: err.message }));
 }
 
 /**
@@ -264,4 +276,5 @@ module.exports = {
   retireOfflineManualPeers,
   offlineGraceMs,
   tick,
+  passSoon,
 };

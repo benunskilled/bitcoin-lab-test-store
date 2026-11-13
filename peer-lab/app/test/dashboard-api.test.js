@@ -462,6 +462,21 @@ test('a refused disconnect leaves no line in the rotation log', async () => {
   }
 });
 
+test('a manual peer removed by hand starts a Slot Fill pass at once; a never-manual one does not', async () => {
+  const peerRotation = require('../src/lib/peer-rotation');
+  const soon = test.mock.method(peerRotation, 'passSoon', () => {});
+  try {
+    db.instance.prepare('INSERT INTO trusted_peer (address, created_at) VALUES (?, ?)').run('203.0.113.79:8333', Date.now());
+    await api('/api/peers/untrust', { method: 'POST', body: JSON.stringify({ address: '203.0.113.79:8333' }) });
+    assert.equal(soon.mock.callCount(), 1);
+    await api('/api/peers/untrust', { method: 'POST', body: JSON.stringify({ address: '203.0.113.80:8333' }) });
+    assert.equal(soon.mock.callCount(), 1, 'nothing was freed');
+  } finally {
+    soon.mock.restore();
+    db.instance.prepare("DELETE FROM rotation_log WHERE action = 'unmanual'").run();
+  }
+});
+
 test('a real trusted peer is still removable, and a missing address still says so', async () => {
   // The guard must reject the type, not the route: the string path is what the
   // dashboard's Remove button uses on every manual peer.
