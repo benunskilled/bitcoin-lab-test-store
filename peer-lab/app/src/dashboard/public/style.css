@@ -941,6 +941,7 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
    hand the blue that means manual everywhere. A peer that went - offline,
    or disconnected by hand - is grey: nothing went wrong. */
 .panel .pill.rotation-promote { background: rgba(63,185,80,.15); color: var(--good); }
+.panel .pill.rotation-now { background: rgba(138,153,168,.15); color: var(--muted); }
 .panel .pill.rotation-trial { background: rgba(247,147,26,.15); color: var(--accent); }
 .panel .pill.rotation-manual { background: rgba(57,135,229,.15); color: #6aa8f0; }
 .panel .pill.rotation-retire { background: rgba(138,153,168,.15); color: var(--muted); }
@@ -1034,9 +1035,6 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
    label on a switch. */
 /* Slot Fill's own words on what it is doing: written like the other notes
    in the cards, the news in the text colour and the rest grey. */
-.panel .slot-status { margin: 0 0 10px; }
-.panel .slot-now { margin: 0; font-size: 12px; line-height: 1.55; color: var(--muted); }
-.panel .slot-now b { color: var(--text); font-weight: 600; }
 .panel .rotation-hint {
   margin: 0 0 16px;
   font-size: 12px;

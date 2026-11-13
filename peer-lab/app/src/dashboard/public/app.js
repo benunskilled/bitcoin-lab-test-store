@@ -995,18 +995,13 @@ function slotStatusText(st, now) {
     }
   }
 }
+// What Slot Fill is doing is the log's top row (nowRow), not a line of its
+// own (13.11.2026). The log is drawn again only when that row reads
+// differently: a redraw every 30 s would take a selection away from somebody
+// copying an address.
 function renderSlotStatus() {
-  const box = document.getElementById('slot-status');
-  if (!box || !lastSlotStatus) return;
-  // A trial is the log's top row (trialEntry), not a line of its own.
-  const trial = lastSlotStatus.status && lastSlotStatus.status.state === 'trial';
-  box.hidden = !lastSlotStatus.enabled || trial;
-  // The log only while its trial row is there or has just gone: a redraw
-  // every 30 s would take a selection away from somebody copying an address.
-  if (lastRotationLog && (trial || shownTrial)) renderRotationLog(lastRotationLog);
-  if (!lastSlotStatus.enabled || trial) { foldSums(); return; }
-  const t = slotStatusText(lastSlotStatus.status, Date.now());
-  document.getElementById('slot-now').innerHTML = `<b>${t.head}</b> ${t.rest}`;
+  if (!lastSlotStatus) return;
+  if (lastRotationLog && nowRow(Date.now()) !== shownNow) renderRotationLog(lastRotationLog);
   foldSums();
 }
 setInterval(renderSlotStatus, 30 * 1000);
@@ -1066,15 +1061,30 @@ function rotationEntryRow(entry) {
     </tr>`;
 }
 
-// The candidate on trial as a log row at the top, with what Core is doing
-// as its note, until the trial is decided: kept, the pass writes its own
-// "Added" entry; let go, the row is gone, a try is not news (13.11.2026).
-let shownTrial = false; // whether the log's top row is a trial right now
-function trialEntry(now) {
+// The log's top row while Slot Fill is on: what it is doing now, from its
+// last check (13.11.2026). Never stored and not one of the thirty: real
+// news - "Added", "Removed" - is written under it, and the row moves on to
+// the next state. A candidate on trial is a row like the others, with its
+// place and provider; any other state is its sentence, "All 8 slots in use."
+// head and rest are HTML already (slotStatusText escapes what it puts in).
+let shownNow = ''; // the top row as last drawn, '' for none
+function nowRow(now) {
   const s = lastSlotStatus;
-  if (!s || !s.enabled || !s.status || s.status.state !== 'trial' || !s.status.trial) return null;
+  if (!s || !s.enabled) return '';
   const t = slotStatusText(s.status, now);
-  return { action: 'trial', address: s.status.trial.address, at: s.status.trial.startedAt, where: s.trialWhere, note: t.rest };
+  if (s.status && s.status.state === 'trial' && s.status.trial) {
+    return rotationEntryRow({ action: 'trial', address: s.status.trial.address, at: s.status.trial.startedAt, where: s.trialWhere, note: t.rest });
+  }
+  const pill = '<span class="pill rotation-now">Now</span>';
+  const head = t.head.replace(/\.$/, '');
+  return `
+    <tr class="now-row">
+      <td class="hint"></td>
+      <td>${pill}</td>
+      <td><b>${head}</b></td>
+      <td class="hint">${t.rest}</td>
+      <td class="log-card" data-label=""><div class="lc-top"><span class="lc-place">${head}</span>${pill}</div><div class="lc-why">${t.rest}</div></td>
+    </tr>`;
 }
 
 function renderRotationLog(log) {
@@ -1082,10 +1092,8 @@ function renderRotationLog(log) {
   if (!tbody) return;
 
   const visible = showAllLog ? log : log.slice(0, ROTATION_LOG_LIMIT);
-  const trial = trialEntry(Date.now());
-  shownTrial = Boolean(trial);
-  const rows = (trial ? [trial] : []).concat(visible);
-  tbody.innerHTML = rows.map((e) => rotationEntryRow(e)).join('')
+  shownNow = nowRow(Date.now());
+  tbody.innerHTML = (shownNow + visible.map((e) => rotationEntryRow(e)).join(''))
     || `<tr><td colspan="4" class="hint">Nothing yet.</td></tr>`;
 
   const toggle = document.getElementById('rotation-log-toggle');
