@@ -102,7 +102,9 @@ function recentlyFailed(now) {
   return new Set(db.instance
     .prepare('SELECT address FROM slot_fill_tried WHERE ok = 0 AND tried_at >= ?')
     .all(now - FAILED_RETRY_MS)
-    .map((r) => r.address));
+    // By key: a peer removed by hand is held against under the spelling it
+    // was stored with (no port, another IPv6 form), not the address book's.
+    .map((r) => keyOf(r.address)));
 }
 
 function shuffle(list) {
@@ -248,7 +250,7 @@ async function start(ranking, peers, chain, now = Date.now()) {
   const all = await bookEntries(now);
   const reachable = all.filter((c) => nets.has(c.network));
   const book = reachable
-    .filter((c) => !inUse.has(hostFromAddress(c.address)) && !banned(c.address) && !failed.has(c.address));
+    .filter((c) => !inUse.has(hostFromAddress(c.address)) && !banned(c.address) && !failed.has(keyOf(c.address)));
   const counts0 = { known: all.length, reachable: reachable.length, untried: book.length };
   if (!all.length) return looked('no_book', counts0);
 

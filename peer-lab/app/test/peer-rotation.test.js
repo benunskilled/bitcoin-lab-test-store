@@ -709,6 +709,18 @@ test('slot fill: a connection that serves no blocks, or is not on our tip, does 
   assert.equal(db.instance.prepare('SELECT ok FROM slot_fill_tried WHERE address = ?').get(asia).ok, 0, 'held against it for a week');
 });
 
+test('slot fill: a peer removed by hand is not the next candidate, whatever spelling it was stored with', async () => {
+  at(seedLivePeer({ eligible: 144, first: 50, trusted: true }), 'EU');
+  inBook('198.18.0.60', 'AS');
+  const oceania = inBook('198.18.0.61', 'OC');
+  // Stored without its port, as an adopted addnode can be.
+  peerRotation.freedByHand('198.18.0.60');
+
+  await step(setPeers([coreOut()]), Date.now());
+
+  assert.equal(fill.currentTrial().address, oceania, 'Asia is thinner, but its one candidate was just removed');
+});
+
 test('slot fill: one operator, one slot', async () => {
   at(seedLivePeer({ eligible: 144, first: 50, trusted: true }), 'EU', 'Hetzner Online GmbH');
   inBook('198.18.0.10', 'AS', { operator: 'Hetzner Online GmbH' });
