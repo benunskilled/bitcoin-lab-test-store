@@ -131,7 +131,7 @@ func TestPurityByBits(t *testing.T) {
 	purity := []string{"NETWORK", "WITNESS", "NETWORK_LIMITED", "UNKNOWN[2^25]", "UNKNOWN[2^27]"}
 	got := convert([]rawPeer{{Addr: "1.0.0.1:8333", ConnectionType: "inbound", Inbound: true, Version: 70016,
 		Subver: "/Satoshi:29.4/", Transport: "v2", ServicesNames: purity}})[0]
-	if got.Kind != "Other chain" || got.About != purityByBitsAbout || got.Label != "Probably Purity" {
+	if got.Kind != "Other chain" || got.About != purityByBitsAbout || got.Label != "Probably Purity" || got.Fork != "BIP110 fork" {
 		t.Errorf("spoofed Purity: got %q / %q / %q", got.Kind, got.About, got.Label)
 	}
 	got = convert([]rawPeer{{Addr: "1.0.0.1:8333", ConnectionType: "inbound", Inbound: true, Version: 70016,

@@ -588,7 +588,13 @@ func convertAt(raw []rawPeer, now time.Time) []Peer {
 		if p.NoTxRelay {
 			p.NoTxWhy = noTxWhy(r, p.Kind)
 		}
-		p.Fork, p.ForkWhy = forkOf(r.ServicesNames, p.Kind, r.SyncedHeaders, tip)
+		forkKind := p.Kind
+		if purityByBits(r.Subver, r.ServicesNames) {
+			// Keeps the BIP110 flag it had as "Node (Core)", so the ranking
+			// gives the same reason live as from the record.
+			forkKind = "Other"
+		}
+		p.Fork, p.ForkWhy = forkOf(r.ServicesNames, forkKind, r.SyncedHeaders, tip)
 		if r.MinFeeFilter != nil && r.BytesRecvPerMsg["feefilter"] > 0 {
 			v := math.Round(*r.MinFeeFilter*1e5*10) / 10
 			p.MinFee = &v
