@@ -298,3 +298,28 @@ test('the poll takes the peer list from the peers service, and asks Core only wh
   assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM peer_session WHERE ended_at IS NULL').get().n, 1, 'the session was not closed on an old list');
   mock.restoreAll();
 });
+
+// A database error in the slot-fill check (SQLITE_BUSY past the busy
+// timeout, say) must not end the poll loop: it is one missed check.
+test('a slot-fill check that throws does not stop the poll loop', async () => {
+  const { mock } = require('node:test');
+  const rpc = require('../src/lib/rpc');
+  const peersService = require('../src/lib/peers-service');
+  const peerRotation = require('../src/lib/peer-rotation');
+  const profiler = require('../src/peer-profiler');
+  mock.method(peersService, 'peerInfo', async () => ({ peers: [], atMs: Date.now() }));
+  mock.method(rpc, 'call', async (m) => (m === 'uptime' ? 900 : { totalbytesrecv: 0, totalbytessent: 0, timemillis: Date.now() }));
+  let asked = 0;
+  mock.method(peerRotation, 'waitsForFirstPass', () => { asked++; if (asked === 1) throw new Error('SQLITE_BUSY'); return false; });
+  mock.method(peerRotation, 'wantsPass', () => false);
+  const rejections = [];
+  const onRejection = (err) => rejections.push(err);
+  process.on('unhandledRejection', onRejection);
+  const stop = profiler.startPolling(5);
+  for (let i = 0; i < 100 && asked < 2; i++) await new Promise((r) => setTimeout(r, 10));
+  stop();
+  process.off('unhandledRejection', onRejection);
+  mock.restoreAll();
+  assert.deepEqual(rejections, [], 'no unhandled rejection');
+  assert.ok(asked >= 2, 'the loop went on after the error');
+});

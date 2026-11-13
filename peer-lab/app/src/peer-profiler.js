@@ -352,19 +352,29 @@ async function pollOnce() {
  */
 function startPolling(intervalMs) {
   let timer = null;
+  let stopped = false;
   const tick = async () => {
-    await pollOnce();
-    // Slot Fill just switched on: its first pass now, not at the next
-    // ten-minute mark. One database read per poll otherwise.
-    // A slot freed by hand on the page: filled now too (wantsPass).
-    if (peerRotation.waitsForFirstPass() || peerRotation.wantsPass()) {
-      await peerRotation.tick().catch((err) => logger.warn('slot fill first pass failed', { error: err.message }));
+    try {
+      await pollOnce();
+      // Slot Fill just switched on: its first pass now, not at the next
+      // ten-minute mark. One database read per poll otherwise.
+      // A slot freed by hand on the page: filled now too (wantsPass).
+      // Both read and write the database; an error there (SQLITE_BUSY past
+      // the busy timeout) is one missed check, not the end of the loop.
+      if (peerRotation.waitsForFirstPass() || peerRotation.wantsPass()) {
+        await peerRotation.tick().catch((err) => logger.warn('slot fill first pass failed', { error: err.message }));
+      }
+    } catch (err) {
+      logger.warn('poll failed', { error: err.message });
+    } finally {
+      if (!stopped) {
+        timer = setTimeout(tick, intervalMs);
+        timer.unref?.();
+      }
     }
-    timer = setTimeout(tick, intervalMs);
-    timer.unref?.();
   };
   tick();
-  return () => clearTimeout(timer);
+  return () => { stopped = true; clearTimeout(timer); };
 }
 
 // Keeps the "feeler" side of the historical tables (and the SQLite file
@@ -482,4 +492,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { upsertSessions, logOfflineTrustedPeers, pollOnce, runMaintenance, main, coreRestarted, restoreAfterCoreRestart, _coreState: coreState };
+module.exports = { upsertSessions, logOfflineTrustedPeers, pollOnce, startPolling, runMaintenance, main, coreRestarted, restoreAfterCoreRestart, _coreState: coreState };
