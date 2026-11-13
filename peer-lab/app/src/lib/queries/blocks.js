@@ -146,7 +146,7 @@ function median(xs) {
  * are minimums - waiting at the peer and the transfer itself come on top.
  * Not known whether the peer was high-bandwidth: one ping, the middle.
  * The block card counts a single block the same way (hopPings in
- * peers/web/app.js).
+ * peers/web/js/2-block.js).
  */
 function hopPings(firstHb, recon) {
   const base = firstHb === 1 ? 0.5 : firstHb === 0 ? 1.5 : 1;

@@ -68,7 +68,7 @@ func researchHostOf(addr string) (who, host string, ok bool) {
 }
 
 // The credit is not repeated on every card: the hover tooltip and the Disguised
-// explanation above the list carry it (LION_CREDIT in web/app.js).
+// explanation above the list carry it (LION_CREDIT in web/js/3-render.js).
 const linkingLionAbout = "LinkingLion – connects to many nodes and may link transactions to their IP addresses"
 
 // linkingLionQuiet is added once the peer has been connected for a while and

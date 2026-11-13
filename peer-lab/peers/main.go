@@ -42,6 +42,27 @@ const interval = 10 * time.Second
 //go:embed web
 var webFS embed.FS
 
+// The page's script is kept in parts, web/js/*.js, one per section, and
+// served as one file, /app.js: the parts in name order inside one function,
+// so they share its names as they did when they were one file. A part's
+// number is its place (TestScriptParts keeps it to one digit, so name order
+// is number order). A line in a browser's error is a line of the joined file.
+var pageScript = func() []byte {
+	parts, err := fs.Glob(webFS, "web/js/*.js")
+	if err != nil || len(parts) == 0 {
+		panic("no script parts in web/js")
+	}
+	js := []byte("\"use strict\";\n(() => {\n")
+	for _, name := range parts {
+		b, err := webFS.ReadFile(name)
+		if err != nil {
+			panic(err)
+		}
+		js = append(js, b...)
+	}
+	return append(js, "})();\n"...)
+}()
+
 type config struct {
 	port    string
 	mock    bool
@@ -378,12 +399,14 @@ func newHandler(src *source, dash *dashboardClient) http.Handler {
 	// directory listing. no-cache for both, world.json included: it changes
 	// between releases, and a day-long cache kept showing the old map after
 	// an update.
-	for _, name := range []string{"/app.js", "/world.json"} {
-		mux.HandleFunc("GET "+name, func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Cache-Control", "no-cache")
-			files.ServeHTTP(w, r)
-		})
-	}
+	mux.HandleFunc("GET /app.js", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		http.ServeContent(w, r, "app.js", time.Time{}, bytes.NewReader(pageScript))
+	})
+	mux.HandleFunc("GET /world.json", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+		files.ServeHTTP(w, r)
+	})
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()

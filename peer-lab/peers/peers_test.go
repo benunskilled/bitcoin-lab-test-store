@@ -6,11 +6,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"testing"
@@ -607,5 +609,37 @@ func TestTrafficDirections(t *testing.T) {
 func TestListenerWithoutMultipathTCP(t *testing.T) {
 	if listenConfig().MultipathTCP() {
 		t.Fatal("the dashboard listener must not accept Multipath TCP")
+	}
+}
+
+// The page's script is its parts joined in name order inside one function.
+// One digit a part, so name order is number order, and each part ends its
+// last line, so no two lines run together.
+func TestScriptParts(t *testing.T) {
+	parts, _ := fs.Glob(webFS, "web/js/*.js")
+	if len(parts) < 2 {
+		t.Fatalf("script parts: %v", parts)
+	}
+	named := regexp.MustCompile(`^web/js/[1-9]-[a-z]+\.js$`)
+	want := "\"use strict\";\n(() => {\n"
+	for _, name := range parts {
+		if !named.MatchString(name) {
+			t.Errorf("%s: not one digit and a name", name)
+		}
+		b, _ := webFS.ReadFile(name)
+		if !bytes.HasSuffix(b, []byte("\n")) {
+			t.Errorf("%s does not end its last line", name)
+		}
+		want += string(b)
+	}
+	want += "})();\n"
+	h := newHandler(&source{now: time.Now, fetch: mockPeers}, offDashboard())
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "/app.js", nil))
+	if rec.Body.String() != want {
+		t.Error("/app.js is not the parts joined")
+	}
+	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/javascript") {
+		t.Errorf("/app.js served as %q", ct)
 	}
 }
