@@ -1001,7 +1001,9 @@ function renderSlotStatus() {
   // A trial is the log's top row (trialEntry), not a line of its own.
   const trial = lastSlotStatus.status && lastSlotStatus.status.state === 'trial';
   box.hidden = !lastSlotStatus.enabled || trial;
-  if (lastRotationLog) renderRotationLog(lastRotationLog);
+  // The log only while its trial row is there or has just gone: a redraw
+  // every 30 s would take a selection away from somebody copying an address.
+  if (lastRotationLog && (trial || shownTrial)) renderRotationLog(lastRotationLog);
   if (!lastSlotStatus.enabled || trial) { foldSums(); return; }
   const t = slotStatusText(lastSlotStatus.status, Date.now());
   document.getElementById('slot-now').innerHTML = `<b>${t.head}</b> ${t.rest}`;
@@ -1067,6 +1069,7 @@ function rotationEntryRow(entry) {
 // The candidate on trial as a log row at the top, with what Core is doing
 // as its note, until the trial is decided: kept, the pass writes its own
 // "Added" entry; let go, the row is gone, a try is not news (13.11.2026).
+let shownTrial = false; // whether the log's top row is a trial right now
 function trialEntry(now) {
   const s = lastSlotStatus;
   if (!s || !s.enabled || !s.status || s.status.state !== 'trial' || !s.status.trial) return null;
@@ -1080,6 +1083,7 @@ function renderRotationLog(log) {
 
   const visible = showAllLog ? log : log.slice(0, ROTATION_LOG_LIMIT);
   const trial = trialEntry(Date.now());
+  shownTrial = Boolean(trial);
   const rows = (trial ? [trial] : []).concat(visible);
   tbody.innerHTML = rows.map((e) => rotationEntryRow(e)).join('')
     || `<tr><td colspan="4" class="hint">Nothing yet.</td></tr>`;

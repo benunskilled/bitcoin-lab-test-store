@@ -149,7 +149,7 @@ var aboutRules = []aboutRule{
 	{regexp.MustCompile(`^/pyspv:`), "pyspv, a Python library for light wallets", "pyspv library", ""},
 	{regexp.MustCompile(`^/chainhorn:`), "chainhorn, a Python light client", "chainhorn light client", ""},
 	{regexp.MustCompile(`^/Murmel:`), "Murmel, a Rust light client", "Murmel light client", ""},
-	{regexp.MustCompile(`^/enginecore:`), "EngineCore, a terminal wallet for Bitcoin, Litecoin and Ethereum that follows Bitcoin by compact block filters", "EngineCore wallet", ""},
+	{regexp.MustCompile(`(?i)^/enginecore:`), "EngineCore, a terminal wallet for Bitcoin, Litecoin and Ethereum that follows Bitcoin by compact block filters", "EngineCore wallet", ""},
 	{regexp.MustCompile(`/bitcoin-net:`), "bitcoin-net, the P2P library of Webcoin, a JavaScript light client", "bitcoin-net (Webcoin)", ""},
 	{regexp.MustCompile(`^/BitcoinWallet:`), "BitcoinWallet, a Java desktop wallet by ScripterRon", "BitcoinWallet (Java)", ""},
 	{regexp.MustCompile(`^/rust-spv:`), "rust-bitcoin-spv, a Rust light client", "rust-bitcoin-spv", ""},
