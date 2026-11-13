@@ -131,7 +131,14 @@ var aboutRules = []aboutRule{
 	// (chainhorn/contrib/core in brain-zhang/chainhorn), Murmel
 	// (src/constructor.rs in rust-bitcoin/murmel), BitcoinSwift
 	// (PeerController.swift in DoubleSha/BitcoinSwift), Koyn's header tool
-	// (Main.java in elkrem/koyn-sync, on bitcoinj).
+	// (Main.java in elkrem/koyn-sync, on bitcoinj). EngineCore
+	// (crates/networks/bitcoin/src/peer.rs in Cattens-Roses/cryptogate), a
+	// terminal wallet by its README; bitcoin-net, Webcoin's P2P library, which
+	// says "/node.js:<version>/bitcoin-net:5.2.0/", or the browser's own name
+	// first (src/peer.js in mappum/bitcoin-net); BitcoinWallet by ScripterRon
+	// (Parameters.java at v1.3 in shadders/BitcoinWallet) and Toporin's fork,
+	// "/BitcoinWallet:3.0.1/BitcoinCore:2.1.1/"; rust-bitcoin-spv's command
+	// line client (src/bin/main.rs in TheBlueMatt/rust-bitcoin-spv).
 	{regexp.MustCompile(`^/btcwire:[^/]*/bitfyn:`), "bitfyn, a desktop wallet that follows the chain by compact block filters", "bitfyn wallet", ""},
 	{regexp.MustCompile(`^/twotbit:`), "Twotbit, a desktop wallet that follows the chain by compact block filters", "Twotbit wallet", ""},
 	{regexp.MustCompile(`^/bitc:`), "bitc, a small Bitcoin wallet written in C", "bitc wallet (C)", ""},
@@ -142,6 +149,10 @@ var aboutRules = []aboutRule{
 	{regexp.MustCompile(`^/pyspv:`), "pyspv, a Python library for light wallets", "pyspv library", ""},
 	{regexp.MustCompile(`^/chainhorn:`), "chainhorn, a Python light client", "chainhorn light client", ""},
 	{regexp.MustCompile(`^/Murmel:`), "Murmel, a Rust light client", "Murmel light client", ""},
+	{regexp.MustCompile(`^/enginecore:`), "EngineCore, a terminal wallet for Bitcoin, Litecoin and Ethereum that follows Bitcoin by compact block filters", "EngineCore wallet", ""},
+	{regexp.MustCompile(`/bitcoin-net:`), "bitcoin-net, the P2P library of Webcoin, a JavaScript light client", "bitcoin-net (Webcoin)", ""},
+	{regexp.MustCompile(`^/BitcoinWallet:`), "BitcoinWallet, a Java desktop wallet by ScripterRon", "BitcoinWallet (Java)", ""},
+	{regexp.MustCompile(`^/rust-spv:`), "rust-bitcoin-spv, a Rust light client", "rust-bitcoin-spv", ""},
 	{regexp.MustCompile(`^/BitcoinSwift:`), "BitcoinSwift, a Swift library for the Bitcoin protocol", "BitcoinSwift library", ""},
 	{regexp.MustCompile(`(?i)^/sashimi:`), "sashimi, small Unix tools for Bitcoin by josibake", "sashimi Unix tools", ""},
 	{regexp.MustCompile(`(?i)^/rust-sha2-p2p-client/`), "gnostr-bitcoin, a terminal monitor of the Bitcoin network from the gnostr project", "gnostr-bitcoin monitor", ""},
@@ -185,7 +196,10 @@ var aboutRules = []aboutRule{
 	// Before NBitcoin, whose name is inside "OpenBitcoin".
 	{regexp.MustCompile(`^/OpenBitcoin-crawler:`), "OpenBitcoin's crawler, a survey of reachable nodes for openbitcoin.com", "OpenBitcoin crawler", ""},
 	{regexp.MustCompile(`(?i)NBitcoin`), "NBitcoin, a .NET Bitcoin library (behind BTCPay Server, among others)", "NBitcoin .NET library", ""},
-	{regexp.MustCompile(`(?i)/bitcore:`), "Bitcore, BitPay's node and index server", "Bitcore (BitPay)", ""},
+	// "/bitcore:<version>/" is bitcore-p2p's default, the version its own
+	// (lib/messages.js), so any program on it says so: BitPay's node and
+	// index server, or bitcore-spv's light client (throughnothing/bitcore-spv).
+	{regexp.MustCompile(`(?i)/bitcore:`), "Bitcore, BitPay's Bitcoin code: its node and index server, or another program on its P2P library", "Bitcore (BitPay)", ""},
 	// Core's private broadcast (v31): it opens a connection over Tor or I2P,
 	// hands over one of its own transactions and leaves, introducing itself
 	// with this fixed name and no services so nobody can tell which node sent
