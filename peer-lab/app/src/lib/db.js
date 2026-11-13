@@ -99,7 +99,7 @@ DROP TABLE IF EXISTS parked_peer;
 -- dropped after a month. The candidate on trial right now is in meta
 -- (slot_fill_trial), as one JSON value. Per address, the last trial: why it
 -- ended (ok, no_connection, no_services, height_unknown, height_wrong,
--- disguised; removed for one taken out by hand), when
+-- disguised; removed for one taken out by hand; offline for one retired), when
 -- it began, and the network (clearnet, tor, i2p) - what the app log said, kept
 -- where a restart does not take it.
 CREATE TABLE IF NOT EXISTS slot_fill_tried (

@@ -243,6 +243,17 @@ test('a manual peer never first loses its slot once it is offline past its hour'
   assert.equal(logRow.address, address);
 });
 
+// The pass that retires a peer goes on to fill the gap it left, and that
+// peer's region is now the gap: without a mark it is the first candidate.
+test('a peer retired for being offline is not the next candidate', async () => {
+  const address = seedOfflineTrustedPeer({ eligible: 200, first: 0, offlineHours: 5 });
+
+  await peerRotation.retireOfflineManualPeers(ranking());
+
+  const row = db.instance.prepare('SELECT ok, reason FROM slot_fill_tried WHERE address = ?').get(address);
+  assert.deepEqual({ ...row }, { ok: 0, reason: 'offline' }, 'held against like one Core could not reach');
+});
+
 test('Slot Fill switched off while a pass waits for Core: nothing more is retired', async () => {
   const address = seedOfflineTrustedPeer({ eligible: 200, first: 0, offlineHours: 5 });
 

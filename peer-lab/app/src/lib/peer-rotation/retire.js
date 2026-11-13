@@ -17,6 +17,7 @@ const { addressKey } = require('../address');
 const logger = require('../logger').make('peer-rotation');
 const { logAction } = require('./log');
 const { offlineForMs, offlineGraceMs, fmtHours } = require('./rules');
+const { markTried } = require('./fill');
 
 const keyOf = (address) => addressKey(address, config.bitcoin.network);
 
@@ -77,6 +78,10 @@ async function retireOfflineManualPeers(ranking, onTrial = null, peers = [], sti
     if (!stillOn()) break;
 
     await peerSync.removeTrustedPeer(peer.address);
+    // Held against for a week, like a candidate Core could not reach: the
+    // gap this leaves is in its own region, so the fill that follows in the
+    // same pass would otherwise pick it straight back.
+    markTried(peer.address, false, now, { reason: 'offline' });
     retired += 1;
     logAction({
       action: 'retire',
