@@ -570,8 +570,31 @@ function fmtBytesShort(bytes) {
   return `${v >= 100 || i === 0 ? v.toFixed(0) : v.toFixed(v < 1 ? 2 : 1)} ${units[i]}`;
 }
 
-async function router(req, res, pathname, url) {
-  if (req.method === 'GET' && pathname === '/api/health') {
+// What the log says about a peer let go by hand: its lifetime share stored,
+// and in the note, for a disconnect, which way the connection went, from its
+// newest session: dropping a stranger that dialled in is a different
+// decision from dropping one of Core's own outbound picks. How often it was
+// first is no longer said (10.11.2026): Slot Fill goes for spread.
+function handRecord(address, { way = false } = {}) {
+  const peer = db.instance
+    .prepare(`SELECT p.id, s.first, s.eligible FROM peer p
+                LEFT JOIN peer_relay_stats s ON s.peer_id = p.id WHERE p.address = ?`)
+    .get(address);
+  const session = way && peer && db.instance
+    .prepare(`SELECT direction FROM peer_session WHERE peer_id = ? ORDER BY started_at DESC LIMIT 1`)
+    .get(peer.id);
+  const dir = session && /^(inbound|outbound)$/.test(session.direction) ? session.direction : null;
+  return {
+    firstPct: peer && peer.eligible ? (100 * peer.first) / peer.eligible : null,
+    eligible: peer ? peer.eligible : null,
+    note: dir,
+  };
+}
+
+// Every API route, "METHOD /path" -> handler. A route's handler answers on
+// its own (sendJson); a path that is not here answers 404.
+const routes = {
+  'GET /api/health': async (req, res, url) => {
     // 200 means THIS process is serving and can read its database - that is
     // what the dashboard container's own healthcheck is asking. The state of
     // the three worker processes is reported alongside it (they have no HTTP
@@ -611,14 +634,14 @@ async function router(req, res, pathname, url) {
       zmq: dbOk ? zmqHealth(services) : null,
       coreClock: clockHealth(),
     });
-  }
+  },
 
-  if (req.method === 'GET' && pathname === '/api/events') {
+  'GET /api/events': async (req, res, url) => {
     handleEventStream(req, res);
     return true;
-  }
+  },
 
-  if (req.method === 'GET' && pathname === '/api/status') {
+  'GET /api/status': async (req, res, url) => {
     let blockHeight = null;
     try {
       blockHeight = await rpc.getBlockCount();
@@ -640,9 +663,9 @@ async function router(req, res, pathname, url) {
       // A test copy (see lib/config.js): read-only.
       readOnly: config.readOnly,
     });
-  }
+  },
 
-  if (req.method === 'GET' && pathname === '/api/peers/ranking') {
+  'GET /api/peers/ranking': async (req, res, url) => {
     // The peers service's marks ride along on the rows they are about
     // (lib/peers-service.js).
     const marks = peersService.peerKinds();
@@ -658,7 +681,7 @@ async function router(req, res, pathname, url) {
       }
     }
     return sendJson(res, 200, rows.map(forThePage));
-  }
+  },
 
   // For the peers service, which marks the peer that delivered the last block
   // in the list and on the map, so it needs the block - but it polls every
@@ -668,7 +691,7 @@ async function router(req, res, pathname, url) {
   // Deliberately narrow: the height, when it arrived, who mined it, and the
   // addresses that were credited. Not whatever latestBlock() grows later, and
   // not the labels the owner gave his peers.
-  if (req.method === 'GET' && pathname === '/api/blocks/latest') {
+  'GET /api/blocks/latest': async (req, res, url) => {
     const race = queries.blockDetail();
     if (!race) return sendJson(res, 200, null);
     return sendJson(res, 200, {
@@ -715,7 +738,7 @@ async function router(req, res, pathname, url) {
       // can tint the rows of the connections that have actually brought a block.
       deliveredEver: queries.deliveredEver(),
     });
-  }
+  },
 
   // Removed in v1.13.0, both unused by anything in this repo:
   //   GET  /api/peers/live    - /api/status already carries liveSummary()
@@ -733,26 +756,21 @@ async function router(req, res, pathname, url) {
   // Its own endpoint rather than a field on /api/status: dbstat walks every
   // page of the database to get exact per-table sizes, which is fine on demand
   // and wrong in a twenty-second poll.
-  if (req.method === 'GET' && pathname === '/api/storage') {
+  'GET /api/storage': async (req, res, url) => {
     return sendJson(res, 200, db.storageBreakdown());
-  }
+  },
 
   // Irreversible, so it takes an explicit scope rather than defaulting to
   // anything. There is no "reset everything" - the two groups are separate
   // decisions, and the manual peers are never part of either.
-  if (req.method === 'POST' && pathname === '/api/reset') {
+  'POST /api/reset': async (req, res, url) => {
     const { scope } = await readBody(req);
     if (scope === 'peers') return sendJson(res, 200, { ok: true, scope, ...db.resetPeerData() });
     if (scope === 'pools') return sendJson(res, 200, { ok: true, scope, ...db.resetPoolHistory() });
     return sendJson(res, 400, { error: 'scope must be "peers" or "pools"' });
-  }
+  },
 
-  // Read-only test copy: nothing that would change Core's peers.
-  if (config.readOnly && req.method === 'POST' && READ_ONLY_BLOCKED.has(pathname)) {
-    return sendJson(res, 403, { error: 'This is a read-only test copy: it does not change Core\'s peers.' });
-  }
-
-  if (req.method === 'POST' && pathname === '/api/peers/untrust') {
+  'POST /api/peers/untrust': async (req, res, url) => {
     const { address } = await readBody(req);
     if (!readAddress(res, address)) return true;
     const wasManual = Boolean(db.instance.prepare('SELECT 1 FROM trusted_peer WHERE address = ?').get(address));
@@ -770,28 +788,28 @@ async function router(req, res, pathname, url) {
       }
     }
     return sendJson(res, 200, { ok: true });
-  }
+  },
 
-  if (req.method === 'POST' && pathname === '/api/peers/manual-add') {
+  'POST /api/peers/manual-add': async (req, res, url) => {
     // The typed-in box, and the only path that stars what it adds: an address
     // entered by hand names a peer this node may have no record of, so the
     // rotation must not take it away before its owner has seen it work.
     const { host } = await readBody(req);
     const result = await manualAddPeer(host, undefined, { kept: true });
     return sendJson(res, result.ok ? 200 : 422, result);
-  }
+  },
 
   // Reachability only - the same version probe the add path runs first, with
   // nothing after it. "Is this peer even reachable?" is a question worth being
   // able to ask on its own: the answer decides whether adding it is worth a
   // manual slot at all, and asking it should not cost one.
-  if (req.method === 'POST' && pathname === '/api/peers/probe') {
+  'POST /api/peers/probe': async (req, res, url) => {
     const { host } = await readBody(req);
     const result = await probePeer(host);
     return sendJson(res, result.ok ? 200 : 422, result);
-  }
+  },
 
-  if (req.method === 'POST' && pathname === '/api/peers/add-manual') {
+  'POST /api/peers/add-manual': async (req, res, url) => {
     // Same probe-then-persist flow as /api/peers/manual-add, but starting
     // from an existing peer row's address (live or not) instead of raw user
     // input. An address this node dialled keeps its port: Core reached the
@@ -809,61 +827,41 @@ async function router(req, res, pathname, url) {
     const host = queries.dialledBefore(address) ? address : hostFromAddress(address);
     const result = await manualAddPeer(host, typeof label === 'string' ? label.slice(0, 64) : undefined, { kept: true });
     return sendJson(res, result.ok ? 200 : 422, result);
-  }
+  },
 
   // The star. Sets or clears the protection on a manual peer and nothing
   // else - no disconnect, no addnode, no change to its record. Deliberately
   // its own route rather than a flag on add-manual: taking the star off is a
   // decision of its own, and it happens long after the peer was added.
-  if (req.method === 'POST' && pathname === '/api/peers/keep') {
+  'POST /api/peers/keep': async (req, res, url) => {
     const { address, kept } = await readBody(req);
     if (!readAddress(res, address)) return true;
     if (typeof kept !== 'boolean') return sendJson(res, 400, { error: 'kept must be true or false' });
     const changed = peerSync.setKept(address, kept);
     if (!changed) return sendJson(res, 404, { error: 'not a manual peer' });
     return sendJson(res, 200, { ok: true, address, kept });
-  }
+  },
 
-  if (req.method === 'GET' && pathname === '/api/rotation') {
+  'GET /api/rotation': async (req, res, url) => {
     return sendJson(res, 200, {
       enabled: peerRotation.isEnabled(),
       // What the last pass saw and decided: the line at the top of the card.
       status: peerRotation.readStatus(),
       log: peerRotation.recentLog(),
     });
-  }
+  },
 
-  if (req.method === 'POST' && pathname === '/api/rotation/toggle') {
+  'POST /api/rotation/toggle': async (req, res, url) => {
     const { enabled } = await readBody(req);
     // Only a real boolean, as on the pool route: Boolean("false") is true.
     if (typeof enabled !== 'boolean') return sendJson(res, 400, { error: 'enabled must be true or false' });
     peerRotation.setEnabled(enabled);
     if (!enabled) await peerRotation.settleOnSwitchOff();
     return sendJson(res, 200, { ok: true, enabled: peerRotation.isEnabled() });
-  }
+  },
 
-  // What the log says about a peer let go by hand: its lifetime share stored,
-  // and in the note, for a disconnect, which way the connection went, from its
-  // newest session: dropping a stranger that dialled in is a different
-  // decision from dropping one of Core's own outbound picks. How often it was
-  // first is no longer said (10.11.2026): Slot Fill goes for spread.
-  function handRecord(address, { way = false } = {}) {
-    const peer = db.instance
-      .prepare(`SELECT p.id, s.first, s.eligible FROM peer p
-                  LEFT JOIN peer_relay_stats s ON s.peer_id = p.id WHERE p.address = ?`)
-      .get(address);
-    const session = way && peer && db.instance
-      .prepare(`SELECT direction FROM peer_session WHERE peer_id = ? ORDER BY started_at DESC LIMIT 1`)
-      .get(peer.id);
-    const dir = session && /^(inbound|outbound)$/.test(session.direction) ? session.direction : null;
-    return {
-      firstPct: peer && peer.eligible ? (100 * peer.first) / peer.eligible : null,
-      eligible: peer ? peer.eligible : null,
-      note: dir,
-    };
-  }
 
-  if (req.method === 'POST' && pathname === '/api/peers/disconnect') {
+  'POST /api/peers/disconnect': async (req, res, url) => {
     const { address } = await readBody(req);
     if (!readAddress(res, address)) return true;
     try {
@@ -881,27 +879,27 @@ async function router(req, res, pathname, url) {
       logger.warn('rotation log entry for a disconnect failed', { address, error: err.message });
     }
     return sendJson(res, 200, { ok: true });
-  }
+  },
 
-  if (req.method === 'POST' && pathname === '/api/stratum/toggle') {
+  'POST /api/stratum/toggle': async (req, res, url) => {
     const { enabled } = await readBody(req);
     if (typeof enabled !== 'boolean') return sendJson(res, 400, { error: 'enabled must be true or false' });
     stratumRace.setEnabled(enabled);
     // The worker closes or opens its sockets on its own 30-second check - this
     // process has no way to reach into it, and should not have one.
     return sendJson(res, 200, { ok: true, enabled: stratumRace.isEnabled() });
-  }
+  },
 
-  if (req.method === 'GET' && pathname === '/api/pools/local') {
+  'GET /api/pools/local': async (req, res, url) => {
     const configured = db.instance.prepare('SELECT host, port FROM stratum_pool').all();
     return sendJson(res, 200, await localPools.list(configured));
-  }
+  },
 
-  if (req.method === 'GET' && pathname === '/api/pools') {
+  'GET /api/pools': async (req, res, url) => {
     return sendJson(res, 200, queries.stratumRanking(poolRange(url.searchParams.get('range'))));
-  }
+  },
 
-  if (req.method === 'POST' && pathname === '/api/pools') {
+  'POST /api/pools': async (req, res, url) => {
     const body = await readBody(req);
     // Validated properly rather than merely checked for truthiness. An
     // out-of-range port used to be stored happily and then killed the
@@ -929,46 +927,19 @@ async function router(req, res, pathname, url) {
       logger.error('adding a pool failed', { error: err.message });
       return sendJson(res, 500, { ok: false, error: 'internal error' });
     }
-  }
-
-  const poolMatch = pathname.match(/^\/api\/pools\/(\d+)$/);
-  if (poolMatch && (req.method === 'PATCH' || req.method === 'DELETE')) {
-    const id = Number(poolMatch[1]);
-    if (req.method === 'DELETE') {
-      let removed;
-      try {
-        removed = queries.deletePool(id);
-      } catch (err) {
-        logger.error('deleting a pool failed', { id, error: err.message });
-        return sendJson(res, 500, { ok: false, error: 'internal error' });
-      }
-      if (!removed) return sendJson(res, 404, { ok: false, error: 'no such pool' });
-      return sendJson(res, 200, { ok: true });
-    }
-    const body = await readBody(req);
-    // `enabled` absent used to mean `undefined` -> 0, so a PATCH with an empty
-    // body silently disabled the pool and answered 200. Say what was wrong.
-    if (typeof body.enabled !== 'boolean') {
-      return sendJson(res, 400, { error: 'enabled must be true or false' });
-    }
-    const updated = db.instance
-      .prepare(`UPDATE stratum_pool SET enabled = ? WHERE id = ?`)
-      .run(body.enabled ? 1 : 0, id);
-    if (updated.changes === 0) return sendJson(res, 404, { error: `no pool with id ${id}` });
-    return sendJson(res, 200, { ok: true, enabled: body.enabled });
-  }
+  },
 
   // The node's traffic: the chart and totals.
-  if (req.method === 'GET' && pathname === '/api/traffic') {
+  'GET /api/traffic': async (req, res, url) => {
     return sendJson(res, 200, queries.trafficDays(30));
-  }
+  },
 
   // The home-screen widget: today up, today down, and the peers in and out.
   // The four-tile widget it once sat beside is gone (04.11.2026): on a fresh
   // install two of its tiles were empty, and one put a peer's address on the
   // home screen. The refresh is the peers' - traffic alone is hourly - and it
   // is the manifest's `refresh` that Umbrel goes by; keep the two in step.
-  if (req.method === 'GET' && pathname === '/api/widget/traffic') {
+  'GET /api/widget/traffic': async (req, res, url) => {
     const t = queries.trafficDays(30);
     const live = queries.liveSummary();
     return sendJson(res, 200, {
@@ -981,8 +952,51 @@ async function router(req, res, pathname, url) {
         { text: `${live.inbound} / ${live.outbound}`, subtext: 'peers in / out' },
       ],
     });
-  }
+  },
 
+};
+
+// /api/pools/<id>: switch a pool on or off, or delete it.
+async function poolRoute(req, res, id) {
+  if (req.method === 'DELETE') {
+    let removed;
+    try {
+      removed = queries.deletePool(id);
+    } catch (err) {
+      logger.error('deleting a pool failed', { id, error: err.message });
+      return sendJson(res, 500, { ok: false, error: 'internal error' });
+    }
+    if (!removed) return sendJson(res, 404, { ok: false, error: 'no such pool' });
+    return sendJson(res, 200, { ok: true });
+  }
+  const body = await readBody(req);
+  // `enabled` absent used to mean `undefined` -> 0, so a PATCH with an empty
+  // body silently disabled the pool and answered 200. Say what was wrong.
+  if (typeof body.enabled !== 'boolean') {
+    return sendJson(res, 400, { error: 'enabled must be true or false' });
+  }
+  const updated = db.instance
+    .prepare(`UPDATE stratum_pool SET enabled = ? WHERE id = ?`)
+    .run(body.enabled ? 1 : 0, id);
+  if (updated.changes === 0) return sendJson(res, 404, { error: `no pool with id ${id}` });
+  return sendJson(res, 200, { ok: true, enabled: body.enabled });
+}
+
+async function router(req, res, pathname, url) {
+  // Read-only test copy: nothing that would change Core's peers.
+  if (config.readOnly && req.method === 'POST' && READ_ONLY_BLOCKED.has(pathname)) {
+    return sendJson(res, 403, { error: 'This is a read-only test copy: it does not change Core\'s peers.' });
+  }
+  const handler = routes[`${req.method} ${pathname}`];
+  if (handler) {
+    await handler(req, res, url);
+    return true;
+  }
+  const poolMatch = pathname.match(/^\/api\/pools\/(\d+)$/);
+  if (poolMatch && (req.method === 'PATCH' || req.method === 'DELETE')) {
+    await poolRoute(req, res, Number(poolMatch[1]));
+    return true;
+  }
   return null; // not an API route
 }
 
