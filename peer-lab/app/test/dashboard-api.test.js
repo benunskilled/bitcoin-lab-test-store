@@ -462,18 +462,23 @@ test('a refused disconnect leaves no line in the rotation log', async () => {
   }
 });
 
-test('a manual peer removed by hand starts a Slot Fill pass at once; a never-manual one does not', async () => {
+test('a manual peer removed by hand asks the profiler for a pass and is not tried again; a never-manual one does neither', async () => {
   const peerRotation = require('../src/lib/peer-rotation');
-  const soon = test.mock.method(peerRotation, 'passSoon', () => {});
+  peerRotation.setEnabled(true);
+  const tried = (a) => db.instance.prepare('SELECT ok, reason FROM slot_fill_tried WHERE address = ?').get(a);
   try {
     db.instance.prepare('INSERT INTO trusted_peer (address, created_at) VALUES (?, ?)').run('203.0.113.79:8333', Date.now());
     await api('/api/peers/untrust', { method: 'POST', body: JSON.stringify({ address: '203.0.113.79:8333' }) });
-    assert.equal(soon.mock.callCount(), 1);
+    assert.deepEqual({ ...tried('203.0.113.79:8333') }, { ok: 0, reason: 'removed' }, 'held against, like one Core could not reach');
+    assert.equal(peerRotation.wantsPass(), true, 'the profiler runs a pass at its next poll');
+    assert.equal(peerRotation.wantsPass(), false, 'once');
     await api('/api/peers/untrust', { method: 'POST', body: JSON.stringify({ address: '203.0.113.80:8333' }) });
-    assert.equal(soon.mock.callCount(), 1, 'nothing was freed');
+    assert.equal(tried('203.0.113.80:8333'), undefined);
+    assert.equal(peerRotation.wantsPass(), false, 'nothing was freed');
   } finally {
-    soon.mock.restore();
+    peerRotation.setEnabled(false);
     db.instance.prepare("DELETE FROM rotation_log WHERE action = 'unmanual'").run();
+    db.instance.prepare('DELETE FROM slot_fill_tried').run();
   }
 });
 

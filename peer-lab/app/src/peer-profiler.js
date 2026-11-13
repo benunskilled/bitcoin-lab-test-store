@@ -356,7 +356,8 @@ function startPolling(intervalMs) {
     await pollOnce();
     // Slot Fill just switched on: its first pass now, not at the next
     // ten-minute mark. One database read per poll otherwise.
-    if (peerRotation.waitsForFirstPass()) {
+    // A slot freed by hand on the page: filled now too (wantsPass).
+    if (peerRotation.waitsForFirstPass() || peerRotation.wantsPass()) {
       await peerRotation.tick().catch((err) => logger.warn('slot fill first pass failed', { error: err.message }));
     }
     timer = setTimeout(tick, intervalMs);

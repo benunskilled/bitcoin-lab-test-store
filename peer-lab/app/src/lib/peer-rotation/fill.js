@@ -345,4 +345,4 @@ async function abandon(address, now = Date.now()) {
   logger.info('slot fill: candidate taken out, switched off while adding', { address, at: now });
 }
 
-module.exports = { settle, start, abandon, currentTrial, works, withoutSession, trialView, lastLook: () => lastLook };
+module.exports = { settle, start, abandon, markTried, currentTrial, works, withoutSession, trialView, lastLook: () => lastLook };

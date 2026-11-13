@@ -791,8 +791,13 @@ const routes = {
       } catch (err) {
         logger.warn('rotation log entry for a removal failed', { address, error: err.message });
       }
-      // The freed slot is filled at once, after the log entry above.
-      peerRotation.passSoon();
+      // The freed slot is filled at the profiler's next poll, after the log
+      // entry above, and the peer is not tried again for a week.
+      try {
+        peerRotation.freedByHand(address);
+      } catch (err) {
+        logger.warn('slot fill request after a removal failed', { address, error: err.message });
+      }
     }
     return sendJson(res, 200, { ok: true });
   },

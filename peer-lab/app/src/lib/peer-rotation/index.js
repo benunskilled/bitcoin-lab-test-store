@@ -121,19 +121,32 @@ async function tick() {
     return await pass();
   } finally {
     running = false;
-    if (passWanted) { passWanted = false; passSoon(); }
   }
 }
 
 // A slot freed by hand (the Remove button) is filled now, not at the next
 // ten-minute pass: until then the card said "all slots taken" over a free
-// one (13.11.2026). A pass under way may have counted the slot before it was
-// freed, so one more runs after it.
-let passWanted = false;
-function passSoon() {
+// one (13.11.2026). The dashboard only asks; the pass runs in the profiler
+// at its next poll, seconds away, behind the one `running` above - a pass
+// in the dashboard's own process could run beside the profiler's and put
+// two candidates on trial. The peer removed is held against for a week, as
+// one Core could not reach: removed by hand, it should not come straight
+// back as the next candidate.
+const WANTED_KEY = 'slot_fill_wanted';
+function freedByHand(address) {
+  fill.markTried(address, false, Date.now(), { reason: 'removed' });
   if (!isEnabled()) return;
-  if (running) { passWanted = true; return; }
-  tick().catch((err) => logger.warn('slot fill pass after a removal failed', { error: err.message }));
+  db.instance.prepare('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
+    .run(WANTED_KEY, String(Date.now()));
+}
+// Asked by the profiler at each poll. A pass under way keeps the request for
+// the next poll: it may have counted the slot before it was freed.
+function wantsPass() {
+  if (running) return false;
+  const row = db.instance.prepare('SELECT value FROM meta WHERE key = ?').get(WANTED_KEY);
+  if (!row) return false;
+  db.instance.prepare('DELETE FROM meta WHERE key = ?').run(WANTED_KEY);
+  return isEnabled();
 }
 
 /**
@@ -276,5 +289,6 @@ module.exports = {
   retireOfflineManualPeers,
   offlineGraceMs,
   tick,
-  passSoon,
+  freedByHand,
+  wantsPass,
 };
