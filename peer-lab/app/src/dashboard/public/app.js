@@ -143,8 +143,11 @@ const KIND_RULES = [
 // like "monitor" or "electrs" in an operator's label does not make a Core
 // node a crawler or an indexer. The peers service's classify does the same.
 // The first rule that names this client, as its place in KIND_RULES, or -1.
+// Nothing but slashes, or a version with no name before it ("/:1.1.0/"):
+// nothing said, as with no agent at all - kinds.go emptyName.
+const EMPTY_NAME = /^\/*$|^\/:[^/]*\/$/;
 function kindRuleIndex(client) {
-  if (!client) return -1;
+  if (!client || EMPTY_NAME.test(client)) return -1;
   const bare = client.replace(/\([^)]*\)/g, '');
   // "pool" inside "mempool" is no pool: "(mempool.guide)" is a node's label.
   const noMempool = client.replace(/mempool/gi, '');
