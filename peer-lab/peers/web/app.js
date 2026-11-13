@@ -13,6 +13,9 @@
   const NS = "http://www.w3.org/2000/svg";
   const REGION_ZOOM = 2.5;                 // from this zoom factor on, markers split into regions
   const IDLE_PAUSE_MS = 30 * 60 * 1000;    // stop asking Core after 30 min without input
+  const RANKING_WAIT_MS = 4000;            // how long a new list waits for the ranking asked with it
+  // A list waiting for its ranking: the ranking's own event draws nothing.
+  let awaitingRanking = false;
   const SIDE_KEY = "peerlab.sideOpen";
   const $ = (id) => document.getElementById(id);
 
@@ -174,10 +177,21 @@
       markArrivals(state.data.peers);
       next = state.data.next_in || state.data.interval || 10;
       state.failed = false;
+      // The dashboard fetches its word on the peers on this clock. When it
+      // does, the list is drawn once, with both, and not a second time when
+      // the ranking comes a moment later.
+      const ask = { ranking: null };
+      window.dispatchEvent(new CustomEvent("peerlab:list", { detail: ask }));
+      if (ask.ranking) {
+        awaitingRanking = true;
+        try {
+          await Promise.race([ask.ranking, new Promise((r) => setTimeout(r, RANKING_WAIT_MS))]);
+        } finally {
+          awaitingRanking = false;
+        }
+      }
       renderWhenFree();
       beat();
-      // The dashboard fetches its word on the peers on this clock.
-      window.dispatchEvent(new Event("peerlab:list"));
     } catch (e) {
       state.failed = true;
       renderStatus();
@@ -1215,7 +1229,7 @@
     return Boolean(a && a !== document.body && a.matches && a.matches(":focus-visible") && a.closest(".peers, #map"));
   }
   // The dashboard has new numbers, or has just acted on a peer.
-  window.addEventListener("peerlab:ranking", () => { if (state.data) renderWhenFree(); });
+  window.addEventListener("peerlab:ranking", () => { if (state.data && !awaitingRanking) renderWhenFree(); });
   window.addEventListener("peerlab:acted", () => setTimeout(refresh, 1200));
   function renderWhenFree() {
     if (busy() && (!heldSince || Date.now() - heldSince < HOLD_MAX_MS)) {

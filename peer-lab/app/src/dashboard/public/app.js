@@ -653,8 +653,11 @@ async function refreshPeers() {
 // buttons that act on it
 // - the same buttons as ever, handled by the click handler below.
 let rankingByAddress = new Map();
-window.addEventListener('peerlab:list', () => {
-  if (Date.now() - rankingAtMs >= RANKING_EVERY_MS) refreshPeers().catch(() => {});
+// The list waits for this answer (detail.ranking) and is drawn once, with it.
+window.addEventListener('peerlab:list', (ev) => {
+  if (Date.now() - rankingAtMs < RANKING_EVERY_MS) return;
+  const asked = refreshPeers().catch(() => {});
+  if (ev.detail) ev.detail.ranking = asked;
 });
 // A read-only test copy (READ_ONLY=1, from /api/status): no button that
 // changes Core's peers.
