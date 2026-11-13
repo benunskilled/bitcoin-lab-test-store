@@ -699,10 +699,13 @@ test('slot fill: a candidate Core cannot connect to goes again, and is not tried
   const t0 = Date.now();
   await step(setPeers([coreOut()]), t0);
 
+  const sent = [];
+  rpc.addNode.mock.mockImplementation(async (a, c) => { sent.push(`${c} ${a}`); });
   const result = await step(setPeers([coreOut()]), t0 + 16 * MIN);
 
   assert.equal(result.reverted, 1);
   assert.ok(!isManual(asia));
+  assert.ok(sent.includes(`remove ${asia}`), `Core is told to drop it too: ${sent.join(', ')}`);
   assert.deepEqual(logRows(), [], 'a candidate that did not work is not news');
   assert.equal((await step(setPeers([coreOut()]), t0 + 17 * MIN)).started, 0, 'the only candidate failed');
 });
@@ -728,9 +731,12 @@ test('slot fill: a connection that serves no blocks, or is not on our tip, does 
   await step(setPeers([coreOut()]), t0);
   assert.equal((await step(setPeers([coreOut(), manualSession(asia, { synced: TIP - 50 })]), t0 + 10 * MIN)).confirmed, 0);
 
+  const sent = [];
+  rpc.addNode.mock.mockImplementation(async (a, c) => { sent.push(`${c} ${a}`); });
   await step(setPeers([coreOut(), manualSession(asia, { services: '0000000000000000' })]), t0 + 16 * MIN);
 
   assert.ok(!isManual(asia));
+  assert.ok(sent.includes(`remove ${asia}`), `Core is told to drop it too: ${sent.join(', ')}`);
   assert.equal(db.instance.prepare('SELECT ok FROM slot_fill_tried WHERE address = ?').get(asia).ok, 0, 'held against it for a week');
 });
 
