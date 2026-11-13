@@ -40,23 +40,14 @@
     </section>
 
     <p class="banner banner-demo" id="demo" hidden>Demo data - this page is not connected to a node.</p>
-    <p class="banner banner-error" id="error" hidden></p>
-    <div class="banner banner-paused" id="paused" hidden>
-      <span>Paused after 30 minutes without activity - the page is not updating.</span>
-      <button class="btn" id="resume">Resume</button>
-    </div>
-
-    <div class="filters" role="group" aria-label="Active filters">
-      <span class="place-filter" id="placeFilter" hidden>
-        Showing <b id="placeFilterName"></b>
-        <button class="linkish" id="placeFilterClear" aria-label="Clear location filter">×</button>
-      </span>
-      <!-- Set by clicking an entry in a group's kind line. Sits beside the
-           location filter and works with it: both at once means both. -->
-      <span class="place-filter" id="kindFilter" hidden>
-        Only <b id="kindFilterName"></b>
-        <button class="linkish" id="kindFilterClear" aria-label="Clear kind filter">×</button>
-      </span>
+    <!-- Fixed at the foot of the screen: up in the page, a reader down in the
+         lists never saw that the page had stopped or could not reach the list. -->
+    <div class="bottom-bars">
+      <p class="banner banner-error" id="error" hidden></p>
+      <div class="banner banner-paused" id="paused" hidden>
+        <span>Paused after 30 minutes without activity - the page is not updating.</span>
+        <button class="btn" id="resume">Resume</button>
+      </div>
     </div>
 
     <!-- One block, in the three roles that must not be confused: who mined
@@ -78,7 +69,23 @@
     </section>
 
     <section class="card map-card" id="mapCard">
-      <h2 class="map-head" id="mapHead">Map</h2>
+      <!-- The active filters stand in the map's head: right above the map that
+           sets one, above the lists they filter, and there with the map
+           folded too. Up above the block card, a tap on the map put them out
+           of sight; under a tall map, too. head-extra keeps them out of the
+           fold button (foldTitle). -->
+      <h2 class="map-head" id="mapHead">Map<span class="filters head-extra" role="group" aria-label="Active filters">
+          <span class="place-filter" id="placeFilter" hidden>
+            Showing <b id="placeFilterName"></b>
+            <button class="linkish" id="placeFilterClear" aria-label="Clear location filter">×</button>
+          </span>
+          <!-- Set by clicking an entry in a group's kind line. Sits beside the
+               location filter and works with it: both at once means both. -->
+          <span class="place-filter" id="kindFilter" hidden>
+            Only <b id="kindFilterName"></b>
+            <button class="linkish" id="kindFilterClear" aria-label="Clear kind filter">×</button>
+          </span>
+        </span></h2>
       <div class="map-wrap" id="mapWrap">
         <!-- The viewBox is world.json's size (TestMapSizeInHTML), here so the map
              takes its height before world.json arrives: arriving later, it made

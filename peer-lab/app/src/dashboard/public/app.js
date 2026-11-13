@@ -1282,10 +1282,11 @@ document.getElementById('rotation-log-toggle').addEventListener('click', (e) => 
 
 // A tap anywhere on a card folds it or opens it, not only on its title, the
 // same on every card (12.11.2026). What does something of its own keeps it:
-// buttons, links, fields, the peer rows, a fold inside the card, the map.
+// buttons, links, fields, the peer rows, a fold inside the card, the map and
+// the filters in its head.
 // Selecting text folds nothing, and neither does a tap on something a redraw
 // has just taken off the page.
-const OWN_TAP = 'a, button, input, select, textarea, label, summary, details, .fold-title, [role="button"], tbody, svg, .map-wrap, .unplaced';
+const OWN_TAP = 'a, button, input, select, textarea, label, summary, details, .fold-title, [role="button"], tbody, svg, .map-wrap, .unplaced, .head-extra';
 // A card's title folds it, through a real button inside the heading: the
 // heading stays a heading to a screen reader, and the button is reached with
 // Tab and pressed with Enter or Space like any other. Returns the button, for
@@ -1295,8 +1296,10 @@ function foldTitle(title) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'fold-btn';
-  btn.append(...title.childNodes);
-  title.append(btn);
+  // A .head-extra (the map's filters) stays beside the button, not in it:
+  // its own × buttons cannot sit inside another button.
+  btn.append(...[...title.childNodes].filter((n) => !(n.classList && n.classList.contains('head-extra'))));
+  title.prepend(btn);
   return btn;
 }
 
@@ -1322,7 +1325,7 @@ function foldable({ card, title, id, folded, save, onShow, onOpened, onOpening }
     btn.setAttribute('aria-expanded', String(!folded.has(id)));
   };
   const flip = (e) => {
-    if (e.target.closest('a, input, button:not(.fold-btn)')) return;
+    if (e.target.closest('a, input, button:not(.fold-btn), .head-extra')) return;
     // What is on screen: a card opened for a peer link is open, whatever the
     // stored state says.
     const opening = card.classList.contains('folded');
@@ -1990,6 +1993,16 @@ document.getElementById('storage-card').addEventListener('toggle', (e) => {
 });
 wireReset('peers');
 wireReset('pools');
+
+// The fixed bars at the foot (paused, errors) say how tall they are, so the
+// page makes room for them and the corner jump bar stands above them.
+try {
+  const bars = document.querySelector('.bottom-bars');
+  new ResizeObserver(() => {
+    const h = bars.offsetHeight;
+    document.documentElement.style.setProperty('--bars-h', h ? `${h + 12}px` : '0px');
+  }).observe(bars);
+} catch { /* no ResizeObserver: the bars only cover the page's foot */ }
 
 startRefreshLoop();
 startEventStream();

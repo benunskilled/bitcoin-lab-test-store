@@ -34,7 +34,7 @@
     return new Set(b && b.first_peers ? b.first_peers : []);
   }
 
-  // The card under the filters: one block, and the three roles it has here.
+  // The block card: one block, and the three roles it has here.
   // Mined by (from the server's coinbase reading), delivered by (the peers
   // Core credited), raced by (the pools that turned it into work). Each of the
   // three can be missing, and then it says so rather than leaving a gap.

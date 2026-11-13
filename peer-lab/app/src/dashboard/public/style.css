@@ -635,7 +635,7 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
   .peers thead th { position: sticky; top: 0; z-index: 3; background: var(--panel); box-shadow: 0 1px 0 var(--border); }
 }
 /* With a mouse the sections wait in the bottom right corner. */
-.jump-bar.corner { left: auto; right: 16px; top: auto; bottom: 16px; transform: translateY(calc(100% + 24px)); }
+.jump-bar.corner { left: auto; right: 16px; top: auto; bottom: calc(16px + var(--bars-h, 0px)); transform: translateY(calc(100% + 24px)); }
 .jump-bar.corner.shown { transform: none; }
 @media (prefers-reduced-motion: reduce) { .jump-bar.corner { transition: none; } }
 
@@ -691,6 +691,15 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
 .group-card.folded > :not(.group-head),
 .group-card.folded .group-head > :not(h2, .head-count) { display: none; }
 .map-head { flex: 1 1 100%; margin: 0; padding: 12px 16px; font-size: 15px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+/* The filters in the map's head, right-aligned, in the body's type. */
+.map-head { flex-wrap: wrap; }
+.map-head > .filters { margin-left: auto; font-size: 13px; font-weight: 400; cursor: default; }
+/* Paused and errors: fixed at the foot of the screen, over the page. Their
+   height (--bars-h, set in app.js) is room at the end of the page, so nothing
+   stays under them, and lifts the corner jump bar above them. */
+body { padding-bottom: var(--bars-h, 0px); }
+.bottom-bars { position: fixed; z-index: 40; left: 0; right: 0; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 12px; pointer-events: none; }
+.bottom-bars > .banner { pointer-events: auto; width: 100%; max-width: 720px; box-sizing: border-box; box-shadow: 0 6px 20px rgba(0, 0, 0, .45); }
 .map-card.folded > :not(.map-head) { display: none; }
 /* A folded card opens with a tap anywhere on it. */
 .card.folded, details.card.panel:not([open]), .block-card:has(> .block-more:not([open])) { cursor: pointer; }
