@@ -163,8 +163,9 @@
       mix.appendChild(sc);
     }
     const forked = kindPool.filter(offChain);
+    let fc = null;
     if (forked.length && (state.group === FORKED || (!state.group && forked.length < kindPool.length))) {
-      const fc = document.createElement("button");
+      fc = document.createElement("button");
       fc.type = "button";
       fc.className = "chip kind-pick forked" + (state.group === FORKED ? " on" : "");
       fc.title = state.group === FORKED ? "Show every kind again"
@@ -174,11 +175,16 @@
       fi.textContent = forked.length;
       fc.append(fi, " other chain");
       fc.addEventListener("click", () => steady(fc, () => setGroup(FORKED)));
-      mix.appendChild(fc);
     }
     // Only one group here (Outbound and Manual are often all nodes): no chip
     // for it, and its kinds, or their names, show straight away instead.
     const only = kindPool.length ? renderKindMix(mix, kindPool) : null;
+    // Nodes of another chain are nodes too: beside "Nodes", else first.
+    if (fc) {
+      const nodes = mix.querySelector('[data-group="Nodes"]');
+      if (nodes) nodes.after(fc);
+      else mix.insertBefore(fc, mix.querySelector(".syncing")?.nextSibling || mix.firstChild);
+    }
     summary.append(h, count);
     if (mix.childElementCount) summary.appendChild(mix);
     card.appendChild(summary);

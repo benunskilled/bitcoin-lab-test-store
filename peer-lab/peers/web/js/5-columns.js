@@ -56,11 +56,16 @@
   // The mix under a heading counts what is in the table - and each count is
   // the way to those peers. Clicking "5 Pool node" shows exactly those five,
   // here and on the map; clicking it again puts everyone back.
+  const KIND_ORDER = ["Nodes", "Wallets", "Watchers", "Disguised", "No user agent", "Other"];
   function renderKindMix(el, peers) {
     const n = new Map();
     // Altcoins are in the "other chain" chip beside these, not a group of their own.
     for (const p of peers) if (p.kind !== OTHER_CHAIN) n.set(groupOf(p.kind), (n.get(groupOf(p.kind)) || 0) + 1);
-    const entries = [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    // A fixed order, by meaning, not by count: sorted by count the chips
+    // swapped places as the numbers moved. What the order does not name (a
+    // kind of its own) comes before "Other", the largest first.
+    const rank = (g) => { const i = KIND_ORDER.indexOf(g); return i < 0 ? KIND_ORDER.indexOf("Other") - 0.5 : i; };
+    const entries = [...n].sort((a, b) => rank(a[0]) - rank(b[0]) || b[1] - a[1] || a[0].localeCompare(b[0]));
     // One kind of peer and nothing else: its chip would pick every peer there
     // is, so it picks nothing. The caller shows what it would have opened.
     if (!state.group && entries.length === 1 && entries[0][1] === peers.length) return entries[0][0];
@@ -72,6 +77,7 @@
       const b = document.createElement("button");
       b.type = "button";
       b.className = "chip kind-pick" + (state.group === group ? " on" : "");
+      b.dataset.group = group;
       const i = document.createElement("i");
       i.textContent = count;
       b.append(i, " " + group);
