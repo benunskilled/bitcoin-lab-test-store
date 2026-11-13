@@ -154,7 +154,7 @@ var kindRules = []struct {
 	// compact filter hashes from peers that offer NODE_COMPACT_FILTERS
 	// (docs.bitflash.network/atomic-swaps); that "/Bitflash:btc-light/" is
 	// its name was not found in a source (11.11.2026).
-	{"Light client", regexp.MustCompile(`(?i)BIP-157|^/bip157-fetch:|kyoto|^Yuki /|^/VerifiedX:|^/nakamoto:|^/bitcoin-s:|^Stacks/|/CaribouSPV:|^/EMPORION:|^/SYMMARTYS:|^/Bitflash:btc-light/`), false},
+	{"Other light client", regexp.MustCompile(`(?i)BIP-157|^/bip157-fetch:|kyoto|^Yuki /|^/VerifiedX:|^/nakamoto:|^/bitcoin-s:|^Stacks/|/CaribouSPV:|^/EMPORION:|^/SYMMARTYS:|^/Bitflash:btc-light/`), false},
 	// A small Utreexo node. Named so it is not lost in "Other", and counted as
 	// relaying like any node - the dashboard has no rule for it either.
 	{"Node (Floresta)", regexp.MustCompile(`(?i)floresta`), true},
@@ -268,7 +268,7 @@ var bracketed = regexp.MustCompile(`\([^)]*\)`)
 
 // The kinds that read only the agent outside the brackets. The dashboard's
 // test reads this list, so both services agree on it.
-var readsBareName = map[string]bool{"Research scanner": true, "Crawler": true, "Indexer": true, "Wallet": true, "Lightning wallet": true, "Light client": true}
+var readsBareName = map[string]bool{"Research scanner": true, "Crawler": true, "Indexer": true, "Wallet": true, "Lightning wallet": true, "Other light client": true}
 
 // emptyName is a user agent with nothing in it but slashes, or a version
 // without a name before it: "//" came 523 times in three days from two

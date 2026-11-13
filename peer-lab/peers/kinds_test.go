@@ -14,8 +14,8 @@ func TestClientsVerifiedOn29October(t *testing.T) {
 	}{
 		{"/BitcoinRocks:31.1.1/", "Node (BitcoinRocks)", true, "RocksDB"},
 		{"/bip110-observer:0.1/", "Crawler", false, "BIP-110 Observer"},
-		{"/EMPORION:0.3/", "Light client", false, "OpenTimestamps"},
-		{"/SYMMARTYS:0.3/", "Light client", false, "formerly EMPORION"},
+		{"/EMPORION:0.3/", "Other light client", false, "OpenTimestamps"},
+		{"/SYMMARTYS:0.3/", "Other light client", false, "formerly EMPORION"},
 		{"/FavillaKEY:0.1/", "Other", true, "Favilla KEY"},
 		// Operator comments must not turn a Core node into a light client.
 		{"/Satoshi:31.1.0(EMPORION:0.3)/", "Node (Core)", true, ""},
@@ -43,7 +43,7 @@ func TestKindOf(t *testing.T) {
 		"/bitcoinj:0.16.2/Bitcoin Wallet:9.26/":    "Wallet",
 		"/breadwallet:1.3.5/":                      "Wallet",
 		"/btcwire:0.5.0/neutrino:0.17.1/":          "Lightning wallet",
-		"/Rust BIP-157:0.6.0/rust-bitcoin:0.32.8/": "Light client",
+		"/Rust BIP-157:0.6.0/rust-bitcoin:0.32.8/": "Other light client",
 		// Seen on a real node, all of them "Other" before.
 		"/bitcoin-seeder:0.01/":          "Crawler",
 		"/btc-range-scan:0.1.0/":         "Crawler",
@@ -259,8 +259,8 @@ func TestClientsFoundOn24October(t *testing.T) {
 		"/mantle-replay-iouring:0.1.0/":          "Other",
 		"/blueberry:2026.08.17/":                 "Wallet",
 		"/BitcoinKit:0.1.0/":                     "Wallet",
-		"Yuki / 0.0.1":                           "Light client",
-		"/VerifiedX:9.0.1/":                      "Light client",
+		"Yuki / 0.0.1":                           "Other light client",
+		"/VerifiedX:9.0.1/":                      "Other light client",
 		"/WalletKit:0.1.0/":                      "Wallet",
 		"/btcwire:0.4.1/Satoshi:0.19/":           "Research scanner",
 		"/p2p-observer:0.1.0/":                   "Crawler",
@@ -270,13 +270,13 @@ func TestClientsFoundOn24October(t *testing.T) {
 		"/symphony:0.0.1/":                       "Indexer",
 		"/your-fork:0.1/":                        "Other",
 		"VDS 0.9.9.1":                            "Other chain",
-		"/btcwire:0.5.0/CaribouSPV:0.0.1-beta/":  "Light client",
+		"/btcwire:0.5.0/CaribouSPV:0.0.1-beta/":  "Other light client",
 		"/btcwire:0.5.0/utreexod:0.5.0/":         "Node (other)",
 		"NBXplorer-4096":                         "Indexer",
-		"/bitcoin-s:1.9.12/":                     "Light client",
-		"Stacks/2.1":                             "Light client",
+		"/bitcoin-s:1.9.12/":                     "Other light client",
+		"Stacks/2.1":                             "Other light client",
 		"/btcwire:0.4.1/lit:v0.1/":               "Lightning wallet",
-		"/nakamoto:0.3.0/":                       "Light client",
+		"/nakamoto:0.3.0/":                       "Other light client",
 		"/btcwire:0.5.0/spvwallet:0.1.0/":        "Wallet",
 		"/bread:2.1/":                            "Wallet",
 		"/bitcoinj:0.16.3/Elastum:0.1z/":         "Wallet",
@@ -412,7 +412,7 @@ func TestKindFromWhatTheNameSays(t *testing.T) {
 	for ua, want := range map[string]string{
 		"/topology-probe:0.1/": "Crawler", "/p2p-probe:0.1.0/": "Crawler", "/probe:1.0/": "Crawler",
 		"/btc-peers:0.1/": "Crawler", "/alt-bitnodes:0.1/": "Crawler",
-		"/bip157-fetch:0.1/": "Light client", "/dexcash-nodes:0.1.0/": "Other chain",
+		"/bip157-fetch:0.1/": "Other light client", "/dexcash-nodes:0.1.0/": "Other chain",
 	} {
 		if got := kindOf(ua); got != want {
 			t.Errorf("%s: kind %q, want %q", ua, got, want)

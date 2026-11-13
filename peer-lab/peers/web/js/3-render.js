@@ -207,7 +207,7 @@
   // for one peer, mostly the node's own.
   const groupOf = (kind) =>
     kind.startsWith("Node") || kind === POOL_KIND ? "Nodes"
-    : kind === "Wallet" || kind === "Lightning wallet" || kind === "Light client" || kind === "Indexer" ? "Wallets"
+    : kind === "Wallet" || kind === "Lightning wallet" || kind === "Other light client" || kind === "Indexer" ? "Wallets"
     : kind === "Crawler" || kind === "Research scanner" ? "Watchers"
     : kind;
   const matchesKind = (p) => !state.group || (state.group === SYNCING ? !!p.sync_mb : state.group === FORKED ? offChain(p)

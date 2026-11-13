@@ -504,7 +504,7 @@ func convertAt(raw []rawPeer, now time.Time) []Peer {
 		// rule does describe it, the rule says what the name stands for and
 		// this line what the peer did, so the second is added, not dropped.
 		switch p.Kind {
-		case "Other", "Pool node", "Crawler", "Light client", "Other chain":
+		case "Other", "Pool node", "Crawler", "Other light client", "Other chain":
 			seen, short, noTx := sessionLine(r.ServicesNames, r.RelayTxes, r.BytesRecvPerMsg, r.BytesSentPerMsg, r.ConnTime, now)
 			observed := seen != unknownAbout && seen != operatorNamedAbout
 			always := p.Kind == "Other" || p.Kind == "Pool node" || p.Kind == "Crawler"
