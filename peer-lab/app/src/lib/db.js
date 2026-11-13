@@ -269,7 +269,7 @@ CREATE TABLE IF NOT EXISTS meta (
 CREATE TABLE IF NOT EXISTS rotation_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   at INTEGER NOT NULL,
-  action TEXT NOT NULL,             -- promote | retire | manual | disconnect
+  action TEXT NOT NULL,             -- promote | retire | manual | unmanual | disconnect
   address TEXT NOT NULL,
   first_pct REAL,
   eligible INTEGER,
