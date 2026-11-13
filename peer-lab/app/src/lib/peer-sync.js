@@ -133,6 +133,9 @@ async function adoptExternalManualPeers() {
   const known = new Set(
     db.instance.prepare(`SELECT address FROM trusted_peer`).all().map((r) => keyOf(r.address)),
   );
+  // Read after `known`: a removal writes its mark before it deletes the row,
+  // so a row missing above has its mark here.
+  const justRemoved = recentRemovals();
   // Protected on the way in. An addnode this app did not issue is somebody's
   // choice - a bitcoin.conf line, a peer set in Umbrel's settings - and an
   // unprotected row is one the rotation may later `addnode remove`, undoing
@@ -168,9 +171,9 @@ async function adoptExternalManualPeers() {
       }
       continue;
     }
-    // Taken out a moment ago, by this process: Core's list was read before
+    // Taken out a moment ago, by either process: Core's list was read before
     // that, or the remove is still on its way. Not somebody else's addnode.
-    if (removedJustNow(keyOf(addednode))) continue;
+    if (justRemoved[keyOf(addednode)]) continue;
     // The slot fill's candidate, between its addnode and its row: the slot
     // fill's to settle, not somebody else's addnode to adopt and padlock.
     if (slotFillCandidate() === keyOf(addednode)) continue;
@@ -538,15 +541,26 @@ function slotFillCandidate() {
   }
 }
 
-// Removed in this process within the last few minutes (see removeTrustedPeer).
+// Removed within the last few minutes (see removeTrustedPeer). In `meta`, not
+// in memory: the dashboard removes and the profiler adopts, two processes.
+const RECENTLY_REMOVED_KEY = 'recently_removed_peers';
 const RECENTLY_REMOVED_MS = 5 * 60 * 1000;
-const recentlyRemoved = new Map();
-function removedJustNow(key) {
-  const at = recentlyRemoved.get(key);
-  if (at == null) return false;
-  if (Date.now() - at < RECENTLY_REMOVED_MS) return true;
-  recentlyRemoved.delete(key);
-  return false;
+function recentRemovals() {
+  try {
+    const row = db.instance.prepare(`SELECT value FROM meta WHERE key = ?`).get(RECENTLY_REMOVED_KEY);
+    const all = row ? JSON.parse(row.value) : {};
+    const now = Date.now();
+    return Object.fromEntries(Object.entries(all).filter(([, at]) => now - at < RECENTLY_REMOVED_MS));
+  } catch {
+    return {};
+  }
+}
+function noteRemoved(key) {
+  const all = recentRemovals();
+  all[key] = Date.now();
+  db.instance
+    .prepare(`INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value`)
+    .run(RECENTLY_REMOVED_KEY, JSON.stringify(all));
 }
 
 const notAdded = (err) => /not been added|not added/i.test((err && err.message) || '');
@@ -562,7 +576,7 @@ async function removeTrustedPeer(address, { disconnect = true } = {}) {
   // Noted before the row goes: an adoption pass already holding Core's list
   // from a moment ago would otherwise see the entry there and none here, and
   // take it back in as somebody else's addnode - padlocked.
-  recentlyRemoved.set(keyOf(address), Date.now());
+  noteRemoved(keyOf(address));
   db.instance.prepare(`DELETE FROM trusted_peer WHERE address = ?`).run(address);
   try {
     // Also tell Core to drop it as a manual/addnode entry - otherwise Core

@@ -156,3 +156,29 @@ test('the real app keeps a manual peer Core has forgotten (it re-adds it after a
   await adoptExternalManualPeers();
   assert.deepEqual(rows().map((r) => r.address), ['203.0.113.1:8333']);
 });
+
+// Remove runs in the dashboard, adoption in the profiler: two processes. A
+// mark kept in one process's memory is never seen by the other, so the mark
+// must live in the database. Here a second copy of peer-sync stands in for
+// the dashboard and removes the peer while the adoption is asking Core.
+test('a peer removed by hand in the other process is not adopted back', async () => {
+  const X = '198.51.100.7:8333';
+  db.instance.prepare(`INSERT INTO trusted_peer (address, label, kept, created_at) VALUES (?, NULL, 0, 1)`).run(X);
+  const sync = require.resolve('../src/lib/peer-sync');
+  const profilerCopy = require(sync);
+  delete require.cache[sync];
+  const dashboardCopy = require(sync);
+  delete require.cache[sync];
+  require.cache[sync] = { id: sync, filename: sync, loaded: true, exports: profilerCopy };
+  let coreList = [{ addednode: X }];
+  mock.method(rpc, 'getPeerInfo', async () => []);
+  mock.method(rpc, 'addNode', async (a, cmd) => { if (cmd === 'remove') coreList = coreList.filter((n) => n.addednode !== a); });
+  mock.method(rpc, 'getAddedNodeInfo', async () => {
+    const before = coreList.slice();
+    await dashboardCopy.removeTrustedPeer(X);
+    return before;
+  });
+  await profilerCopy.adoptExternalManualPeers();
+  mock.restoreAll();
+  assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM trusted_peer').get().n, 0, 'the removed peer stays removed');
+});
