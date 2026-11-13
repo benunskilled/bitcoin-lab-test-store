@@ -263,8 +263,10 @@ th button:focus-visible, summary:focus-visible { outline: 2px solid var(--accent
 .dots path { fill: none; stroke-linecap: round; stroke-width: 1.15; }
 #dotsAll { stroke: #2b3a49; }
 #dotsHot { stroke: #4f6e8c; stroke-width: 1.35; }
-/* Arcs from every place to this node; the manual ones a little brighter. */
-.link { fill: none; stroke-width: 0.7; stroke-opacity: 0.16; stroke-linecap: round; pointer-events: none; }
+/* Arcs from every place to this node; the manual ones a little brighter.
+   On the map only: the Slot Fill log's "Show all" is a button.link too, and
+   took no taps under this rule - they folded the card instead. */
+#map .link { fill: none; stroke-width: 0.7; stroke-opacity: 0.16; stroke-linecap: round; pointer-events: none; }
 .l-manual { stroke: var(--manual); stroke-opacity: 0.5; stroke-width: 1; }
 .l-inbound { stroke: var(--inbound); stroke-opacity: 0.08; }
 .l-outbound { stroke: var(--outbound); stroke-opacity: 0.3; }
