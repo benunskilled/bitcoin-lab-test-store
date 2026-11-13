@@ -114,7 +114,7 @@ const AGENTS = [
   // Names with no public source stay with what relays; names that say probe,
   // peers or bip157 get the kind they say (3 November).
   '/your-fork:0.1/', '/cryptexplorer:0.1.0/', '/BlockSail:0.1/', '/trinetra:0.1/', '/multiseed:0.1/',
-  '/topology-probe:0.1/', '/p2p-probe:0.1/', '/probe:1.0/', '/btc-peers:0.1/', '/p2p-extractor:0.1/', '/bip157-fetch:0.1/', '/dexcash-nodes:0.1.0/',
+  '/topology-probe:0.1/', '/p2p-probe:0.1/', '/probe:1.0/', '/btc-peers:0.1/', '/BTC-Nodes:1.0/Probe/', '/bitcoin-peers:0.1.0/', '/logos-peer-list:0.1/', '/nodes.mom.market:0.1/', '/btcwire:0.5.0/bitcoinstats.com:0.1/', '/p2p-extractor:0.1/', '/bip157-fetch:0.1/', '/dexcash-nodes:0.1.0/',
   // Software that does relay, and software nobody here has heard of.
   '/Satoshi:29.0.0/', '/Satoshi:28.1.0/Knots:20250903/', '/btcwire:0.5.0/', '/Sat0shi:31.0.0/', '',
   // The three the apps used to judge differently.
