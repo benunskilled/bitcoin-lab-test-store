@@ -362,6 +362,20 @@ test('the rotation log never holds more than it can show', async () => {
   assert.ok(!notes.includes('entry 0'), 'the oldest is gone');
 });
 
+// A clock stepped back must not make the newest action the first to go: the
+// log keeps the last ones written, whatever time they carry.
+test('an action written after the clock stepped back stays in the log', (t) => {
+  const real = Date.now();
+  for (let i = 0; i < LOG_ENTRIES; i += 1) {
+    peerRotation.logAction({ action: 'retire', address: `198.51.100.${i}:8333`, note: `before ${i}` });
+  }
+  t.mock.method(Date, 'now', () => real - 60 * 60 * 1000);
+  peerRotation.logAction({ action: 'retire', address: '198.51.100.200:8333', note: 'after the step' });
+  t.mock.restoreAll();
+  const notes = peerRotation.recentLog().map((e) => e.note);
+  assert.equal(notes[0], 'after the step', 'the action written last is shown first and kept');
+});
+
 /**
  * One host, one spelling. The rotation wrote the bare host that
  * hostFromAddress returns; the backfill kept the brackets an IPv6 address

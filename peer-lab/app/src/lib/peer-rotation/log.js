@@ -41,11 +41,12 @@ function logAction(entry) {
   // reason about, no daily sweep, and no way for a misbehaving loop to leave
   // fifty thousand rows behind before anyone looks.
   //
-  // id DESC is the tiebreaker, not decoration: two actions in one tick can
-  // share a millisecond, and on equal `at` the order is otherwise undefined -
-  // which would let this delete the newer of the two.
+  // By id, the order of writing (AUTOINCREMENT), not by `at`: two actions in
+  // one tick can share a millisecond, and after the clock steps back a new
+  // action carries an older `at` than all the rest and would be the one
+  // deleted.
   db.instance
-    .prepare(`DELETE FROM rotation_log WHERE id NOT IN (SELECT id FROM rotation_log ORDER BY at DESC, id DESC LIMIT ?)`)
+    .prepare(`DELETE FROM rotation_log WHERE id NOT IN (SELECT id FROM rotation_log ORDER BY id DESC LIMIT ?)`)
     .run(LOG_ENTRIES);
 
   // The one thing above that must outlive the trim. "How many peers has this
@@ -75,7 +76,7 @@ function recentLog(limit = LOG_ENTRIES) {
               first_pct AS firstPct, eligible,
               replaced_address AS replacedAddress, replaced_first_pct AS replacedFirstPct,
               note
-       FROM rotation_log ORDER BY at DESC, id DESC LIMIT ?`,
+       FROM rotation_log ORDER BY id DESC LIMIT ?`,
     )
     .all(limit)
     .map((e) => ({ ...e, where: whereOf(e.address) }));
