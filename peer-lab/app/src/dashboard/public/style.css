@@ -1325,6 +1325,8 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
 .panel .lc-when { flex: none; }
 .panel .lc-why { margin-top: 2px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
 .panel .log-card:has(.lc-place .flag) .lc-why { padding-left: 29px; }
+.panel .lc-op { margin-top: 2px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel .log-card:has(.lc-place .flag) .lc-op { padding-left: 29px; }
 /* ---- V2 design ---- */
 /* Tiles: the label on top, the number under it; the block height twice as
    wide as a count, with who mined it. */

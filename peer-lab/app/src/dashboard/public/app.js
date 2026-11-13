@@ -1026,15 +1026,15 @@ function logPlace(entry) {
     const net = /\.onion/.test(a) ? 'Tor' : 'I2P';
     return `<span class="flag">${HIDDEN_FLAG[net.toUpperCase()] || ''}</span>${net}`;
   }
-  // Clearnet without a place: its continent if known, else say so - "IPv4"
-  // told the reader nothing the address under it does not.
-  if (w && w.regionName) return `<span class="flag">\u{1F310}</span>${escapeHtml(w.regionName)}`;
+  // Clearnet without a place (no country means no region either): say so -
+  // "IPv4" told the reader nothing the address under it does not.
   return '<span class="flag">\u{1F310}</span>Location unknown';
 }
 
 // A table row on a wide screen, where the place goes under the address as
 // for the manual peers above; on a phone a card like a peer's (the last
-// cell, hidden in the table): place and action, address and when, then why.
+// cell, hidden in the table): place and action, provider, address and when,
+// then why.
 function rotationEntryRow(entry) {
   // An address can be long (Tor): cut with an ellipsis, the whole of it in a
   // tooltip only when it was cut (the mouseover handler below).
@@ -1045,13 +1045,15 @@ function rotationEntryRow(entry) {
   // The reason is the most useful part of the card: a line of its own, in
   // full - after the address it was cut to "Asia h…" on a phone.
   const why = entry.note ? `<div class="lc-why">${escapeHtml(entry.note)}</div>` : '';
+  // The provider over the address, as the wide table shows it under the address.
+  const op = entry.where && entry.where.operator ? `<div class="lc-op">${escapeHtml(entry.where.operator)}</div>` : '';
   return `
     <tr>
       <td class="hint" title="${escapeHtml(new Date(entry.at).toLocaleString())}">${when}</td>
       <td>${pill}</td>
       ${address}
       <td class="hint"${entry.replacedAddress ? ` title="In for ${escapeHtml(entry.replacedAddress)}"` : ''}>${escapeHtml(entry.note || '-')}</td>
-      <td class="log-card" data-label=""><div class="lc-top"><span class="lc-place">${logPlace(entry)}</span>${pill}</div><div class="lc-sub"><span class="lc-what">${addr}</span><span class="lc-when">${when}</span></div>${why}</td>
+      <td class="log-card" data-label=""><div class="lc-top"><span class="lc-place">${logPlace(entry)}</span>${pill}</div>${op}<div class="lc-sub"><span class="lc-what">${addr}</span><span class="lc-when">${when}</span></div>${why}</td>
     </tr>`;
 }
 
