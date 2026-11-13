@@ -7,6 +7,11 @@
   // Core reports both directions independently.
   const HB_TITLE = "One of Core's three high-bandwidth peers: it may send a new block without being asked first, which gives it a head start of at least one ping.";
   const HB_FROM_TITLE = "This peer has picked your node as one of its three high-bandwidth peers: your node sends it new blocks without being asked first.";
+  // A manual peer locked in the dashboard keeps its slot even while offline:
+  // the padlock stands in its row, where the legend and the Manual head
+  // ("6 locked") promise it, not only in the opened detail.
+  const LOCKED_TITLE = "Locked: keeps its manual slot, even while offline";
+  const isLocked = (p) => p.group === "manual" && Boolean(window.peerLab.peer(p.addr)?.kept);
   const LABEL = { manual: "Manual", inbound: "Inbound", outbound: "Outbound" };
   const NS = "http://www.w3.org/2000/svg";
   const REGION_ZOOM = 2.5;                 // from this zoom factor on, markers split into regions
@@ -188,11 +193,13 @@
     if (!document.hidden && !state.paused) pollTimer = setTimeout(refresh, next * 1000 + 250);
   }
 
+  // The dashboard's half of the page rests and wakes with this one.
   function setPaused(p) {
     state.paused = p;
     $("paused").hidden = !p;
     if (p) clearTimeout(pollTimer);
     renderStatus();
+    window.dispatchEvent(new CustomEvent("peerlab:paused", { detail: p }));
   }
 
   let inputStamp = 0;

@@ -26,6 +26,7 @@ const processGuard = require('./lib/process-guard');
 const hashblock = require('./lib/hashblock-subscriber');
 const poolId = require('./lib/pool-id');
 const stratumRace = require('./lib/stratum-race-toggle');
+const { LOCAL_POOLS } = require('./lib/local-pools');
 const reconstruction = require('./lib/reconstruction');
 const logger = require('./lib/logger').make('relay-profiler');
 
@@ -329,17 +330,23 @@ function isCatchingUp(info, header) {
 
 /**
  * Whether to time the template at all: only beside Stratum Race, the one place
- * the number is read. getblocktemplate builds a whole block in Core, and on a
- * node that runs no pool it was CPU spent on every block for nothing.
+ * the number is read, and only with a pool app of this Umbrel in the race (an
+ * enabled LOCAL_POOLS host). getblocktemplate builds a whole block in Core: on
+ * a node that runs no pool it was CPU spent on every block for nothing, and a
+ * remote pool builds its work from its own node, not from this one.
  *
  * Read from the database like every other process reads the switch, after the
  * timestamp has already been taken. A failed read counts as off.
  */
-function stratumRaceOn() {
+const LOCAL_HOSTS = LOCAL_POOLS.map((p) => p.host);
+function templateWanted() {
   try {
-    return stratumRace.isEnabled();
+    if (!stratumRace.isEnabled()) return false;
+    return Boolean(db.instance
+      .prepare(`SELECT 1 FROM stratum_pool WHERE enabled = 1 AND lower(host) IN (${LOCAL_HOSTS.map(() => '?').join(', ')}) LIMIT 1`)
+      .get(...LOCAL_HOSTS));
   } catch (err) {
-    logger.debug('could not read the Stratum Race switch', { error: err.message });
+    logger.debug('could not read the Stratum Race switch or pools', { error: err.message });
     return false;
   }
 }
@@ -386,7 +393,7 @@ async function handleHashBlock({ blockHash, detectedAtMs, t0 }) {
   const inCatchUp = (lastCatchUpAt != null && detectedAtMs - lastCatchUpAt < CATCHUP_TAIL_MS)
     || (lastHashblockAt != null && detectedAtMs - lastHashblockAt < 5000);
   lastHashblockAt = detectedAtMs;
-  const template = stratumRaceOn() && !inCatchUp ? timeTemplate(detectedAtMs) : Promise.resolve(null);
+  const template = !inCatchUp && templateWanted() ? timeTemplate(detectedAtMs) : Promise.resolve(null);
   let peers;
   let chain;
   let header;

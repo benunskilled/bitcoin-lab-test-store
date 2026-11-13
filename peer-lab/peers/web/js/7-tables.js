@@ -51,8 +51,13 @@
       if (peers.length) {
         const spread = document.createElement("p");
         spread.className = "kinds spread";
+        // 📡: peers that picked your node as one of their three
+        // high-bandwidth peers, counted in this group's own rows - not
+        // "take blocks from you first": your node pushes to them unasked,
+        // whoever else is faster.
+        const fed = peers.filter((p) => p.hb_from).length;
         spread.textContent = spreadText(peers) + (g === "manual" ? " \u00b7 " + dashboard().manualSummary() : "")
-          + (g === "inbound" && dashboard().fedCount() ? " \u00b7 \ud83d\udce1 " + dashboard().fedCount() + " peers take new blocks from you first" : "");
+          + (fed ? " \u00b7 \ud83d\udce1 " + fed + (fed === 1 ? " gets" : " get") + " new blocks from you unasked" : "");
         card.appendChild(spread);
       }
 
@@ -62,7 +67,7 @@
         // No inbound at all is what most nodes see; say what brings them.
         p.textContent = state.place || state.group
           ? "None here."
-          : g === "inbound" ? "No inbound peers. For incoming clearnet connections, allow incoming clearnet in your Bitcoin Node app and open port 8333 on your router."
+          : g === "inbound" ? "No inbound peers - normal for most nodes. For incoming clearnet connections, allow incoming clearnet in your Bitcoin Node app and open port 8333 on your router."
           : "No " + LABEL[g].toLowerCase() + " peers.";
         card.appendChild(p);
         root.appendChild(card);

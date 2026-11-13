@@ -44,7 +44,7 @@ async function browserSmoke(base, peers) {
       await page.click('#storage-card > summary');
       await page.waitForTimeout(700);
       await page.keyboard.press('Escape');
-      assert.equal(await page.$eval('#storage-card', (d) => d.open), false, `${width}px: Esc closes Data & Settings`);
+      assert.equal(await page.$eval('#storage-card', (d) => d.open), false, `${width}px: Esc closes Data`);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       assert.ok(overflow <= 0, `${width}px: nothing slides sideways (${overflow}px)`);
       await page.close();

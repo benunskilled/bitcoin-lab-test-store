@@ -281,7 +281,7 @@
           const label = p.linking_lion ? "LinkingLion" : p.kind;
           const pill = span("kind " + (p.offline ? "never" : p.linking_lion ? "lion" : p.kind === "Disguised" ? "disg" : p.no_relay ? "never" : "first"),
             (p.no_relay ? "\u2298 " : "") + label);
-          for (const [active, symbol] of [[p.hb_to, "\u26a1"], [p.hb_from, "\ud83d\udce1"]]) if (active) what.append(span("hb", symbol));
+          for (const [active, symbol] of [[p.hb_to, "\u26a1"], [p.hb_from, "\ud83d\udce1"], [isLocked(p), "\ud83d\udd12"]]) if (active) what.append(span("hb", symbol));
           what.append(pill);
           // Filled column by column (style.css): each pair is one column of the card.
           pc.append(land, sub, what, span("pc-net", p.operator || (p.tor_exit ? "Tor exit" : "")));
@@ -337,7 +337,7 @@
         const marks = document.createElement("span");
         marks.className = "hb-marks";
         head.appendChild(marks);
-        for (const [active, symbol, title] of [[p.hb_to, "⚡", HB_TITLE], [p.hb_from, "📡", HB_FROM_TITLE]]) {
+        for (const [active, symbol, title] of [[p.hb_to, "⚡", HB_TITLE], [p.hb_from, "📡", HB_FROM_TITLE], [isLocked(p), "🔒", LOCKED_TITLE]]) {
           if (!active) continue;
           const mark = document.createElement("span");
           mark.className = "hb";

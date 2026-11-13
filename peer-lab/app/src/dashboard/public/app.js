@@ -446,8 +446,9 @@ function applyBlockUpdate(race) {
 // in words what it does and what clicking will do next.
 function keepStar(p) {
   const on = Boolean(p.kept);
-  const title = on ? 'Kept - click to release' : 'Click to keep';
-  return `<button class="keep-star${on ? ' on' : ''}" data-action="keep" data-address="${escapeHtml(p.address)}" data-kept="${on ? '1' : '0'}" title="${title}" aria-pressed="${on}"><span aria-hidden="true">🔒</span><span class="sr-only">Keep this peer</span></button>`;
+  const title = on ? 'Locked: keeps its slot, even while offline - click to unlock' : 'Click to lock: it keeps its slot, even while offline';
+  // The word beside the padlock: a faint lock alone did not read as a switch.
+  return `<button class="keep-star${on ? ' on' : ''}" data-action="keep" data-address="${escapeHtml(p.address)}" data-kept="${on ? '1' : '0'}" title="${title}" aria-pressed="${on}"><span aria-hidden="true">🔒</span><span class="keep-word">${on ? 'Locked' : 'Lock'}</span></button>`;
 }
 
 // A manual peer's Remove takes the second slot, under Disconnect, in every
@@ -678,8 +679,6 @@ window.peerLab = {
     const free = Math.max(0, MAX_MANUAL_PEERS - manual.length);
     return `${free} of ${MAX_MANUAL_PEERS} slots free` + (kept ? ` \u00b7 ${kept === manual.length ? 'all locked' : `${kept} locked`}` : '');
   },
-  // How many peers take new blocks from this node first.
-  fedCount: () => (lastPeerRanking || []).filter((p) => p.live && p.hbFrom).length,
   foldable,
   // The peer list's counts of connected peers per group, for the tiles.
   liveCounts: (counts) => { listCounts = counts; listCountsAt = Date.now(); drawTiles(counts); },
@@ -1194,9 +1193,13 @@ function trafficChartSvg(days, W) {
       g += `<rect class="recv" x="${x}" y="${y(d.recv)}" width="${bw}" height="${base - y(d.recv)}" rx="2">${tip}</rect>`;
     }
     const last = i === days.length - 1;
-    if ((i % every === 0 && days.length - 1 - i >= every / 2) || last) {
+    // A date stands only where it keeps clear of the newest one, which ends
+    // at the right edge: counted in days, "11-09" ran into "11-13" on a phone.
+    // A label is five characters of 11px, about 33px wide.
+    const cx = left + i * slot + slot / 2;
+    if ((i % every === 0 && cx + 33 / 2 + 6 <= W - 33) || last) {
       // The newest date ends at the right edge rather than past it.
-      g += `<text class="axis" x="${last ? W : left + i * slot + slot / 2}" y="${H - 4}" text-anchor="${last ? 'end' : 'middle'}">${escapeHtml(d.day.slice(5))}</text>`;
+      g += `<text class="axis" x="${last ? W : cx}" y="${H - 4}" text-anchor="${last ? 'end' : 'middle'}">${escapeHtml(d.day.slice(5))}</text>`;
     }
   });
   return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">${g}</svg>`;
@@ -1790,7 +1793,7 @@ async function refreshHealth() {
     banner.hidden = false;
     banner.textContent = `Bitcoin Core's clock is about ${seconds} seconds `
       + `${clock.offsetMs < 0 ? 'behind' : 'ahead of'} this app's. Block attribution needs them within `
-      + 'a couple of seconds, so First % will stay at 0 until they agree.';
+      + 'a couple of seconds, so First/Blocks will stay at 0 until they agree.';
     return;
   }
 
@@ -1807,7 +1810,7 @@ async function refreshHealth() {
         + `Bitcoin Core's clock looks about ${seconds.toFixed(1)} seconds `
         + `${attribution.skewMs < 0 ? 'behind' : 'ahead of'} this app's.`
       : `No peer has been credited with any of the last ${attribution.blocks} blocks, `
-        + 'so First % cannot fill up. Check the relay profiler\'s logs.';
+        + 'so First/Blocks cannot fill up. Check the relay profiler\'s logs.';
     return;
   }
 
@@ -1823,20 +1826,25 @@ async function refreshHealth() {
  * dashboard left open in some window went on querying the node all day.
  * This waits for each pass to finish before scheduling the next, pauses
  * entirely while the page is hidden, and refreshes once immediately when it
- * becomes visible again so it is never showing stale data on return.
+ * becomes visible again so it is never showing stale data on return. It also
+ * rests while the peer list is paused after 30 minutes without input
+ * (peerlab:paused from the other script): the banner says the page is not
+ * updating, and this half asked Core every 20 seconds all the same.
  */
 function startRefreshLoop() {
   let timer = null;
   let rotationTimer = null;
+  let paused = false;
+  const resting = () => document.hidden || paused;
 
   const schedule = () => {
     clearTimeout(timer);
-    if (document.hidden) return;
+    if (resting()) return;
     timer = setTimeout(run, REFRESH_MS);
   };
 
   const run = async () => {
-    if (document.hidden) return;
+    if (resting()) return;
     try {
       await refreshAll();
     } finally {
@@ -1849,7 +1857,7 @@ function startRefreshLoop() {
   // fetching and re-rendering fifty log rows thirty times per possible change,
   // into a panel that starts collapsed.
   const runRotation = async () => {
-    if (document.hidden) return;
+    if (resting()) return;
     try {
       // Traffic is written once an hour, so it rides on this slow round too.
       await Promise.all([refreshRotation(), refreshTraffic()]);
@@ -1857,18 +1865,23 @@ function startRefreshLoop() {
       console.warn('rotation or traffic refresh failed', err);
     } finally {
       clearTimeout(rotationTimer);
-      if (!document.hidden) rotationTimer = setTimeout(runRotation, ROTATION_REFRESH_MS);
+      if (!resting()) rotationTimer = setTimeout(runRotation, ROTATION_REFRESH_MS);
     }
   };
 
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
+  const wake = () => {
+    if (resting()) {
       clearTimeout(timer);
       clearTimeout(rotationTimer);
     } else {
       run();
       runRotation();
     }
+  };
+  document.addEventListener('visibilitychange', wake);
+  window.addEventListener('peerlab:paused', (e) => {
+    paused = Boolean(e.detail);
+    wake();
   });
 
   run();

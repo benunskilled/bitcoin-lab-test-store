@@ -2,7 +2,8 @@
 
 // getblocktemplate builds a whole block in Core - real CPU on a Raspberry Pi,
 // at the moment a new block has just arrived. Its timing only means something
-// beside Stratum Race, so with Stratum Race off it is not asked for at all.
+// beside Stratum Race with a pool app of this Umbrel in it, so otherwise it is
+// not asked for at all.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -46,14 +47,33 @@ test('with Stratum Race off, no block template is requested', async () => {
   assert.equal(row.ms, null, 'and the block is still recorded, just without a template time');
 });
 
-test('with Stratum Race on, the template is timed as before', async () => {
+test('with Stratum Race on but only remote pools, no block template is requested', async () => {
+  // A remote pool builds its work from its own node, not from this one.
   stratumRace.setEnabled(true);
+  db.instance.prepare(`UPDATE stratum_pool SET enabled = 0 WHERE lower(host) LIKE '%\\_1' ESCAPE '\\'`).run();
   templateCalls = 0;
-  await relay.handleHashBlock(block(2));
+  await relay.handleHashBlock(block(5));
+  await settle();
+  assert.equal(templateCalls, 0);
+});
+
+test('with Stratum Race on and a local pool app, the template is timed as before', async () => {
+  stratumRace.setEnabled(true);
+  db.instance.prepare(`INSERT INTO stratum_pool (label, host, port, enabled, created_at) VALUES ('GoBrrr', 'gobrrr-pool_ckpool_1', 3333, 1, ?) ON CONFLICT(host, port) DO UPDATE SET enabled = 1`).run(now);
+  templateCalls = 0;
+  await relay.handleHashBlock(block(6));
   await settle();
   assert.equal(templateCalls, 1);
-  const row = db.instance.prepare('SELECT template_tx AS tx FROM relay_race WHERE block_hash = ?').get(block(2).blockHash);
+  const row = db.instance.prepare('SELECT template_tx AS tx FROM relay_race WHERE block_hash = ?').get(block(6).blockHash);
   assert.equal(row.tx, 3);
+});
+
+test('with a local pool app but Stratum Race off, no block template is requested', async () => {
+  stratumRace.setEnabled(false);
+  templateCalls = 0;
+  await relay.handleHashBlock(block(8));
+  await settle();
+  assert.equal(templateCalls, 0);
 });
 
 test('while Core catches up, the blocks after the first get no template', async () => {
@@ -61,7 +81,7 @@ test('while Core catches up, the blocks after the first get no template', async 
   stratumRace.setEnabled(true);
   rpc.getBlockchainInfo = async () => ({ blocks: 1, headers: 9, initialblockdownload: false });
   templateCalls = 0;
-  const at = now + 3_600_000;
+  const at = now + 7_200_000;
   for (let i = 0; i < 4; i += 1) {
     // eslint-disable-next-line no-await-in-loop
     await relay.handleHashBlock({ blockHash: String(10 + i).padStart(64, 'd'), detectedAtMs: at + i * 500, t0: process.hrtime.bigint() });

@@ -844,7 +844,7 @@ tr.arrived > td { animation: arrived 2.4s ease-out; }
   font-size: 15px;
   color: var(--text);
 }
-/* Data & Settings: a <details>, closed by default. The arrow is drawn as a
+/* Data: a <details>, closed by default. The arrow is drawn as a
    chevron: an 11px glyph read as a dot. */
 details.card.panel summary {
   cursor: pointer;
@@ -1201,15 +1201,20 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
   font-size: 17px;
   line-height: 1;
   cursor: pointer;
+}
+/* The faint shadow is the padlock's alone: the word beside it stays readable. */
+:is(.panel, .pd-actions) .keep-star > [aria-hidden] {
   opacity: .15;
   transition: opacity .15s ease;
 }
-:is(.panel, .pd-actions) .keep-star:hover, :is(.panel, .pd-actions) .keep-star:focus-visible {
+:is(.panel, .pd-actions) .keep-star:hover > [aria-hidden], :is(.panel, .pd-actions) .keep-star:focus-visible > [aria-hidden] {
   opacity: .45;
 }
-:is(.panel, .pd-actions) .keep-star.on {
+:is(.panel, .pd-actions) .keep-star.on > [aria-hidden] {
   opacity: 1;
 }
+/* "Locked" / "Lock" beside the padlock, in the size of the buttons beside it. */
+:is(.panel, .pd-actions) .keep-star .keep-word { font-size: 13px; margin-left: 4px; vertical-align: 2px; color: var(--text); }
 :is(.panel, .pd-actions) .keep-star:disabled {
   cursor: default;
 }
