@@ -11,6 +11,17 @@ import (
 // covers the rest.
 // label is the text cut to one line for the list; name, where set, is the
 // chip the peer is counted under, for one program under many names.
+//
+// How sure a sentence may sound, the same for every entry (13.11.2026):
+//   - plainly what it is: the exact string is in the project's source;
+//   - "Probably ...": something technical points there (service bits only
+//     that software sets, a fixed name in a source) but the name alone is
+//     not proof;
+//   - "Named like ...": only the name matches a known project;
+//   - "Names ...": the name says what it is and nothing else is known.
+//
+// What one node saw a peer do is never the evidence here: it goes in the
+// comment, with its date, and the page shows it live under the sentence.
 var aboutRules = []aboutRule{
 	{regexp.MustCompile(`(?i)seeder|dnsseed`), "A DNS seeder: collects addresses of reachable nodes for new nodes to start from", "DNS seeder", ""},
 	// BTC Nodes (btcnodes.io), Rodrigo Martínez's successor to Bitnodes
@@ -30,6 +41,8 @@ var aboutRules = []aboutRule{
 	// A Knots node under its operator's own name: only Knots defines service
 	// bits 27 and 28 (src/protocol.h, knots20260508), and these offer them.
 	{regexp.MustCompile(`^/GrayersDad:`), "Probably Bitcoin Knots under a name its operator chose", "Probably Knots", ""},
+	// Before the census rule, which would take it for "monitor" (koyn-sync).
+	{regexp.MustCompile(`/PeerMonitor:`), "Koyn's header tool, which collects block headers for the Koyn Arduino library", "Koyn header tool", ""},
 	{regexp.MustCompile(`(?i)census|survey|observatory|monitor|sonar`), "A node census: counts and watches reachable nodes", "Node census", ""},
 	// One address, 142 sessions in four days, each gone after its version
 	// message. Elastum was an exchange; elastum.io no longer resolves.
@@ -98,10 +111,39 @@ var aboutRules = []aboutRule{
 	{regexp.MustCompile(`^/VerifiedX:`), "A VerifiedX validator: a sidechain that holds bitcoin and follows Bitcoin's chain for it", "VerifiedX validator", ""},
 	{regexp.MustCompile(`(?i)^/LionSeed:`), "LionSeed, a DNS seeder that lists only the nodes of one fork", "LionSeed DNS seeder", ""},
 	{regexp.MustCompile(`(?i)^/gnoban:`), "gnoban, a tool that scores nodes and bans the ones its operator does not want", "gnoban node scorer", ""},
+	// "libbtc 0.1", no slashes (src/net.c in libbtc/libbtc).
 	{regexp.MustCompile(`^libbtc `), "libbtc, a small C library for Bitcoin wallets and tools", "libbtc C library", ""},
+	// "/haskoin-btc:<version>/" (Haskoin/Network/Constants.hs in
+	// haskoin/haskoin-core); haskoin-node, which Haskoin Store runs on, sends it.
 	{regexp.MustCompile(`(?i)^/haskoin-btc:`), "Haskoin, a Haskell library for Bitcoin wallets and tools", "Haskoin library (Haskell)", ""},
+	// Light clients and wallets that speak to nodes themselves, each string
+	// as its source sets it (13.11.2026). Active: bitfyn (internal/p2p/p2p.go
+	// in pin2t/bitfyn, on btcd's wire), Twotbit (PeerConnection.swift in
+	// pin2t/twotbit-macos, peer.h in pin2t/twotbit-qt), bitc
+	// (core/bitc-defs.h in mx4/bitc, "/bitc:0.1.0" without the closing
+	// slash). Older: BDK 0.x's compact filter backend
+	// (src/blockchain/compact_filters/peer.rs at v0.30.2), mSIGNA
+	// (src/networksync.cpp in ciphrex/mSIGNA), BitcoinSPV
+	// (Protocol/WSMessageVersion.m and Global/WSConfig.m in
+	// keeshux/BitcoinSPV), pycoinnet's "/Notoshi/"
+	// (pycoinnet/helpers/standards.py in richardkiss/pycoinnet), pyspv
+	// (pyspv/__init__.py and network.py in sarchar/pyspv), chainhorn
+	// (chainhorn/contrib/core in brain-zhang/chainhorn), Murmel
+	// (src/constructor.rs in rust-bitcoin/murmel), BitcoinSwift
+	// (PeerController.swift in DoubleSha/BitcoinSwift), Koyn's header tool
+	// (Main.java in elkrem/koyn-sync, on bitcoinj).
+	{regexp.MustCompile(`^/btcwire:[^/]*/bitfyn:`), "bitfyn, a desktop wallet that follows the chain by compact block filters", "bitfyn wallet", ""},
+	{regexp.MustCompile(`^/twotbit:`), "Twotbit, a desktop wallet that follows the chain by compact block filters", "Twotbit wallet", ""},
+	{regexp.MustCompile(`^/bitc:`), "bitc, a small Bitcoin wallet written in C", "bitc wallet (C)", ""},
+	{regexp.MustCompile(`^MagicalBitcoinWallet$`), "BDK, the Bitcoin Dev Kit wallet library, in its old compact filter backend", "BDK (old filter backend)", ""},
+	{regexp.MustCompile(`^Wallet v0\.1$`), "mSIGNA, a multisig desktop wallet", "mSIGNA wallet", ""},
+	{regexp.MustCompile(`^/BitcoinSPV:`), "BitcoinSPV, a light wallet library for iPhone and Mac", "BitcoinSPV library", ""},
+	{regexp.MustCompile(`^/Notoshi/$`), "pycoinnet, Richard Kiss's Python library for the Bitcoin protocol", "pycoinnet library", ""},
+	{regexp.MustCompile(`^/pyspv:`), "pyspv, a Python library for light wallets", "pyspv library", ""},
+	{regexp.MustCompile(`^/chainhorn:`), "chainhorn, a Python light client", "chainhorn light client", ""},
+	{regexp.MustCompile(`^/Murmel:`), "Murmel, a Rust light client", "Murmel light client", ""},
+	{regexp.MustCompile(`^/BitcoinSwift:`), "BitcoinSwift, a Swift library for the Bitcoin protocol", "BitcoinSwift library", ""},
 	{regexp.MustCompile(`(?i)^/sashimi:`), "sashimi, small Unix tools for Bitcoin by josibake", "sashimi Unix tools", ""},
-	{regexp.MustCompile(`(?i)^/bridge:`), "Probably castor, Floresta's Utreexo bridge node", "Probably castor bridge", ""},
 	{regexp.MustCompile(`(?i)^/rust-sha2-p2p-client/`), "gnostr-bitcoin, a terminal monitor of the Bitcoin network from the gnostr project", "gnostr-bitcoin monitor", ""},
 	{regexp.MustCompile(`(?i)^/Gnostr:`), "Names gnostr, the git+nostr tools", "Names gnostr", ""},
 	{regexp.MustCompile(`(?i)^/Aurum:`), "Aurumcoin, an altcoin built on Bitcoin Core 0.12", "Aurumcoin altcoin", ""},
@@ -156,21 +198,22 @@ var aboutRules = []aboutRule{
 	{regexp.MustCompile(`(?i)^/p2aburn:`), "p2aburn, a bot that sweeps P2A anchors (outputs anyone may spend) behind a Runes minting fleet", "p2aburn anchor sweeper", ""},
 	{regexp.MustCompile(`(?i)python-bitcoinlib`), "python-bitcoinlib, a Python library scripts use to talk to nodes", "python-bitcoinlib", ""},
 	{regexp.MustCompile(`(?i)pyblock`), "PyBLOCK, a node dashboard", "PyBLOCK dashboard", ""},
-	// Projects whose name matches; none of them publishes the exact string.
+	// Projects whose name matches; none of them publishes the exact string,
+	// so "Named like".
 	// Urbit reaches Bitcoin through its %btc-provider (github.com/urbit/urbit);
 	// Symbiosis Finance runs a Bitcoin bridge (symbiosis.finance/bridge-btc);
 	// DexCash Network is a blockchain of its own (dexcash.org). curl is the
 	// download tool and does not speak Bitcoin's protocol, so a peer naming it
 	// borrows the name.
-	{regexp.MustCompile(`^urbit$`), "Probably Urbit's Bitcoin software (%btc-provider)", "Probably Urbit", ""},
-	{regexp.MustCompile(`/Symbiosis Bitcoin Bridge:`), "Probably the Bitcoin bridge of Symbiosis Finance, built on btcd's Go library", "Probably Symbiosis bridge", ""},
+	{regexp.MustCompile(`^urbit$`), "Named like Urbit's Bitcoin software (%btc-provider)", "Named like Urbit", ""},
+	{regexp.MustCompile(`/Symbiosis Bitcoin Bridge:`), "Named like the Bitcoin bridge of Symbiosis Finance, on btcd's Go library", "Named like Symbiosis", ""},
 	{regexp.MustCompile(`^/curl:`), "Names curl, the download tool; curl itself does not speak Bitcoin's protocol", "Borrowed name (curl)", ""},
 	{regexp.MustCompile(`^/dexcash-nodes:`), "Named like DexCash Network, a blockchain of its own", "Named like DexCash", ""},
 	{regexp.MustCompile(`(?i)^/alt-bitnodes:`), "Named after Bitnodes, the public node map", "Named after Bitnodes", ""},
 	{regexp.MustCompile(`(?i)bitnodes`), "Bitnodes, a public map of reachable nodes", "Bitnodes crawler", ""},
 	// Seen from one netcup address, offering nothing and gone after a second;
 	// the name fits a node map, but nothing public says whose.
-	{regexp.MustCompile(`(?i)GlobalNodeMap`), "Probably a node map or counter", "Probably a node map", ""},
+	{regexp.MustCompile(`(?i)GlobalNodeMap`), "Names itself a node map; nothing public says whose", "Names a node map", ""},
 	// illuminodes/mantle: the node says "/mantle:0.1.0/", its replay tool,
 	// which fetches mainnet blocks from peers to validate them, says
 	// "/mantle-replay-iouring:0.1.0/" (crates/fetcher/src/lib.rs); beside it
@@ -195,12 +238,13 @@ var aboutRules = []aboutRule{
 	// and the timing: its repository was created on 15.10.2026, and the
 	// measured record of the node this was written for, from 13.9., shows the
 	// first reset-* name on 20.10.; by 25.10. there were seven, asking only
-	// for headers, most wanting no transactions.
-	{regexp.MustCompile(`(?i)^/reset-`), "Probably a header client for RESET, a coin clocked by Bitcoin's blocks that pays a small reward to whoever brings in a new block first", "Probably a RESET client", "RESET"},
+	// for headers, most wanting no transactions. That is timing and behaviour,
+	// not a source: "Named like" (13.11.2026).
+	{regexp.MustCompile(`(?i)^/reset-`), "Named like RESET, a coin clocked by Bitcoin's blocks that pays a small reward to whoever brings in a new block first", "Named like RESET", "RESET"},
 	// JWRD Computing (jwrd.net) maintains its own bitcoind of the old 0.5
 	// line, which writes version 99999 as 0.9.99.99; nothing public says it
 	// sends this name.
-	{regexp.MustCompile(`^/jwrd\.net:`), "Probably a node on JWRD Computing's own bitcoind, a fork of an early version", "Probably JWRD's bitcoind", ""},
+	{regexp.MustCompile(`^/jwrd\.net:`), "Named like JWRD Computing's own bitcoind, a fork of an early version", "Named like JWRD", ""},
 	{regexp.MustCompile(`^/btcwire:[^/]*/Satoshi:`), "Pool Detective, by MIT's Digital Currency Initiative: watches what mining pools do", "MIT's Pool Detective", "Pool Detective"},
 	{regexp.MustCompile(`(?i)/lit:v`), "lit, a Lightning node by MIT's Digital Currency Initiative, no longer developed", "lit Lightning node (MIT)", ""},
 	// observer/src/protocol.rs in 0xB10C/p2p-observer, work in progress in

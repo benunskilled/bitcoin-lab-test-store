@@ -23,17 +23,21 @@ func TestOtherAbouts(t *testing.T) {
 		{"/bitcoinj:0.17/", 70013, "bitcoinj, a Java library"},
 		{"/dsn.kastel.kit.edu/bitcoin:28.0.0/", 70016, "KIT Karlsruhe's Bitcoin network monitoring"},
 		{"/btcwire:0.5.0/:/", 70016, "A program on btcd's Go library that left its own name empty"},
-		{"/GlobalNodeMap:2.1/", 70016, "Probably a node map or counter"},
+		{"/GlobalNodeMap:2.1/", 70016, "Names itself a node map; nothing public says whose"},
 		{"/pycoinnet/", 70016, "Named like pycoinnet"},
-		{"/reset-header-agent:1.0/", 70016, "Probably a header client for RESET"},
-		{"/RESET-Headers:1.0/", 70016, "Probably a header client for RESET"},
+		{"/Notoshi/", 70016, "pycoinnet, Richard Kiss's Python library"},
+		{"/btcwire:0.5.0/bitfyn:0.1.0/", 70016, "bitfyn, a desktop wallet"},
+		{"/bitcoinj:0.14.7/PeerMonitor:1.0/", 70016, "Koyn's header tool"},
+		{"Wallet v0.1", 70016, "mSIGNA"},
+		{"/reset-header-agent:1.0/", 70016, "Named like RESET"},
+		{"/RESET-Headers:1.0/", 70016, "Named like RESET"},
 		{"/btcwire:0.5.0/", 70016, "A program on btcd's Go library that set no name of its own"},
 		{"/btcwire:0.5.0/peer:1.0.0/", 70016, "Probably a program built from the example code in btcd's Go library"},
 		{"/mantle-replay-iouring:0.1.0/", 70016, "Mantle's replay tool"},
 		{"/mantle-discover:0.1.0/", 70016, "Mantle's peer finder"},
 		{"/mantle-rank-peers:0.1.0/", 70016, "Mantle's speed test"},
 		{"/btcwire:0.4.1/Satoshi:0.19/", 70016, "Pool Detective"},
-		{"/jwrd.net:0.9.99.99/", 70016, "Probably a node on JWRD Computing's own bitcoind"},
+		{"/jwrd.net:0.9.99.99/", 70016, "Named like JWRD Computing's own bitcoind"},
 		{"/curl:8.5.0/", 70015, "Names curl, the download tool"},
 	}
 	for _, c := range cases {
@@ -258,7 +262,7 @@ func TestLabelGoesWithItsSentence(t *testing.T) {
 		return convertAt([]rawPeer{{Addr: "1.0.0.1:8333", ConnectionType: "inbound", Inbound: true, Subver: ua, Version: 70016,
 			ServicesNames: svc, RelayTxes: &yes, BytesRecvPerMsg: recv}}, time.Now())[0]
 	}
-	if p := conv("/reset-header-relay:0.1/", []string{}, nil); p.Label != "Probably a RESET client" || p.Name != "RESET" {
+	if p := conv("/reset-header-relay:0.1/", []string{}, nil); p.Label != "Named like RESET" || p.Name != "RESET" {
 		t.Errorf("RESET: label %q, name %q", p.Label, p.Name)
 	}
 	// Schildbach's wallet offering blocks is a disguise: its about is the reasons.

@@ -107,6 +107,9 @@ var kindRules = []struct {
 	// (connection/src/connection/configuration.rs in nyonson/bitcoin-peers);
 	// the Logos peer list checks onion peers for the Logos wallet
 	// (crawler/src/p2p.rs in logos-co/logos-bitcoin-peer-list).
+	// Koyn's header tool says "/bitcoinj:0.14.7/PeerMonitor:1.0/" (Main.java in
+	// elkrem/koyn-sync): a light client, not a crawler, whatever "monitor" says.
+	{"Other light client", regexp.MustCompile(`/PeerMonitor:`), false},
 	{"Crawler", regexp.MustCompile(`(?i)bitnodes|bluematt-tokio-client|metrika|nodemap|crawl|scan|seeder|census|monitor|observatory|sonar|scout|nebula|watch|listener|argus|readonly|bitdash|logosnaut|dnsseed|survey|lionseed|gnoban|^/p2p-observer:|^/p2p-extractor:|^/bip324-probe:|^/topology-probe:|^/p2p-probe:|^/probe:|^/BTC-Nodes:[^/]*/Probe/|^/btc-peers:|^/bitcoin-peers:|^/logos-peer-list:|^/bip110-observer:|^/nodes\.mom\.market:|^/btcwire:[^/]*/bitcoinstats\.com:`), false},
 	// Address indexers for wallets: they follow the chain but relay nothing.
 	// "/mempool" at the start of a part of the agent: "/mempool/" and
@@ -122,7 +125,7 @@ var kindRules = []struct {
 	// is Unstoppable Wallet on iPhone (Peer.swift in
 	// horizontalsystems/BitcoinCore.Swift), /BitcoinKit:/ the same wallet on
 	// Android (VersionMessage.kt in horizontalsystems/bitcoin-kit-android).
-	{"Wallet", regexp.MustCompile(`(?i)bitcoinj|breadwallet|/bread:|bither|multibit|wasabi|Bitcoin Wallet|^/blueberry:|^/winnow:|^/BitcoinKit:|^/WalletKit:|^/Ladybug:|^/hodlwallet:|/spvwallet:`), false},
+	{"Wallet", regexp.MustCompile(`(?i)bitcoinj|breadwallet|/bread:|bither|multibit|wasabi|Bitcoin Wallet|^/blueberry:|^/winnow:|^/BitcoinKit:|^/WalletKit:|^/Ladybug:|^/hodlwallet:|/spvwallet:|^/btcwire:[^/]*/bitfyn:|^/twotbit:|^/bitc:|^MagicalBitcoinWallet$|^Wallet v0\.1$|^/BitcoinSPV:`), false},
 	// Lightning wallets on lnd that follow the chain through neutrino, its
 	// BIP157 client: Zeus and Blixt among them. Named apart from the other
 	// light clients so the wallets among the peers show as wallets. In
@@ -154,7 +157,7 @@ var kindRules = []struct {
 	// compact filter hashes from peers that offer NODE_COMPACT_FILTERS
 	// (docs.bitflash.network/atomic-swaps); that "/Bitflash:btc-light/" is
 	// its name was not found in a source (11.11.2026).
-	{"Other light client", regexp.MustCompile(`(?i)BIP-157|^/bip157-fetch:|kyoto|^Yuki /|^/VerifiedX:|^/nakamoto:|^/bitcoin-s:|^Stacks/|/CaribouSPV:|^/EMPORION:|^/SYMMARTYS:|^/Bitflash:btc-light/`), false},
+	{"Other light client", regexp.MustCompile(`(?i)BIP-157|^/bip157-fetch:|kyoto|^Yuki /|^/VerifiedX:|^/nakamoto:|^/bitcoin-s:|^Stacks/|/CaribouSPV:|^/EMPORION:|^/SYMMARTYS:|^/Bitflash:btc-light/|^/Notoshi/$|^/pyspv:|^/chainhorn:|^/Murmel:|^/BitcoinSwift:|^/haskoin-btc:|^libbtc `), false},
 	// A small Utreexo node. Named so it is not lost in "Other", and counted as
 	// relaying like any node - the dashboard has no rule for it either.
 	{"Node (Floresta)", regexp.MustCompile(`(?i)floresta`), true},
