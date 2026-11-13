@@ -33,6 +33,7 @@ const hashblock = require('./lib/hashblock-subscriber');
 const { validatePool } = require('./lib/validate');
 const { manualAddPeer, probePeer, hostFromAddress } = require('./lib/manual-peer');
 const peerRotation = require('./lib/peer-rotation');
+const { whereOf } = require('./lib/queries/ranking-row');
 const stratumRace = require('./lib/stratum-race-toggle');
 const logger = require('./lib/logger').make('dashboard');
 const { makeWriteSource } = require('./lib/write-source');
@@ -855,10 +856,15 @@ const routes = {
   },
 
   'GET /api/rotation': async (req, res, url) => {
+    const status = peerRotation.readStatus();
     return sendJson(res, 200, {
       enabled: peerRotation.isEnabled(),
       // What the last pass saw and decided: the line at the top of the card.
-      status: peerRotation.readStatus(),
+      status,
+      // The candidate on trial, placed like a log entry: the log shows it at
+      // its top until the trial is decided (13.11.2026). Not stored: kept,
+      // it becomes the pass's own "Added" entry; let go, it was a try.
+      trialWhere: status && status.trial ? whereOf(status.trial.address) : null,
       log: peerRotation.recentLog(),
     });
   },

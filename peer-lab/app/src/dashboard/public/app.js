@@ -917,7 +917,7 @@ let rotationToggleEpoch = 0;
 // innerHTML - into a class attribute AND the text - without escaping. Nothing
 // a Bitcoin peer controls can reach it today, which is exactly the kind of
 // reasoning that stops being true after a refactor.
-const ROTATION_ACTIONS = new Set(['promote', 'retire', 'manual', 'unmanual', 'disconnect']);
+const ROTATION_ACTIONS = new Set(['promote', 'retire', 'manual', 'unmanual', 'disconnect', 'trial']);
 function rotationActionClass(action) {
   return ROTATION_ACTIONS.has(action) ? `rotation-${action}` : 'offline';
 }
@@ -925,6 +925,8 @@ function rotationActionClass(action) {
 function rotationActionLabel(action) {
   // From Core's address book into a free slot, and Core connected to it.
   if (action === 'promote') return 'Added';
+  // On trial right now: shown, never stored (trialEntry).
+  if (action === 'trial') return 'Testing';
   // Offline past its grace: the slot is free for the next candidate.
   if (action === 'retire') return 'Removed';
   if (action === 'manual') return 'Added by hand';
@@ -940,7 +942,7 @@ async function refreshRotation() {
   if (toggle && rotationToggleEpoch === epochAtRequest) toggle.checked = Boolean(data.enabled);
   foldSums();
 
-  lastSlotStatus = { enabled: Boolean(data.enabled), status: data.status || null };
+  lastSlotStatus = { enabled: Boolean(data.enabled), status: data.status || null, trialWhere: data.trialWhere || null };
   renderSlotStatus();
   lastRotationLog = data.log || [];
   renderRotationLog(lastRotationLog);
@@ -996,8 +998,11 @@ function slotStatusText(st, now) {
 function renderSlotStatus() {
   const box = document.getElementById('slot-status');
   if (!box || !lastSlotStatus) return;
-  box.hidden = !lastSlotStatus.enabled;
-  if (!lastSlotStatus.enabled) return;
+  // A trial is the log's top row (trialEntry), not a line of its own.
+  const trial = lastSlotStatus.status && lastSlotStatus.status.state === 'trial';
+  box.hidden = !lastSlotStatus.enabled || trial;
+  if (lastRotationLog) renderRotationLog(lastRotationLog);
+  if (!lastSlotStatus.enabled || trial) { foldSums(); return; }
   const t = slotStatusText(lastSlotStatus.status, Date.now());
   document.getElementById('slot-now').innerHTML = `<b>${t.head}</b> ${t.rest}`;
   foldSums();
@@ -1059,12 +1064,24 @@ function rotationEntryRow(entry) {
     </tr>`;
 }
 
+// The candidate on trial as a log row at the top, with what Core is doing
+// as its note, until the trial is decided: kept, the pass writes its own
+// "Added" entry; let go, the row is gone, a try is not news (13.11.2026).
+function trialEntry(now) {
+  const s = lastSlotStatus;
+  if (!s || !s.enabled || !s.status || s.status.state !== 'trial' || !s.status.trial) return null;
+  const t = slotStatusText(s.status, now);
+  return { action: 'trial', address: s.status.trial.address, at: s.status.trial.startedAt, where: s.trialWhere, note: t.rest };
+}
+
 function renderRotationLog(log) {
   const tbody = document.querySelector('#rotation-log-table tbody');
   if (!tbody) return;
 
   const visible = showAllLog ? log : log.slice(0, ROTATION_LOG_LIMIT);
-  tbody.innerHTML = visible.map((e) => rotationEntryRow(e)).join('')
+  const trial = trialEntry(Date.now());
+  const rows = (trial ? [trial] : []).concat(visible);
+  tbody.innerHTML = rows.map((e) => rotationEntryRow(e)).join('')
     || `<tr><td colspan="4" class="hint">Nothing yet.</td></tr>`;
 
   const toggle = document.getElementById('rotation-log-toggle');
