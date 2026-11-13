@@ -967,6 +967,10 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
   padding: 3px 12px; border-radius: 999px; cursor: pointer;
 }
 .panel .rt-switch button.on { background: #2c3b4a; color: var(--text); }
+/* The range and view switches are 23px tall: a finger gets 6px more above
+   and below, not beside, where the next button starts. */
+.rt-switch button { position: relative; }
+.rt-switch button::after { content: ""; position: absolute; inset: -6px 0; }
 .panel .inline-form input {
   background: #0f151b;
   border: 1px solid var(--border);
@@ -1319,6 +1323,8 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
 .panel .log-card:has(.lc-place .flag) .lc-sub { padding-left: 29px; }
 .panel .lc-what { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .panel .lc-when { flex: none; }
+.panel .lc-why { margin-top: 2px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.panel .log-card:has(.lc-place .flag) .lc-why { padding-left: 29px; }
 /* ---- V2 design ---- */
 /* Tiles: the label on top, the number under it; the block height twice as
    wide as a count, with who mined it. */
@@ -1396,7 +1402,8 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
   .panel .table-wrap:not(.cards) tr.can-act:not(:hover, .open, :focus-visible, :has(:is(button, input):focus-visible)) :is(td:last-child > button.danger) {
     color: var(--muted); background: transparent; border-color: var(--border);
   }
-  .panel .table-wrap:not(.cards) tr.can-act:not(:hover, .open, :focus-visible, :has(:is(button, input):focus-visible)) td.pool-enabled > label { opacity: .5; }
+  /* A switch that is on keeps its colour at rest: dimmed it read as off. */
+  .panel .table-wrap:not(.cards) tr.can-act:not(:hover, .open, :focus-visible, :has(:is(button, input):focus-visible)) td.pool-enabled > label:not(:has(input:checked)) { opacity: .5; }
   .panel .table-wrap:not(.cards) tr.can-act :is(td:last-child > button.danger, td.pool-enabled > label) { transition: color .12s ease, background-color .12s ease, border-color .12s ease, opacity .12s ease; }
 }
 .panel .cards.cards tr.can-act { position: relative; padding-right: 30px; }

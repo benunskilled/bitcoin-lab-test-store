@@ -37,6 +37,11 @@ jobs:
         with:
           go-version-file: peer-lab/peers/go.mod
           cache: false
+      # Formatting and vet first: go test runs only part of vet's checks.
+      - run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+        working-directory: peer-lab/peers
+      - run: go vet ./...
+        working-directory: peer-lab/peers
       - run: go test -race ./...
         working-directory: peer-lab/peers
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1

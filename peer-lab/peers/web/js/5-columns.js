@@ -191,7 +191,7 @@
 
   const TRANSPORT_TITLE = {
     v1: "Unencrypted - the original P2P protocol",
-    v2: "Encrypted (BIP324) - an observer on the line cannot read what passes between the nodes",
+    v2: "Encrypted (BIP324) - an eavesdropper on the line cannot read what passes between the nodes; it does not prove who is on the other end",
   };
 
   // Two lines per peer, as in the approved design: what a row is about on
@@ -201,7 +201,7 @@
     : p.region || (p.cc ? regionName(p.cc) : netLabel(p.network));
   const neverNote = (p) => !p.no_relay ? ""
     : p.fork ? "On a chain of its own, not yours - it can never deliver one of your blocks first."
-    : p.no_services ? "Offers no services, so it has no blocks to pass on - it can never deliver one first."
+    : p.no_services ? "Offers no services, so your node never asks it for blocks - it will not deliver one first."
     : "Software that does not pass blocks on - this peer can never deliver one first.";
   const line = (cls, text) => {
     const e = document.createElement("small");

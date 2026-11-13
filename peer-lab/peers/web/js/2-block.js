@@ -262,8 +262,7 @@
   const HOP_WHY = "Estimated from the peer's ping, as BIP152 counts it: a high-bandwidth peer sends a new block " +
     "without being asked, half a ping; any other announces it first, a ping and a half. Asking for missing " +
     "transactions adds a ping. These are minimums - more missing data or a slow line take longer, and a peer " +
-    "still busy with the block - checking it, sending it to others - answers only after that. Measured elsewhere (0xB10C, 2024), asking " +
-    "added about 115 ms in the median. Your node's own check of the block is not in it: Core reports a block " +
+    "still busy with the block - checking it, sending it to others - answers only after that. Your node's own check of the block is not in it: Core reports a block " +
     "only once it has checked it, so that time is counted in the stretch before, to your peer.";
   // Text cut off with an ellipsis is readable on hover - and only then, a
   // tooltip that repeats what is on screen says nothing. Whether it is cut

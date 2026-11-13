@@ -467,9 +467,11 @@ func TestTorExitPeer(t *testing.T) {
 	got := convert([]rawPeer{
 		{Addr: exit + ":51234", Network: "ipv4", ConnectionType: "inbound", Inbound: true, Subver: "/Satoshi:30.2.0/"},
 		{Addr: "192.0.2.1:51234", Network: "ipv4", ConnectionType: "inbound", Inbound: true, Subver: "/Satoshi:30.2.0/"},
+		// Dialled by your node: the node runs at that address, not behind it.
+		{Addr: exit + ":8333", Network: "ipv4", ConnectionType: "outbound-full-relay", Subver: "/Satoshi:30.2.0/"},
 	})
-	if !got[0].TorExit || got[1].TorExit {
-		t.Errorf("tor_exit = %v, %v; want true, false", got[0].TorExit, got[1].TorExit)
+	if !got[0].TorExit || got[1].TorExit || got[2].TorExit {
+		t.Errorf("tor_exit = %v, %v, %v; want true, false, false", got[0].TorExit, got[1].TorExit, got[2].TorExit)
 	}
 }
 

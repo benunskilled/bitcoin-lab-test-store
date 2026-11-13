@@ -335,11 +335,12 @@
   // is put back before anything is painted.
   //
   // Before that, a tight table gives up what matters least, a step at a time
-  // (see [data-drops] in style.css): Connected, then Ping, then Net, and
-  // Operator last (Ping and Connected matter less than anything
-  // else). The first three steps are also taken when the tables would fit
-  // but the kind's text would be cut. The address always stays.
-  const DROP_LEVELS = 4, KIND_LEVEL = 3;
+  // (see [data-drops] in style.css): Connected, then Ping, then Net. The
+  // first steps are also taken when the tables would fit but the kind's text
+  // would be cut. From CARD_LEVEL on (it would lose its net and First/Blocks)
+  // the peers become cards, so the fourth step - Operator - is never shown as
+  // a table. The address always stays.
+  const DROP_LEVELS = 4, KIND_LEVEL = 3, CARD_LEVEL = 3;
   function fitTables() {
     const y = window.scrollY;
     const wraps = [...document.querySelectorAll("#tables .scroll")];
@@ -376,9 +377,9 @@
       if (cards) unalign();
     }
     // Cards come as soon as a table would lose its net and First/Blocks
-    // (level 3): a card that wide shows more than the three columns left
+    // (CARD_LEVEL): a card that wide shows more than the three columns left
     // (12.11.2026).
-    if (level >= 3 && !cards) { cards = true; unalign(); }
+    if (level >= CARD_LEVEL && !cards) { cards = true; unalign(); }
     for (const w of wraps) w.classList.toggle("cards", cards);
     // A second reason only where it fits whole, never cut short (09.11.2026):
     // on a card its own line, in the wide list the grey line it sits in.

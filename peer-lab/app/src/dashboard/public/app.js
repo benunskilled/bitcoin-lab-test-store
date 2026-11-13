@@ -17,7 +17,8 @@ const LOCAL_POOLS_EVERY_MS = 5 * 60 * 1000;
 let localPoolsAtMs = 0;
 // The dashboard's word on each peer (/api/peers/ranking) is fetched on the
 // peer list's clock, not one of its own: with every second list (every 20s
-// or so). The list is the other script's and pauses with the page; should
+// or so; the peers service polls every 10 s, main.go `interval`). The list
+// is the other script's and pauses with the page; should
 // it stop coming at all, the 20-second refresh asks once it is 45s old.
 const RANKING_EVERY_MS = 18 * 1000;
 const RANKING_MAX_AGE_MS = 45 * 1000;
@@ -289,6 +290,7 @@ async function refreshStatus() {
   const askedAt = Date.now();
   const s = await api('/api/status');
   if (s.maxManualPeers) MAX_MANUAL_PEERS = s.maxManualPeers;
+  if (s.peerPollIntervalMs) GONE_RECHECK_MS = s.peerPollIntervalMs + 2000;
   applyStratumEnabled(Boolean(s.stratumRaceEnabled));
   // Folded, the Storage card says how big the database is.
   if (s.dbBytes != null) document.getElementById('storage-total').textContent = fmtBytes(s.dbBytes);
@@ -892,8 +894,9 @@ document.addEventListener('keydown', (e) => {
 // longer lists it as connected or manual, forget it. If it is still there
 // after the wait (the disconnect did not take), it shows again.
 const GONE_MS = 40000;
-// The page asks again just after Core's next connection snapshot has landed.
-const GONE_RECHECK_MS = 17000;
+// The page asks again just after Core's next connection snapshot has landed:
+// two seconds after its interval, which /api/status sends (15 s by default).
+let GONE_RECHECK_MS = 17000;
 const justGone = new Map(); // address -> time it was removed or disconnected
 const recheckGone = () => setTimeout(() => refreshPeers().catch(() => {}), GONE_RECHECK_MS);
 
@@ -1019,14 +1022,19 @@ function logPlace(entry) {
   if (w && w.country) return `<span class="flag">${flagOf(w.country)}</span>${escapeHtml(countryName(w.country))}`;
   if (w && HIDDEN_FLAG[w.region]) return `<span class="flag">${HIDDEN_FLAG[w.region]}</span>${escapeHtml(w.regionName)}`;
   const a = entry.address;
-  const net = /\.onion/.test(a) ? 'Tor' : /\.i2p/.test(a) ? 'I2P' : a.startsWith('[') ? 'IPv6' : 'IPv4';
-  const flag = HIDDEN_FLAG[net.toUpperCase()];
-  return flag ? `<span class="flag">${flag}</span>${net}` : net;
+  if (/\.onion/.test(a) || /\.i2p/.test(a)) {
+    const net = /\.onion/.test(a) ? 'Tor' : 'I2P';
+    return `<span class="flag">${HIDDEN_FLAG[net.toUpperCase()] || ''}</span>${net}`;
+  }
+  // Clearnet without a place: its continent if known, else say so - "IPv4"
+  // told the reader nothing the address under it does not.
+  if (w && w.regionName) return `<span class="flag">\u{1F310}</span>${escapeHtml(w.regionName)}`;
+  return '<span class="flag">\u{1F310}</span>Location unknown';
 }
 
 // A table row on a wide screen, where the place goes under the address as
 // for the manual peers above; on a phone a card like a peer's (the last
-// cell, hidden in the table): place and action, then address, why and when.
+// cell, hidden in the table): place and action, address and when, then why.
 function rotationEntryRow(entry) {
   // An address can be long (Tor): cut with an ellipsis, the whole of it in a
   // tooltip only when it was cut (the mouseover handler below).
@@ -1034,14 +1042,16 @@ function rotationEntryRow(entry) {
   const address = withPlaceLine(`<td class="cell-truncate" data-full="${escapeHtml(entry.address)}">${addr}</td>`, entry);
   const pill = `<span class="pill ${rotationActionClass(entry.action)}">${escapeHtml(rotationActionLabel(entry.action))}</span>`;
   const when = `${fmtDuration(Date.now() - entry.at)} ago`;
-  const why = entry.note ? ` \u00b7 ${escapeHtml(entry.note)}` : '';
+  // The reason is the most useful part of the card: a line of its own, in
+  // full - after the address it was cut to "Asia h…" on a phone.
+  const why = entry.note ? `<div class="lc-why">${escapeHtml(entry.note)}</div>` : '';
   return `
     <tr>
       <td class="hint" title="${escapeHtml(new Date(entry.at).toLocaleString())}">${when}</td>
       <td>${pill}</td>
       ${address}
       <td class="hint"${entry.replacedAddress ? ` title="In for ${escapeHtml(entry.replacedAddress)}"` : ''}>${escapeHtml(entry.note || '-')}</td>
-      <td class="log-card" data-label=""><div class="lc-top"><span class="lc-place">${logPlace(entry)}</span>${pill}</div><div class="lc-sub"><span class="lc-what">${addr}${why}</span><span class="lc-when">${when}</span></div></td>
+      <td class="log-card" data-label=""><div class="lc-top"><span class="lc-place">${logPlace(entry)}</span>${pill}</div><div class="lc-sub"><span class="lc-what">${addr}</span><span class="lc-when">${when}</span></div>${why}</td>
     </tr>`;
 }
 

@@ -89,9 +89,11 @@ const SECURITY_HEADERS = {
   'Referrer-Policy': 'no-referrer',
 };
 
-const READ_ONLY_BLOCKED = new Set([
-  '/api/peers/untrust', '/api/peers/manual-add', '/api/peers/add-manual', '/api/peers/disconnect', '/api/rotation/toggle',
-]);
+// A read-only copy refuses every write but one: the lock, which only marks a
+// row in this copy's own table. A list of what to refuse missed the pools,
+// the Stratum switch, the reset and the probe - and the switch opens
+// connections to public pools from the node.
+const READ_ONLY_ALLOWED = new Set(['POST /api/peers/keep']);
 
 // The ranking runs to a few hundred kB of JSON and comes again every 20 s;
 // gzip makes it a tenth of that, which counts on a phone away from home.
@@ -652,6 +654,9 @@ const routes = {
       blockHeight,
       live: queries.liveSummary(),
       maxManualPeers: config.maxManualPeers,
+      // How often the profiler takes Core's connection snapshot: the page asks
+      // again just after the next one when a peer was disconnected here.
+      peerPollIntervalMs: config.peerPollIntervalMs,
       // Whether the pool race is running at all. The page needs it before it
       // renders anything of that card: switched off there is nothing to show
       // and, more to the point, nothing being measured, so a table of
@@ -983,9 +988,10 @@ async function poolRoute(req, res, id) {
 }
 
 async function router(req, res, pathname, url) {
-  // Read-only test copy: nothing that would change Core's peers.
-  if (config.readOnly && req.method === 'POST' && READ_ONLY_BLOCKED.has(pathname)) {
-    return sendJson(res, 403, { error: 'This is a read-only test copy: it does not change Core\'s peers.' });
+  // Read-only test copy: no writes, see READ_ONLY_ALLOWED.
+  if (config.readOnly && req.method !== 'GET' && req.method !== 'HEAD' && pathname.startsWith('/api/')
+      && !READ_ONLY_ALLOWED.has(`${req.method} ${pathname}`)) {
+    return sendJson(res, 403, { error: 'This is a read-only test copy: it changes nothing.' });
   }
   const handler = routes[`${req.method} ${pathname}`];
   if (handler) {

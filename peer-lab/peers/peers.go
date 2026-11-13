@@ -611,7 +611,10 @@ func convertAt(raw []rawPeer, now time.Time) []Peer {
 		if net, ok := operator(r); ok {
 			p.ASN, p.Operator = net.Number, net.Name
 		}
-		if p.Network == "ipv4" || p.Network == "ipv6" {
+		// Only inbound: then the address may be the exit a peer came through.
+		// Outbound, your node dialled that very address, and the node runs
+		// there - on a host that is also a Tor exit, not behind one.
+		if r.Inbound && (p.Network == "ipv4" || p.Network == "ipv6") {
 			p.TorExit = torexit.Is(hostOf(r.Addr))
 		}
 		if p.Network == "not_publicly_routable" {

@@ -59,12 +59,22 @@ test('the rotation counts as off, whatever the database says', () => {
   assert.equal(peerRotation.isEnabled(), false);
 });
 
-test('peer-changing routes answer 403', async () => {
-  for (const p of ['/api/peers/untrust', '/api/peers/manual-add', '/api/peers/add-manual', '/api/peers/disconnect', '/api/rotation/toggle']) {
-    const { status, body } = await post(p, { address: '203.0.113.5:8333', enabled: true });
+test('every write route answers 403, the lock aside', async () => {
+  for (const p of ['/api/peers/untrust', '/api/peers/manual-add', '/api/peers/add-manual', '/api/peers/disconnect',
+    '/api/rotation/toggle', '/api/stratum/toggle', '/api/pools', '/api/reset', '/api/peers/probe']) {
+    const { status, body } = await post(p, { address: '203.0.113.5:8333', enabled: true, scope: 'peers', host: 'pool.example', port: 3333, label: 'x' });
     assert.equal(status, 403, p);
     assert.match(body.error, /read-only/);
   }
+  for (const method of ['PATCH', 'DELETE']) {
+    const res = await fetch(`${baseUrl}/api/pools/1`, {
+      method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: false }),
+    });
+    assert.equal(res.status, 403, `${method} /api/pools/1`);
+  }
+  // The lock only marks a row in this copy's own table.
+  const keep = await post('/api/peers/keep', { address: '203.0.113.5:8333', kept: true });
+  assert.notEqual(keep.status, 403);
 });
 
 test('/api/status tells the page it is read-only', async () => {

@@ -31,9 +31,8 @@ const config = require('../config');
 const network = require('../network');
 const { ipv4HostFromAddress, ipv4InCidr, unreachableNetwork } = require('../address');
 
-const REGION_NAMES = {
-  AF: 'Africa', AS: 'Asia', EU: 'Europe', NA: 'North America', OC: 'Oceania', SA: 'South America',
-};
+// The continent names, from the one list the slot fill writes its notes with.
+const { REGION_NAMES } = require('../peer-rotation/spread');
 
 function whereOf(address) {
   const hidden = unreachableNetwork(address);

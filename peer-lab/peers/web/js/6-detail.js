@@ -3,7 +3,7 @@
   // Opens under the row on a tap or a click (a phone has no hover), and stays
   // open across a refresh.
   const andList = (xs) => xs.length < 2 ? xs.join("") : xs.slice(0, -1).join(", ") + " and " + xs[xs.length - 1];
-  const NO_SERVICES_WHY = "This peer announced no services at all: it has nothing to offer other nodes";
+  const NO_SERVICES_WHY = "This peer announced no services: your node will not download blocks from it";
   const NO_TX_WHY = "Wants no transactions from your node";
   const bytesText = (n) => n >= 1e9 ? (n / 1e9).toFixed(1) + "\u00a0GB" : n >= 1e6 ? Math.round(n / 1e6) + "\u00a0MB" : n >= 1e3 ? Math.round(n / 1e3) + "\u00a0kB" : n + "\u00a0B";
   // The detail panel's parts: an element, a block with a heading, and one

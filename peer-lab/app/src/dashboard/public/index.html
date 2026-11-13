@@ -143,6 +143,7 @@
           <li><b class="star">★</b> Delivered the newest block first</li>
           <li><b class="addr-txt delivered">green address</b> Has delivered a block first</li>
           <li><b>🔒</b> On a manual peer: it keeps its slot, even while offline (locked)</li>
+          <li><b>35/70</b> First/Blocks: delivered the block first 35 times, out of the 70 blocks it was connected for</li>
           <li><b class="never-mark">⊘</b> Passes no blocks on, e.g. a wallet (never first)</li>
           <li><span class="kind disg">Disguised</span> Probably not the software it says it is</li>
           <li><span class="kind lion">LinkingLion</span> On 0xB10C's list of spy nodes</li>
@@ -293,12 +294,12 @@
             <tr>
               <th>Pool</th>
               <th data-drop="3">Host:Port</th>
-              <th>Wins</th>
-              <th>Win %</th>
+              <th title="How often this pool sent the first job for a new block">Wins</th>
+              <th title="Wins out of the blocks it was raced for">Win %</th>
               <th data-card="Last" title="How long after the first pool's job this pool's job came, for the newest block">Last block</th>
               <th data-card="Avg" title="How long after the first pool's job this pool's job came, on average over the range">Average</th>
-              <th data-drop="1">Seen</th>
-              <th data-drop="1">Miss</th>
+              <th data-drop="1" title="New blocks this pool was raced for in the range">Seen</th>
+              <th data-drop="1" title="Blocks it sent no job for within the race's time">Miss</th>
               <th>Enabled</th>
               <th></th>
             </tr>
