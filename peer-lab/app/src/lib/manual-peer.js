@@ -211,7 +211,8 @@ async function probePeer(rawInput) {
  * IPv6 through a proxy (Tor), a direct test would connect from the node's
  * real address - the one thing such a node keeps hidden. getnetworkinfo says
  * which, asked only when someone tests or adds a peer, and kept ten minutes.
- * A failed answer does not block: the node then runs as it did before.
+ * A failed answer falls back on the last one; with none at all it does not
+ * block, and the node runs as it did before.
  */
 const NETINFO_MS = 10 * 60 * 1000;
 let netInfo = null, netInfoAt = 0;
@@ -224,7 +225,9 @@ async function directRefusal(addr) {
       netInfoAt = Date.now();
     } catch (err) {
       logger.debug('getnetworkinfo failed before a probe', { error: err.message });
-      return null;
+      // An older answer still holds: a node that sent IPv4 through Tor ten
+      // minutes ago almost surely still does, and guessing wrong leaks it.
+      if (!netInfo) return null;
     }
   }
   // A name could resolve to either; an IPv6 literal has a colon. A proxy on

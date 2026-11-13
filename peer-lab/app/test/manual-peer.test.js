@@ -544,3 +544,26 @@ test('no direct test where the node uses a proxy, and none for Tor names', async
     server.close();
   }
 });
+
+// Ten minutes on, Core does not answer getnetworkinfo: the last answer still
+// says IPv4 goes through Tor, and a direct test would leak the real address.
+test('an old proxy answer still refuses when Core does not answer again', async (t) => {
+  let connections = 0;
+  const { server, port } = await withListeningPort((socket) => { connections += 1; socket.destroy(); });
+  try {
+    mock.method(rpc, 'getNetworkInfo', async () => ({ networks: [{ name: 'ipv4', limited: false, reachable: true, proxy: '127.0.0.1:9050' }] }));
+    assert.match((await probePeer(`127.0.0.1:${port}`)).error, /proxy/);
+    mock.restoreAll();
+    mock.method(rpc, 'getNetworkInfo', async () => { throw new Error('timeout'); });
+    const later = Date.now() + 11 * 60 * 1000;
+    t.mock.method(Date, 'now', () => later);
+    const again = await probePeer(`127.0.0.1:${port}`);
+    t.mock.restoreAll();
+    assert.equal(again.ok, false);
+    assert.match(again.error, /proxy/);
+    assert.equal(connections, 0, 'not even a connection attempt');
+  } finally {
+    mock.restoreAll();
+    server.close();
+  }
+});
