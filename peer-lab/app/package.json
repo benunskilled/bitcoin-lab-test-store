@@ -1,6 +1,6 @@
 {
   "name": "peer-lab",
-  "version": "0.1.0-test.21.1",
+  "version": "0.1.0-test.22.1",
   "description": "Measures which of your peers brings you new blocks first and ranks them. Slot Fill fills Core's manual slots where your node has the fewest connections. Stratum Race times your own mining pool against public ones. Umbrel app.",
   "license": "MIT",
   "private": true,
