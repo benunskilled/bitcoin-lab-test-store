@@ -376,6 +376,7 @@
   }
 
   function setGroup(group) {
+    impliedGroup = false;
     state.group = state.group === group ? null : group;
     state.kind = null;
     state.sub = null;
@@ -385,22 +386,37 @@
   }
   // `group` is given when the pick comes from a card that shows its only
   // group's kinds straight away, without a chip of the group to click first.
+  // That group came with the pick, so it goes with it: unpicking it again
+  // leaves the page unfiltered, as it was, not filtered to that group.
+  let impliedGroup = false;
+  function pickIn(group) {
+    if (!group) return;
+    if (!state.group) impliedGroup = true;
+    state.group = group;
+  }
+  function dropImplied() {
+    if (impliedGroup && !state.kind && !state.sub && !state.label) state.group = null;
+    if (!state.group) impliedGroup = false;
+  }
   function setKind(kind, group) {
-    if (group) state.group = group;
+    pickIn(group);
     state.kind = state.kind === kind ? null : kind;
     state.sub = null;
     state.label = null;
     state.allSubs = false;
+    dropImplied();
     applyFilters();
   }
   function setSub(sub, group) {
-    if (group) state.group = group;
+    pickIn(group);
     state.sub = state.sub === sub ? null : sub;
+    dropImplied();
     applyFilters();
   }
   function setLabel(label, group) {
-    if (group) state.group = group;
+    pickIn(group);
     state.label = state.label === label ? null : label;
+    dropImplied();
     applyFilters();
   }
 

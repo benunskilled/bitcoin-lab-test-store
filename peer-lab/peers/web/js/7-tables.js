@@ -183,7 +183,10 @@
     if (fc) {
       const nodes = mix.querySelector('[data-group="Nodes"]');
       if (nodes) nodes.after(fc);
-      else mix.insertBefore(fc, mix.querySelector(".syncing")?.nextSibling || mix.firstChild);
+      else {
+        const sync = mix.querySelector(".syncing");
+        if (sync) sync.after(fc); else mix.prepend(fc);
+      }
     }
     summary.append(h, count);
     if (mix.childElementCount) summary.appendChild(mix);
