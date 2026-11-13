@@ -6,7 +6,7 @@ attribution link the licence asks for; it covers this table and `geo.bin`.
 
 Source: `dbip-asn-ipv4.mmdb` and `dbip-asn-ipv6.mmdb` from the `latest` release
 of <https://github.com/sapics/ip-location-db>, which republishes that data as
-`.mmdb`. Current table: database build 2026-11-05, 83,024 networks, 487,505
+`.mmdb`. Current table: database build 2026-11-13 (same content as the 2026-11-05 build), 83,024 networks, 487,505
 IPv4 and 130,543 IPv6 ranges, 7,915,025 bytes.
 
 **Not from npm.** The same project publishes these databases as npm packages
@@ -20,6 +20,10 @@ ranges get an explicit "unknown" entry so a lookup cannot fall through into the
 next range and answer with somebody else's network.
 
 ## Refresh
+
+`sh refresh-data.sh` in `peer-lab/` rebuilds this table, `geo.bin` and the
+dashboard's `network.bin` from one download, so the operator shown in the peer
+list and under the manual peers always comes from the same database. By hand:
 
 ```sh
 pip install maxminddb

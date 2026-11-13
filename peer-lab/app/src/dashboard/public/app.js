@@ -1033,8 +1033,8 @@ function logPlace(entry) {
 
 // A table row on a wide screen, where the place goes under the address as
 // for the manual peers above; on a phone a card like a peer's (the last
-// cell, hidden in the table): place and action, provider, address and when,
-// then why.
+// cell, hidden in the table): place and action, address and when, the
+// provider under it as in the table, then why.
 function rotationEntryRow(entry) {
   // An address can be long (Tor): cut with an ellipsis, the whole of it in a
   // tooltip only when it was cut (the mouseover handler below).
@@ -1045,7 +1045,7 @@ function rotationEntryRow(entry) {
   // The reason is the most useful part of the card: a line of its own, in
   // full - after the address it was cut to "Asia h…" on a phone.
   const why = entry.note ? `<div class="lc-why">${escapeHtml(entry.note)}</div>` : '';
-  // The provider over the address, as the wide table shows it under the address.
+  // The provider under the address, as the wide table shows it.
   const op = entry.where && entry.where.operator ? `<div class="lc-op">${escapeHtml(entry.where.operator)}</div>` : '';
   return `
     <tr>
@@ -1053,7 +1053,7 @@ function rotationEntryRow(entry) {
       <td>${pill}</td>
       ${address}
       <td class="hint"${entry.replacedAddress ? ` title="In for ${escapeHtml(entry.replacedAddress)}"` : ''}>${escapeHtml(entry.note || '-')}</td>
-      <td class="log-card" data-label=""><div class="lc-top"><span class="lc-place">${logPlace(entry)}</span>${pill}</div>${op}<div class="lc-sub"><span class="lc-what">${addr}</span><span class="lc-when">${when}</span></div>${why}</td>
+      <td class="log-card" data-label=""><div class="lc-top"><span class="lc-place">${logPlace(entry)}</span>${pill}</div><div class="lc-sub"><span class="lc-what">${addr}</span><span class="lc-when">${when}</span></div>${op}${why}</td>
     </tr>`;
 }
 
@@ -1423,7 +1423,10 @@ document.getElementById('manual-test-button').addEventListener('click', async ()
     // one its inbound connection to us came from.
     manualAddResult(`reachable - a node answered at ${result.address}. Nothing was added.`, 'ok');
   } catch (err) {
-    manualAddResult(`not reachable - ${err.message}`, 'error');
+    // Refused before any test (a Tor name, a proxied network, a read-only
+    // copy): "not reachable" would claim something nobody checked.
+    const untested = /cannot be tested|through a proxy|does not use|read-only/.test(err.message);
+    manualAddResult(`${untested ? 'not tested' : 'not reachable'} - ${err.message}`, 'error');
   } finally {
     manualAddBusy(false);
   }

@@ -17,7 +17,7 @@ process.env.LOG_LEVEL = 'error';
 
 const db = require('../src/lib/db');
 const rpc = require('../src/lib/rpc');
-const { manualAddPeer, probePeer, resolveHostPort, formatAddress, versionMessage, MAGIC } = require('../src/lib/manual-peer');
+const { manualAddPeer, probePeer, resolveHostPort, formatAddress, versionMessage, MAGIC, _resetNetInfo } = require('../src/lib/manual-peer');
 const config = require('../src/lib/config');
 
 test.before(() => {
@@ -26,6 +26,7 @@ test.before(() => {
 
 test.afterEach(() => {
   mock.restoreAll();
+  _resetNetInfo();
   // Manual slots are now a finite resource that adds compete for, so a test
   // leaving its peer behind would silently change what the next one is
   // testing once the cap is reached. The rotation log too: the peers here sit
@@ -495,6 +496,50 @@ test('an address typed into the box arrives starred', async () => {
       db.instance.prepare('SELECT kept FROM trusted_peer WHERE address = ?').get(address).kept,
       1,
     );
+  } finally {
+    server.close();
+  }
+});
+
+// The test goes out from this container, not through Core's proxy. On a node
+// that sends IPv4 through Tor that would connect from its real address, and a
+// Tor name would go to Docker's resolver: neither is tried at all.
+test('no direct test where the node uses a proxy, and none for Tor names', async () => {
+  let connections = 0;
+  const { server, port } = await withListeningPort((socket) => { connections += 1; socket.destroy(); });
+  try {
+    const net4 = (proxy) => async () => ({ networks: [{ name: 'ipv4', limited: false, reachable: true, proxy }, { name: 'ipv6', limited: false, reachable: true, proxy: '' }] });
+    mock.method(rpc, 'getNetworkInfo', net4('127.0.0.1:9050'));
+    const proxied = await probePeer(`127.0.0.1:${port}`);
+    assert.equal(proxied.ok, false);
+    assert.match(proxied.error, /proxy/);
+    assert.equal(connections, 0, 'not even a connection attempt');
+
+    const onion = await probePeer('abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz23.onion:8333');
+    assert.equal(onion.ok, false);
+    assert.match(onion.error, /^Tor peers cannot be tested/);
+
+    mock.restoreAll();
+    _resetNetInfo();
+    mock.method(rpc, 'getNetworkInfo', net4(''));
+    await probePeer(`127.0.0.1:${port}`);
+    assert.equal(connections, 1, 'a direct network is tested as before');
+
+    // No IPv6 on this node: an IPv6 address is not tested, a name still is.
+    mock.restoreAll();
+    _resetNetInfo();
+    mock.method(rpc, 'getNetworkInfo', async () => ({ networks: [{ name: 'ipv4', limited: false, reachable: true, proxy: '' }, { name: 'ipv6', limited: false, reachable: false, proxy: '' }] }));
+    assert.match((await probePeer(`[::1]:${port}`)).error, /does not use IPv6/);
+    await probePeer(`localhost:${port}`);
+    assert.ok(connections >= 2, 'a name is tested on a node without IPv6');
+
+    // No clearnet at all (onlynet=onion, no proxy for it): a name is not tested either.
+    mock.restoreAll();
+    _resetNetInfo();
+    const before = connections;
+    mock.method(rpc, 'getNetworkInfo', async () => ({ networks: [{ name: 'ipv4', limited: true, reachable: false, proxy: '' }, { name: 'ipv6', limited: true, reachable: false, proxy: '' }] }));
+    assert.match((await probePeer(`localhost:${port}`)).error, /does not use IPv4 or IPv6/);
+    assert.equal(connections, before, 'not even a connection attempt');
   } finally {
     server.close();
   }

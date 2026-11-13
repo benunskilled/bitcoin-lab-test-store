@@ -6,7 +6,8 @@ const config = require('./config');
 const peerSync = require('./peer-sync');
 const { isValidPort } = require('./validate');
 // Address parsing/formatting lives in one module - see address.js for why.
-const { resolveHostPort, formatAddress, hostFromAddress } = require('./address');
+const { resolveHostPort, formatAddress, hostFromAddress, unreachableNetwork } = require('./address');
+const rpc = require('./rpc');
 const logger = require('./logger').make('manual-peer');
 const { logAction } = require('./peer-rotation/log');
 const spread = require('./peer-rotation/spread');
@@ -157,7 +158,9 @@ async function manualAddPeer(rawInput, label, { kept = false } = {}) {
 
 /**
  * Reachability only: is there a Bitcoin node listening on this host, and on
- * which port? Writes nothing, disconnects nothing, calls no RPC.
+ * which port? Writes nothing and disconnects nothing; the only RPC is
+ * getnetworkinfo, cached, to ask whether a direct test is safe at all
+ * (directRefusal).
  *
  * Split out of manualAddPeer (which now calls it) so the dashboard can offer
  * the same question as a standalone action. "Can I even add this peer?" and
@@ -170,6 +173,8 @@ async function probePeer(rawInput) {
     return { ok: false, error: 'invalid host/IP' };
   }
   const { addr, port: explicitPort } = resolveHostPort(host);
+  const refused = await directRefusal(addr);
+  if (refused) return { ok: false, error: refused };
 
   // Already has an explicit :port - respect it and skip the port search.
   if (explicitPort != null) {
@@ -195,6 +200,51 @@ async function probePeer(rawInput) {
     ok: false,
     error: `no node answering on ${config.manualPeerPorts.join(' or ')}`,
   };
+}
+
+/**
+ * Why this container must not dial the host itself, or null when it may.
+ *
+ * The test goes out from here, not through Core's proxy. A Tor or I2P name
+ * cannot be reached that way at all, and asking for it would hand the name to
+ * Docker's resolver and the one behind it. And on a node that sends IPv4 or
+ * IPv6 through a proxy (Tor), a direct test would connect from the node's
+ * real address - the one thing such a node keeps hidden. getnetworkinfo says
+ * which, asked only when someone tests or adds a peer, and kept ten minutes.
+ * A failed answer does not block: the node then runs as it did before.
+ */
+const NETINFO_MS = 10 * 60 * 1000;
+let netInfo = null, netInfoAt = 0;
+async function directRefusal(addr) {
+  const hidden = unreachableNetwork(addr);
+  if (hidden) return `${hidden} peers cannot be tested or added here: Peer Lab reaches peers only directly`;
+  if (!netInfo || Date.now() - netInfoAt > NETINFO_MS) {
+    try {
+      netInfo = await rpc.getNetworkInfo();
+      netInfoAt = Date.now();
+    } catch (err) {
+      logger.debug('getnetworkinfo failed before a probe', { error: err.message });
+      return null;
+    }
+  }
+  // A name could resolve to either; an IPv6 literal has a colon. A proxy on
+  // any network the address may use refuses (the leak). A network Core
+  // cannot use at all refuses an address that is surely on it, and a name
+  // only when neither IPv4 nor IPv6 is usable - a node without IPv6 still
+  // tests names, a node without clearnet (onlynet=onion) tests none.
+  const nets = /^[0-9.]+$/.test(addr) ? ['ipv4'] : addr.includes(':') ? ['ipv6'] : ['ipv4', 'ipv6'];
+  const info = nets.map((name) => (netInfo && netInfo.networks || []).find((x) => x.name === name)).filter(Boolean);
+  const label = (n) => (n.name === 'ipv4' ? 'IPv4' : 'IPv6');
+  const proxied = info.find((n) => n.proxy);
+  if (proxied) {
+    return `your node reaches ${label(proxied)} peers only through a proxy (such as Tor) - ` +
+      'a test from here would connect from its real address, so none is made';
+  }
+  if (info.length && info.every((n) => n.limited || !n.reachable)) {
+    return `your node does not use ${info.map(label).join(' or ')} - it could not connect to this peer, ` +
+      'and a test from here would go past its settings, so none is made';
+  }
+  return null;
 }
 
 /**
@@ -232,6 +282,8 @@ function evictionNote(result) {
 }
 
 module.exports = {
+  // For the tests: forget the cached getnetworkinfo.
+  _resetNetInfo: () => { netInfo = null; netInfoAt = 0; },
   manualAddPeer,
   probePeer,
   hostFromAddress,

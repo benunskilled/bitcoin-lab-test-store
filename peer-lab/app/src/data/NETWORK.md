@@ -12,10 +12,12 @@ ASN Lite and IP to Country Lite** databases, licensed CC BY 4.0
 licence asks for. The `.mmdb` files come from the `latest` release of
 <https://github.com/sapics/ip-location-db>, which republishes that data and
 rebuilds it daily - not from npm, where the same project says the data has
-errors and updates have stopped. The peers service embeds the same operator table.
+errors and updates have stopped. The peers service embeds an operator table
+from the same ASN database (peers/asn/asn.bin); `sh refresh-data.sh` in
+`peer-lab/` builds both from one download, so they cannot disagree.
 
 The continent of each country comes from `pycountry-convert` at build time.
-Current table: database build 2026-11-08, 83,024 networks, 250 countries,
+Current table: database build 2026-11-13 (same content as the 2026-11-08 build), 83,024 networks, 250 countries,
 13,788,128 bytes.
 
 ## Refresh
