@@ -7,13 +7,53 @@ concurrency:
   group: peer-lab-test-release
   cancel-in-progress: false
 jobs:
+  # The push that brought this commit has already run Peer Lab CI on it; a
+  # green run there is the same proof as running every check again, which
+  # took seven of the ten minutes. Still running: wait for it. No run for
+  # this commit (none is started by a push that changed nothing it watches):
+  # run the checks here, as before.
+  ci-status:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      green: ${{ steps.find.outputs.green }}
+    steps:
+      - id: find
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          id=$(gh run list --workflow peer-lab.yml --commit "$SHA" --event push --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -z "$id" ]; then
+            echo "No Peer Lab CI run for $SHA: the checks run here."
+            echo "green=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          gh run watch "$id" --interval 15 > /dev/null || true
+          conclusion=$(gh run view "$id" --json conclusion --jq .conclusion)
+          echo "Peer Lab CI run $id for $SHA: $conclusion"
+          case "$conclusion" in
+            success) echo "green=true" >> "$GITHUB_OUTPUT" ;;
+            failure) echo "::error::Peer Lab CI failed on this commit; nothing is published."; exit 1 ;;
+            # Cancelled by a later push, say: no verdict, so check here.
+            *) echo "green=false" >> "$GITHUB_OUTPUT" ;;
+          esac
   checks:
+    needs: ci-status
+    if: needs.ci-status.outputs.green != 'true'
     uses: ./.github/workflows/peer-lab.yml
   publish:
-    needs: checks
+    needs: [ci-status, checks]
     # From a branch only: from a tag, the push below would make a branch of
-    # the tag's name.
-    if: github.ref_type == 'branch'
+    # the tag's name. Skipped checks are fine only when CI was green above.
+    if: >-
+      always() && github.ref_type == 'branch'
+      && needs.ci-status.result == 'success'
+      && (needs.checks.result == 'success'
+          || (needs.checks.result == 'skipped' && needs.ci-status.outputs.green == 'true'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
