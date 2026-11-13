@@ -31,6 +31,27 @@ func libreRelay(subver string, services []string) (kind, about, label string) {
 		return "", "", ""
 	}
 	garbageman := "Claims: Libre Relay\nProbably: Garbageman - a Knots fork that poses as Libre Relay and drops what it gets"
+	// Libre Relay and Garbageman nodes start from NETWORK_LIMITED | WITNESS
+	// | bit 29 (g_local_services in init.cpp, libre-relay-v31.2 and
+	// garbageman-v29), so the bit without NETWORK_LIMITED is a tool looking
+	// for them. Two send exactly NETWORK, WITNESS and bit 29 under a fixed
+	// name: tx-pigeon pushes transactions to such nodes as
+	// "/Satoshi:27.0.0/" (github.com/stutxo/tx-pigeon, src/main.rs,
+	// build_version_msg), Garbageman Nodes Manager looks for them as
+	// "/Satoshi:29.1.0/" (github.com/paulscode/garbageman-nm,
+	// webui/api/src/services/peer-discovery.ts, SERVICES_GARBAGEMAN). The
+	// missing service itself is told by anachronism, as an "Also:".
+	if !slices.Contains(services, "NETWORK_LIMITED") {
+		exact := len(services) == 3 && slices.Contains(services, "NETWORK") && slices.Contains(services, "WITNESS")
+		tool := "a tool looking for Libre Relay nodes"
+		switch {
+		case exact && strings.HasPrefix(subver, "/Satoshi:27.0.0/"):
+			tool = "tx-pigeon, a tool that pushes transactions to Libre Relay nodes"
+		case exact && strings.HasPrefix(subver, "/Satoshi:29.1.0/"):
+			tool = "Garbageman Nodes Manager looking for Libre Relay nodes"
+		}
+		return fakeWalletKind, "Claims: Libre Relay\nProbably: " + tool, ""
+	}
 	switch {
 	case strings.Contains(subver, "Knots:"):
 		// Libre Relay is Core; only a Garbageman built with its Knots name left in says Knots.
@@ -65,7 +86,19 @@ const forkTipSlack = 6
 const (
 	reducedDataService = "UNKNOWN[2^27]"
 	blake2bService     = "UNKNOWN[2^28]"
+	purityService      = "UNKNOWN[2^25]"
 )
+
+// Bitcoin Purity offers bit 25 (NODE_PURITY_ASERT) beside bit 27 by default
+// (g_local_services in src/init.cpp, github.com/saltduck/bitcoinpurity at
+// 833e2f6), and only it defines bit 25 (src/protocol.h). With -uaspoof=1 its
+// name shrinks to "/Satoshi:29.4/" and the bits are all that is left of it.
+func purityByBits(subver string, services []string) bool {
+	return strings.HasPrefix(subver, "/Satoshi:") && !strings.Contains(subver, "/Purity:") &&
+		slices.Contains(services, purityService) && slices.Contains(services, reducedDataService)
+}
+
+const purityByBitsAbout = "Probably Bitcoin Purity under a bare Core name: only Purity offers service bit 25, here beside BIP110's bit 27"
 
 // forkOf is the flag and its hover text for a peer offering one of those
 // bits, or "", "". A peer whose headers reach this node's tip follows this

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -97,5 +98,50 @@ func TestSyncingFrom(t *testing.T) {
 		ServicesNames: []string{"NETWORK", "WITNESS", "NETWORK_LIMITED"}, ConnTime: ago(12), BytesSentPerMsg: blocks(463)}})[0]
 	if p.Kind != "Node (Core)" || p.SyncMB != 463 {
 		t.Errorf("a Core node syncing: %q, %d MB", p.Kind, p.SyncMB)
+	}
+}
+
+// The Libre Relay bit without NETWORK_LIMITED is a tool looking for Libre
+// Relay nodes, not one of them; two tools are named by their exact services
+// and name.
+func TestLibreRelayBitWithoutNetworkLimited(t *testing.T) {
+	tool := []string{"NETWORK", "WITNESS", "UNKNOWN[2^29]"}
+	for _, c := range []struct {
+		subver string
+		svc    []string
+		about  string
+		tell   string
+	}{
+		{"/Satoshi:27.0.0/", tool, "Claims: Libre Relay\nProbably: tx-pigeon, a tool that pushes transactions to Libre Relay nodes", "no NETWORK_LIMITED"},
+		{"/Satoshi:29.1.0/", tool, "Claims: Libre Relay\nProbably: Garbageman Nodes Manager looking for Libre Relay nodes", "no NETWORK_LIMITED"},
+		{"/Satoshi:30.2.0/", tool, "Claims: Libre Relay\nProbably: a tool looking for Libre Relay nodes", "no NETWORK_LIMITED"},
+		{"/Satoshi:27.0.0/", []string{"WITNESS", "UNKNOWN[2^29]"}, "Claims: Libre Relay\nProbably: a tool looking for Libre Relay nodes", "no NETWORK_LIMITED"},
+	} {
+		got := convert([]rawPeer{{Addr: "1.0.0.1:8333", ConnectionType: "inbound", Inbound: true, Version: 70016,
+			Subver: c.subver, Transport: "v1", ServicesNames: c.svc}})[0]
+		if got.Kind != fakeWalletKind || !strings.HasPrefix(got.About, c.about+"\n") || got.Tell != c.tell {
+			t.Errorf("%s %v: got %q / %q / %q", c.subver, c.svc, got.Kind, got.About, got.Tell)
+		}
+	}
+}
+
+// Purity under -uaspoof=1 says "/Satoshi:29.4/"; its bits 25 and 27 still
+// say what it is. Bit 25 alone, or with its own name, is left to the other rules.
+func TestPurityByBits(t *testing.T) {
+	purity := []string{"NETWORK", "WITNESS", "NETWORK_LIMITED", "UNKNOWN[2^25]", "UNKNOWN[2^27]"}
+	got := convert([]rawPeer{{Addr: "1.0.0.1:8333", ConnectionType: "inbound", Inbound: true, Version: 70016,
+		Subver: "/Satoshi:29.4/", Transport: "v2", ServicesNames: purity}})[0]
+	if got.Kind != "Other chain" || got.About != purityByBitsAbout || got.Label != "Probably Purity" {
+		t.Errorf("spoofed Purity: got %q / %q / %q", got.Kind, got.About, got.Label)
+	}
+	got = convert([]rawPeer{{Addr: "1.0.0.1:8333", ConnectionType: "inbound", Inbound: true, Version: 70016,
+		Subver: "/Satoshi:29.4/Purity:1.1.2/", Transport: "v2", ServicesNames: purity}})[0]
+	if got.Kind != "Other chain" || got.About == purityByBitsAbout {
+		t.Errorf("named Purity: got %q / %q", got.Kind, got.About)
+	}
+	got = convert([]rawPeer{{Addr: "1.0.0.1:8333", ConnectionType: "inbound", Inbound: true, Version: 70017,
+		Subver: "/Satoshi:32.1.0/", Transport: "v2", ServicesNames: purity[:4]}})[0]
+	if got.Kind == "Other chain" {
+		t.Errorf("bit 25 alone: got %q", got.Kind)
 	}
 }

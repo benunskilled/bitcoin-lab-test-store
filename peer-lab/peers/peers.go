@@ -456,6 +456,9 @@ func convertAt(raw []rawPeer, now time.Time) []Peer {
 			p.Kind, p.Pool, p.About, p.Label = "Pool node", "ViaBTC", viaBitpeerAbout, "Probably ViaBTC's relay"
 			labelled = p.About
 			p.PoolProof = "Found by 0xB10C, b10c.me"
+		case purityByBits(r.Subver, r.ServicesNames):
+			p.Kind, p.About, p.Label, p.NoRelay = "Other chain", purityByBitsAbout, "Probably Purity", true
+			labelled = p.About
 		case libreKind != "" && protocolMismatch(r.Subver, r.Version) == "":
 			p.Kind, p.About, p.Label = libreKind, libreAbout, libreLabel
 			labelled = p.About
