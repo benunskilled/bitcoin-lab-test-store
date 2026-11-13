@@ -974,11 +974,13 @@ function slotStatusText(st, now) {
     }
     case 'full': {
       const off = slots.offline || [];
+      // freesInMs is from the pass that wrote the status, up to ten minutes ago.
+      const since = st.at ? Math.max(0, now - st.at) : 0;
       const peerIn = (o) => (o.where ? `Your peer in ${escapeHtml(o.where)}` : 'One peer');
       const rest = off.length
         ? off.map((o) => (o.keeps ? `${peerIn(o)} is offline, but locked, so it keeps its slot.`
           : o.freesInMs == null ? `${peerIn(o)} is offline.`
-          : `${peerIn(o)} is offline and frees its slot in about ${minutes(o.freesInMs)} if it doesn't come back.`)).join(' ')
+          : `${peerIn(o)} is offline and frees its slot in about ${minutes(Math.max(0, o.freesInMs - since))} if it doesn't come back.`)).join(' ')
         : 'Slot Fill adds a peer as soon as one becomes free.';
       return { state: 'full', head: `All ${slots.max} slots are in use.`, rest, short: 'on · all slots in use' };
     }
