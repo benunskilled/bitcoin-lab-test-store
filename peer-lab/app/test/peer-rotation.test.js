@@ -1185,6 +1185,33 @@ function ageTrial(ms) {
   db.instance.prepare(`UPDATE meta SET value = ? WHERE key = 'slot_fill_trial'`).run(JSON.stringify(trial));
 }
 
+test('slot fill: a candidate that is not the Core it names is out at once, even on our tip', async () => {
+  at(seedLivePeer({ eligible: 144, first: 50, trusted: true }), 'EU');
+  const asia = inBook('198.18.0.70', 'AS');
+  const t0 = Date.now();
+  await step(setPeers([coreOut()]), t0);
+  assert.equal(fill.currentTrial().address, asia);
+  const real = coreOut('ipv4', { bytesrecv_per_msg: { verack: 24, wtxidrelay: 24 } });
+  const fake = manualSession(asia, { subver: '/Satoshi:25.1.0/', version: 70016, bytesrecv_per_msg: { version: 126, verack: 24 } });
+
+  const result = await step(setPeers([real, fake]), t0 + 2 * MIN);
+
+  assert.equal(result.confirmed, 0);
+  assert.equal(result.reverted, 1, 'out now, not after the trial');
+  assert.ok(!isManual(asia));
+  assert.equal(db.instance.prepare('SELECT ok, reason FROM slot_fill_tried WHERE address = ?').get(asia).reason, 'disguised');
+});
+
+test('slot fill: a real Core candidate that sent wtxidrelay is kept', async () => {
+  at(seedLivePeer({ eligible: 144, first: 50, trusted: true }), 'EU');
+  const asia = inBook('198.18.0.71', 'AS');
+  const t0 = Date.now();
+  await step(setPeers([coreOut()]), t0);
+  const real = manualSession(asia, { subver: '/Satoshi:25.1.0/', version: 70016, bytesrecv_per_msg: { verack: 24, wtxidrelay: 24, sendaddrv2: 24 } });
+
+  assert.equal((await step(setPeers([coreOut(), real]), t0 + 2 * MIN)).confirmed, 1);
+});
+
 test('tick: a candidate taken out is followed by the next in the same pass', async () => {
   peerRotation.setEnabled(true);
   at(seedLivePeer({ eligible: 144, first: 50, trusted: true }), 'EU');

@@ -143,7 +143,29 @@ function works(session, chain, since = null) {
 // Why a trial ended without the slot, as a short code (kept in the database)
 // and as words (the app log). "No connection" is what was seen at the checks:
 // a session that came and went between two of them leaves no trace.
-function whyNot(session) {
+// A candidate that names Core 0.21 or later and finished its handshake
+// without wtxidrelay, which every such Core sends: the peer list calls it
+// Disguised (skipsWtxidrelay in peers/disguise.go, the same rule). A manual
+// slot is for a real node, so it is out at once (13.11.2026: a
+// "/Satoshi:25.1.0/" without wtxidrelay and sendaddrv2 sat in a trial
+// waiting for headers). anySent, as there: on a node too old to get
+// wtxidrelay from anyone, nobody is struck.
+const CLAIMED_CORE = /^\/Satoshi:([0-9]+)\.([0-9]+)/;
+function disguised(session, peers) {
+  if (!session) return false;
+  const m = CLAIMED_CORE.exec(session.subver || '');
+  if (!m) return false;
+  const maj = Number(m[1]);
+  const mnr = Number(m[2]);
+  const release = maj === 0 || maj >= 22;
+  if (!release || (maj === 0 && mnr < 21)) return false;
+  const recv = session.bytesrecv_per_msg || {};
+  const anySent = peers.some((p) => p.bytesrecv_per_msg && p.bytesrecv_per_msg.wtxidrelay > 0);
+  return anySent && recv.verack > 0 && !(recv.wtxidrelay > 0) && Number(session.version) >= 70016;
+}
+
+function whyNot(session, fake = false) {
+  if (fake) return { code: 'disguised', text: 'connected, but it is not the Core it names' };
   if (!session) return { code: 'no_connection', text: 'no connection seen' };
   if (!servesBlocks(session.services)) return { code: 'no_services', text: 'connected, but serves no blocks' };
   if (!(Number(session.synced_headers) >= 0)) return { code: 'height_unknown', text: 'connected, but Core had no header height for it' };
@@ -178,7 +200,8 @@ async function settle(peers, chain, now = Date.now(), { force = false } = {}) {
     return 'left';
   }
   const session = manualSession(peers, trial.address);
-  if (works(session, chain, trial.tip)) {
+  const fake = disguised(session, peers);
+  if (!fake && works(session, chain, trial.tip)) {
     writeTrial(null);
     markTried(trial.address, true, now, { reason: 'ok', startedAt: trial.startedAt });
     logAction({ action: 'promote', address: trial.address, note: trial.note });
@@ -193,7 +216,7 @@ async function settle(peers, chain, now = Date.now(), { force = false } = {}) {
   const limit = !session
     ? NO_CONNECT_MS[unreachableNetwork(trial.address)] || NO_CONNECT_MS.clearnet
     : headersOpen ? HEADERS_OPEN_MS : TRIAL_MS;
-  if (!force && elapsed < limit) return 'waiting';
+  if (!force && !fake && elapsed < limit) return 'waiting';
 
   // Out of the set first, then the trial is closed: a crash in between leaves
   // a trial whose candidate is gone, which the next pass reads as 'left'.
@@ -201,7 +224,7 @@ async function settle(peers, chain, now = Date.now(), { force = false } = {}) {
   // fill's own business, and the next one is tried anyway.
   await peerSync.removeTrustedPeer(trial.address);
   writeTrial(null);
-  const why = whyNot(session);
+  const why = whyNot(session, fake);
   if (!force) markTried(trial.address, false, now, { reason: why.code, startedAt: trial.startedAt });
   const minutes = Math.max(1, Math.round((now - trial.startedAt) / 60000));
   logger.info('slot fill: candidate not kept', {
