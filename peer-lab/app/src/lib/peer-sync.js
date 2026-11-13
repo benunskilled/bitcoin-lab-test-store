@@ -441,8 +441,8 @@ async function addTrustedPeer(address, label, options = {}) {
         `INSERT INTO trusted_peer (address, label, kept, created_at) VALUES (?, ?, ?, ?)
          ON CONFLICT(address) DO UPDATE SET label = excluded.label,
          -- Re-adding by hand can set the star, but re-adding must never CLEAR
-         -- one: the rotation calls this too (adopting a peer Core already knows,
-         -- reviving a parked one), and those calls pass kept=false. Taking the
+         -- one: the rotation calls this too (adopting a peer Core already
+         -- knows), and those calls pass kept=false. Taking the
          -- star off is the star's own control, not a side effect of something
          -- else touching the row.
          kept = CASE WHEN excluded.kept = 1 THEN 1 ELSE trusted_peer.kept END`,

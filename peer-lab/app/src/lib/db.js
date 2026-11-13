@@ -5,7 +5,6 @@ const fs = require('fs');
 const Database = require('better-sqlite3');
 const config = require('./config');
 const logger = require('./logger').make('db');
-const { sqlHostFromAddress } = require('./address');
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS peer (
@@ -82,7 +81,7 @@ CREATE TABLE IF NOT EXISTS trusted_peer (
   address TEXT PRIMARY KEY,
   label TEXT,
   -- Set by hand: this peer stays, whatever the measurement says. The rotation
-  -- neither displaces it for a better candidate nor parks it when it goes
+  -- neither displaces it for a better candidate nor retires it when it goes
   -- offline - the two ways a manual peer can otherwise lose its slot. It is
   -- the default for anything added by hand, because typing an address in is
   -- already the decision; a promotion by the rotation itself is not, and
@@ -91,29 +90,9 @@ CREATE TABLE IF NOT EXISTS trusted_peer (
   created_at INTEGER NOT NULL
 );
 
--- Manual peers the rotation loop retired because they stayed offline past
--- their grace period, kept so they can earn their slot back.
---
--- Without this table, "offline too long" would be a one-way door: the peer
--- that delivered 40% of your blocks first for two months drops off the
--- network for an evening, loses its slot, and is then indistinguishable from
--- the thousands of addresses Core has ever seen. Parking it means the loop
--- can keep knocking on the door (a version probe to the port that answered
--- last time) and hand the slot straight back when it opens - which is the
--- only reason retiring an offline peer relatively quickly is a safe thing to
--- do at all.
---
--- The address here is a real, dialable listening address (it was a manual peer,
--- so it had already survived a handshake), not an observed inbound address.
-CREATE TABLE IF NOT EXISTS parked_peer (
-  address TEXT PRIMARY KEY,
-  label TEXT,
-  first_pct REAL,                 -- lifetime record at the moment it was parked
-  eligible INTEGER,
-  parked_at INTEGER NOT NULL,
-  last_probe_at INTEGER,          -- NULL until the first re-probe
-  probe_failures INTEGER NOT NULL DEFAULT 0
-);
+-- Parking went with the old rotation (11.11.2026): an install from before
+-- then still has the empty table.
+DROP TABLE IF EXISTS parked_peer;
 
 -- Address-book candidates the slot fill has put to Core, and whether Core
 -- connected to them. One that did not is left alone for a week; the rows are
@@ -135,7 +114,29 @@ CREATE TABLE IF NOT EXISTS relay_race (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   block_hash TEXT NOT NULL UNIQUE,
   block_height INTEGER,
-  detected_at INTEGER NOT NULL   -- ms since epoch, derived from the hrtime capture
+  detected_at INTEGER NOT NULL,  -- ms since epoch, derived from the hrtime capture
+  -- What block attribution saw: how many peers were credited, and the signed
+  -- distance from the detection instant to the closest last_block any peer
+  -- reported (about -5000 every time on a node whose Core clock is 5 s behind).
+  first_count INTEGER,
+  nearest_delta_ms INTEGER,
+  -- The block's route: when Core had a new template ready after it, the
+  -- delivering peer's ping, and how many transactions the template carried.
+  template_ms REAL,
+  first_ping_ms REAL,
+  template_tx INTEGER,
+  -- Who mined it, from the coinbase (lib/pool-id.js). pool_source NULL means
+  -- not looked at yet, 'none' that the block says nothing.
+  pool_name TEXT,
+  pool_tag TEXT,
+  pool_source TEXT,
+  -- How Core rebuilt it from its compact form (reconstruction.js), the bytes
+  -- it had to ask for, and its size.
+  recon TEXT,
+  recon_missing_bytes INTEGER,
+  block_size INTEGER,
+  -- Whether the delivering peer was high-bandwidth in the poll before it.
+  first_hb INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS relay_observation (
@@ -184,7 +185,7 @@ CREATE INDEX IF NOT EXISTS idx_relay_obs_first ON relay_observation(race_id) WHE
 -- GROUP BY across that entire table twice on every single poll, so the cost
 -- of the main dashboard query grew linearly with the app's own lifetime.
 -- Keeping the raw rows and reading one summary row per peer gives identical
--- numbers at constant cost. Backfilled once at startup (see runMigrations).
+-- numbers at constant cost.
 CREATE TABLE IF NOT EXISTS peer_relay_stats (
   peer_id INTEGER PRIMARY KEY REFERENCES peer(id),
   eligible INTEGER NOT NULL DEFAULT 0,
@@ -194,8 +195,8 @@ CREATE TABLE IF NOT EXISTS peer_relay_stats (
 -- The rollup is maintained by the database itself rather than by the writer.
 -- A summary table that some code path forgets to update is worse than no
 -- summary at all - it is wrong data that looks authoritative - and
--- relay_observation is written from the relay profiler, from migrations and
--- from tests. With these triggers the invariant
+-- relay_observation is written from the relay profiler and from tests. With
+-- these triggers the invariant
 --   peer_relay_stats == SELECT peer_id, COUNT(*), SUM(first) FROM relay_observation
 -- holds by construction, in the same transaction as the row itself.
 CREATE TRIGGER IF NOT EXISTS trg_relay_observation_insert
@@ -291,11 +292,18 @@ CREATE INDEX IF NOT EXISTS idx_rotation_log_at ON rotation_log(at DESC);
 -- primary key makes the de-duplication a property of the schema rather than
 -- something every reader has to remember - but only as far as every writer
 -- spells a host the same way. There is exactly one spelling, the bare host
--- that address.js's hostFromAddress and sqlHostFromAddress both return, so an
+-- that address.js's hostFromAddress returns, so an
 -- IPv6 peer is 2001:db8::5 here and never [2001:db8::5].
 CREATE TABLE IF NOT EXISTS promoted_peer (
   ip TEXT PRIMARY KEY,
   first_promoted_at INTEGER NOT NULL
+);
+
+-- The node's traffic per UTC day (see lib/traffic.js).
+CREATE TABLE IF NOT EXISTS traffic_day (
+  day  TEXT PRIMARY KEY,
+  recv INTEGER NOT NULL DEFAULT 0,
+  sent INTEGER NOT NULL DEFAULT 0
 );
 `;
 
@@ -342,8 +350,8 @@ function pauseMs(ms) {
  * a read transaction asked to upgrade after another process wrote, can still
  * answer "database is locked" at once - on GitHub's Linux runners 2 of 60
  * processes in test/first-start.test.js did, where macOS showed none. Every
- * step here is idempotent (CREATE ... IF NOT EXISTS, flag-guarded
- * migrations, INSERT OR IGNORE seeding), so the whole setup is simply run
+ * step here is idempotent (CREATE ... IF NOT EXISTS, INSERT OR IGNORE
+ * seeding), so the whole setup is simply run
  * again on a fresh connection a moment later, up to about half a minute.
  */
 function open() {
@@ -393,383 +401,9 @@ function openOnce() {
   // makes every connection wait up to 10s and retry instead - the timeout
   // set at the top of this function.
   db.exec(SCHEMA);
-  runMigrations();
   seedDefaultPools();
   logger.info('database ready', { path: config.sqlitePath });
   return db;
-}
-
-/**
- * One-time data migrations, each guarded by its own flag row in `meta` and
- * run inside a transaction, so all four processes can call this concurrently
- * at startup and exactly one of them does the work.
- *
- * The busy timeout is raised for the duration: a backfill over a database
- * that has been collecting for months is a single long write, and the other
- * three processes starting at the same moment must wait it out rather than
- * failing with SQLITE_BUSY at ten seconds.
- */
-function runMigrations() {
-  const previousTimeout = 10000;
-  db.pragma('busy_timeout = 120000');
-  try {
-    migrate('rollup_backfill_v1', 'backfilled per-peer relay totals', () => {
-      db.prepare(
-        `INSERT INTO peer_relay_stats (peer_id, eligible, first)
-         SELECT peer_id, COUNT(*), COALESCE(SUM(first), 0)
-         FROM relay_observation
-         GROUP BY peer_id
-         ON CONFLICT(peer_id) DO UPDATE SET eligible = excluded.eligible, first = excluded.first`,
-      ).run();
-    });
-
-    // v1.11.1 and earlier scored a pool as a "miss" whenever any pool
-    // reported a stale prevhash while a race was still open (a lagging pool
-    // re-sending the previous block's job would close the live race early and
-    // mark everyone who had not yet reported). That inflated Win % for
-    // whichever pool was fastest and inflated Miss for every other pool, so
-    // the accumulated stratum statistics are not merely noisy but
-    // systematically biased and cannot be corrected after the fact. Clearing
-    // them once means Win %/Miss start from a correct baseline; the peer
-    // ranking data is untouched and unaffected.
-    migrate('stratum_history_reset_v1_12_0', 'cleared biased pre-v1.12.0 stratum race history', () => {
-      db.prepare(`DELETE FROM stratum_observation`).run();
-      db.prepare(`DELETE FROM stratum_race`).run();
-    });
-
-    // Both were exact prefixes of another index on the same table, so they
-    // never served a query the wider index could not, and both sat on the two
-    // most write-heavy tables in the schema. CREATE INDEX IF NOT EXISTS only
-    // ever adds, so an install that already has them needs this to be rid of
-    // them.
-    migrate('drop_redundant_indexes_v1_13_0', 'dropped two redundant indexes', () => {
-      db.prepare(`DROP INDEX IF EXISTS idx_peer_session_peer`).run();
-      db.prepare(`DROP INDEX IF EXISTS idx_stratum_obs_pool`).run();
-    });
-
-    // Same story one table over, and this one was not merely redundant but
-    // wrong: no query filters relay_observation by peer alone, yet SQLite
-    // chose (peer_id) for recentRelayStats()'s GROUP BY and read the whole
-    // history for an answer about the last 500 blocks. It is replaced by
-    // (peer_id, race_id, first), which still satisfies the foreign key the
-    // daily prune depends on - see the schema above for both halves.
-    migrate('drop_relay_obs_peer_index_v1_23_1', 'dropped the peer-only index on relay_observation', () => {
-      db.prepare(`DROP INDEX IF EXISTS idx_relay_obs_peer`).run();
-    });
-
-    // peerRanking() is driven FROM peer, so a manual peer with no row there is
-    // invisible to it - and therefore to every rotation pass. It can never be
-    // retired however long it has been gone, is never a candidate for the
-    // weakest slot, and is never displayed, while still counting against
-    // MAX_MANUAL_PEERS. One addnode entry Core never manages to connect (a
-    // non-Bitcoin service answering on 8333, a peer that rejects us, Core's
-    // own slots full) silently costs a slot permanently.
-    //
-    // Both paths that create trusted peers now create the peer row alongside;
-    // this gives the same treatment to the ones already sitting in installed
-    // databases, so they become visible - and therefore retirable - too.
-    migrate('trusted_peer_rows_v1_15_5', 'gave every manual peer a peer row so the rotation can see it', () => {
-      db.prepare(
-        `INSERT OR IGNORE INTO peer (address, first_seen_at)
-         SELECT tp.address, tp.created_at FROM trusted_peer tp
-         WHERE NOT EXISTS (SELECT 1 FROM peer p WHERE p.address = tp.address)`,
-      ).run();
-    });
-
-    // promoted_peer starts empty, so an installed node would report "0 kept"
-    // next to eight manual peers it has been keeping for weeks - a number that
-    // is not merely incomplete but visibly wrong to the person reading it.
-    //
-    // Backfilled from both places a kept peer can be: the manual set, and the
-    // parked list, which is where a peer that lost its slot while offline
-    // waits. Both were kept at some point, which is what the count says.
-    //
-    // The address is stripped to its host by sqlHostFromAddress - the same
-    // rule, to the character, that hostFromAddress applies to the addresses
-    // the rotation writes - so a host that appears in both lists, or twice
-    // under different ports, still counts once. INSERT OR IGNORE plus the
-    // primary key does the rest. A fresh install finds nothing to copy and the
-    // flag is set anyway, so this never runs twice.
-    migrate('promoted_peer_backfill_v1_15_10', 'counted the peers already kept before the record existed', () => {
-      db.prepare(
-        `INSERT OR IGNORE INTO promoted_peer (ip, first_promoted_at)
-         SELECT ${sqlHostFromAddress('address')}, created_at FROM trusted_peer
-         UNION ALL
-         SELECT ${sqlHostFromAddress('address')}, parked_at FROM parked_peer`,
-      ).run();
-    });
-
-    // The spelling above used to keep the brackets an IPv6 address arrives in,
-    // while peer-rotation/log.js wrote the same host bare. Both were writing
-    // "the host", so `[2001:db8::5]` and `2001:db8::5` sat in the table as two
-    // separate peers, and the funnel counted one host twice - the exact
-    // double-count the primary key is there to make impossible.
-    //
-    // Bare wins, because that is what hostFromAddress has always returned and
-    // what every other host comparison in the app comes from. The earliest
-    // timestamp of the pair survives: the row records when a host was FIRST
-    // kept, and the duplicate is the same fact written twice, not a later one.
-    migrate('promoted_peer_canonical_ip_v1_23_1', 'folded bracketed IPv6 duplicates in the promotion record', () => {
-      db.prepare(
-        `INSERT INTO promoted_peer (ip, first_promoted_at)
-         SELECT substr(ip, 2, instr(ip, ']') - 2), MIN(first_promoted_at)
-           FROM promoted_peer
-          WHERE instr(ip, ']') > 0
-          GROUP BY 1
-         ON CONFLICT(ip) DO UPDATE
-            SET first_promoted_at = MIN(promoted_peer.first_promoted_at, excluded.first_promoted_at)`,
-      ).run();
-      db.prepare(`DELETE FROM promoted_peer WHERE instr(ip, ']') > 0`).run();
-    });
-
-    // The first column this schema has ever added to an existing table. The
-    // CREATE TABLE above carries it for fresh installs, so this has to check
-    // before it adds - an unconditional ALTER would throw "duplicate column"
-    // on every install created after this version.
-    //
-    // Existing rows keep NULL, and the ranking falls back to reading the
-    // network out of the address for those, exactly as it did before. So old
-    // sessions are no worse off than they were, and every session written from
-    // now on is classified by what Core says rather than by what the address
-    // looks like.
-    migrate('peer_session_network_v1_16_0', 'added the network column to peer_session', () => {
-      const hasColumn = db
-        .prepare(`SELECT COUNT(*) AS n FROM pragma_table_info('peer_session') WHERE name = 'network'`)
-        .get().n > 0;
-      if (!hasColumn) db.prepare(`ALTER TABLE peer_session ADD COLUMN network TEXT`).run();
-    });
-
-    // Manual peers that predate the protection start unprotected, which is the
-    // behaviour their owner already knows: the rotation may swap them out for
-    // something better and park them when they go dark. Turning it on for them
-    // would freeze whatever the loop had assembled so far, silently and all at
-    // once. The star is there to be switched on deliberately.
-    migrate('trusted_peer_kept_v1_16_0', 'added the kept column to trusted_peer', () => {
-      const hasColumn = db
-        .prepare(`SELECT COUNT(*) AS n FROM pragma_table_info('trusted_peer') WHERE name = 'kept'`)
-        .get().n > 0;
-      if (!hasColumn) db.prepare(`ALTER TABLE trusted_peer ADD COLUMN kept INTEGER NOT NULL DEFAULT 0`).run();
-    });
-
-    // Why a slot-fill trial ended, and how long it ran: the reason used to be
-    // in the app log only, which a restart empties.
-    migrate('slot_fill_tried_reason_v1', 'added reason, started_at and network to slot_fill_tried', () => {
-      const has = new Set(db.prepare(`SELECT name FROM pragma_table_info('slot_fill_tried')`).all().map((c) => c.name));
-      if (!has.has('reason')) db.prepare(`ALTER TABLE slot_fill_tried ADD COLUMN reason TEXT`).run();
-      if (!has.has('started_at')) db.prepare(`ALTER TABLE slot_fill_tried ADD COLUMN started_at INTEGER`).run();
-      if (!has.has('network')) db.prepare(`ALTER TABLE slot_fill_tried ADD COLUMN network TEXT`).run();
-    });
-
-    // Two numbers per block that were computed and then thrown away, and
-    // together they turn a silent fault into a diagnosable one.
-    //
-    // Attribution works by matching Core's per-peer last_block against the
-    // instant ZMQ delivered the hash. If Core's clock and this app's disagree
-    // by more than the matching window, no peer is ever credited: First % sits
-    // at 0 for everyone forever, the tables look populated, and nothing says
-    // why. It is in the README as a known limitation precisely because there
-    // was no way to tell from inside.
-    //
-    // first_count is the symptom - how many peers were credited, and zero
-    // block after block is the fault. nearest_delta_ms is the cause: the
-    // signed distance from the detection instant to the closest last_block any
-    // peer reported. Under a second on a healthy node; about -5000, every
-    // time, on one whose Core is five seconds behind. NULL on rows written
-    // before this existed, and the diagnosis ignores those.
-    migrate('relay_race_attribution_v1_16_4', 'recorded what block attribution actually saw', () => {
-      const has = (name) => db
-        .prepare(`SELECT COUNT(*) AS n FROM pragma_table_info('relay_race') WHERE name = ?`)
-        .get(name).n > 0;
-      if (!has('first_count')) db.prepare(`ALTER TABLE relay_race ADD COLUMN first_count INTEGER`).run();
-      if (!has('nearest_delta_ms')) db.prepare(`ALTER TABLE relay_race ADD COLUMN nearest_delta_ms INTEGER`).run();
-    });
-
-    // Stratum Race is a switch now, and an absent flag means off - the same
-    // rule the rotation uses, so a fresh install starts quiet rather than
-    // opening eight connections to public pools before anyone has looked at
-    // it.
-    //
-    // That rule must not be applied retroactively. On an install that has been
-    // running, the race has been measuring since the day it was installed, and
-    // an update that silently stopped it would look like a fault rather than a
-    // default. So an existing database is switched on explicitly, once.
-    //
-    // "Existing" is asked of peer_session rather than of the stratum tables:
-    // sessions appear within seconds of the peer profiler starting, whereas a
-    // node that has not seen a block yet has no races of either kind - and
-    // would then be mistaken for a fresh install and quietly switched off.
-    migrate('stratum_race_toggle_v1_16_3', 'kept stratum race switched on for this existing install', () => {
-      const hasRun = db.prepare(`SELECT EXISTS (SELECT 1 FROM peer_session) AS n`).get().n > 0;
-      if (!hasRun) return;
-      db.prepare(`INSERT OR IGNORE INTO meta (key, value) VALUES (?, ?)`).run('stratum_race_enabled', '1');
-    });
-
-    // Same shape as the network column above: the CREATE TABLE carries these
-    // for fresh installs, so each one is checked before it is added.
-    //
-    // Existing rows keep NULL, and nothing reads them yet. Sessions that are
-    // still open when this runs fill in on the next poll, because the writer
-    // only overwrites a value when Core actually reported one.
-    // Who mined the block, read off its coinbase (see lib/pool-id.js).
-    //
-    // pool_source is the one that matters operationally: NULL means nobody has
-    // looked yet, so the catch-up in the relay profiler knows what to fetch,
-    // and 'none' means it looked and the block tells us nothing - without that
-    // distinction every dashboard view would ask Core about the same
-    // unattributable block again.
-    // The route of a block, as the block card draws it: how long after the block
-    // Core had a new block template ready, and the ping of the peer that
-    // delivered it, taken from the same getpeerinfo snapshot that credited
-    // it. Both NULL on blocks recorded before this - the route then simply
-    // has fewer stops for those.
-    migrate('relay_race_route_v1_22_0', 'recorded template time and the delivering peer\'s ping', () => {
-      const existing = new Set(
-        db.prepare(`SELECT name FROM pragma_table_info('relay_race')`).all().map((r) => r.name),
-      );
-      if (!existing.has('template_ms')) db.prepare(`ALTER TABLE relay_race ADD COLUMN template_ms REAL`).run();
-      if (!existing.has('first_ping_ms')) db.prepare(`ALTER TABLE relay_race ADD COLUMN first_ping_ms REAL`).run();
-    });
-
-    // 1.25.0 also kept traffic per peer host. The dashboard no longer shows
-    // it, so it is no longer gathered, and what was gathered goes.
-    migrate('drop_peer_traffic_v1_25_1', 'stopped keeping traffic per peer', () => {
-      db.exec(`DROP TABLE IF EXISTS peer_traffic_day`);
-    });
-
-    // Traffic per UTC day for the node (see lib/traffic.js).
-    migrate('traffic_v1_25_0', 'recorded the node\'s traffic per day', () => {
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS traffic_day (
-          day  TEXT PRIMARY KEY,
-          recv INTEGER NOT NULL DEFAULT 0,
-          sent INTEGER NOT NULL DEFAULT 0
-        );
-      `);
-    });
-
-    // How many transactions the timed template carried - the size of the job
-    // a pool has to build from it. NULL on blocks recorded before this.
-    migrate('relay_race_template_tx_v1_24_0', 'recorded how many transactions the block template carried', () => {
-      const existing = new Set(
-        db.prepare(`SELECT name FROM pragma_table_info('relay_race')`).all().map((r) => r.name),
-      );
-      if (!existing.has('template_tx')) db.prepare(`ALTER TABLE relay_race ADD COLUMN template_tx INTEGER`).run();
-    });
-
-    migrate('relay_race_pool_v1_20_0', 'recorded which pool mined each block', () => {
-      const existing = new Set(
-        db.prepare(`SELECT name FROM pragma_table_info('relay_race')`).all().map((r) => r.name),
-      );
-      for (const name of ['pool_name', 'pool_tag', 'pool_source']) {
-        if (!existing.has(name)) db.prepare(`ALTER TABLE relay_race ADD COLUMN ${name} TEXT`).run();
-      }
-    });
-
-    // Core's high-bandwidth compact-block peers (BIP152): the place each session
-    // holds now, as getpeerinfo reports it.
-    migrate('bip152_hb_v2_0_0', 'recorded Core\'s high-bandwidth peers', () => {
-      const existing = new Set(
-        db.prepare(`SELECT name FROM pragma_table_info('peer_session')`).all().map((r) => r.name),
-      );
-      if (!existing.has('hb_to')) db.prepare(`ALTER TABLE peer_session ADD COLUMN hb_to INTEGER`).run();
-    });
-
-    // The other way round: peers that have picked this node as one of theirs.
-    migrate('bip152_hb_from_v2_0_4', 'recorded which peers take new blocks from this node first', () => {
-      const existing = new Set(
-        db.prepare(`SELECT name FROM pragma_table_info('peer_session')`).all().map((r) => r.name),
-      );
-      if (!existing.has('hb_from')) db.prepare(`ALTER TABLE peer_session ADD COLUMN hb_from INTEGER`).run();
-    });
-
-    // How each block was rebuilt from its compact form: from the mempool alone,
-    // after asking for missing transactions (and how many bytes came back), or
-    // downloaded whole. NULL where it could not be told - see reconstruction.js.
-    migrate('relay_race_reconstruction_v2_4_0', 'recorded whether Core had to ask for missing transactions', () => {
-      const existing = new Set(
-        db.prepare(`SELECT name FROM pragma_table_info('relay_race')`).all().map((r) => r.name),
-      );
-      if (!existing.has('recon')) db.prepare(`ALTER TABLE relay_race ADD COLUMN recon TEXT`).run();
-      if (!existing.has('recon_missing_bytes')) db.prepare(`ALTER TABLE relay_race ADD COLUMN recon_missing_bytes INTEGER`).run();
-    });
-
-    // The block's size in bytes, from the getblock the pool attribution reads
-    // anyway: what share of the block had to be asked for.
-    migrate('relay_race_block_size_v2_4_0', 'recorded each block\'s size', () => {
-      const existing = new Set(
-        db.prepare(`SELECT name FROM pragma_table_info('relay_race')`).all().map((r) => r.name),
-      );
-      if (!existing.has('block_size')) db.prepare(`ALTER TABLE relay_race ADD COLUMN block_size INTEGER`).run();
-    });
-
-    // Whether the peer that delivered the block was one of Core's
-    // high-bandwidth peers just before it: such a peer sends a new block
-    // without being asked, half a ping; any other announces it first, a
-    // ping and a half. Read from the last poll, because Core makes the
-    // deliverer high-bandwidth the moment the block is valid
-    // (MaybeSetPeerAsAnnouncingHeaderAndIDs) - after it, every deliverer
-    // looks like one. NULL on older blocks and where it was not known.
-    migrate('relay_race_first_hb_v2_5_0', 'recorded whether the delivering peer was a high-bandwidth peer', () => {
-      const existing = new Set(
-        db.prepare(`SELECT name FROM pragma_table_info('relay_race')`).all().map((r) => r.name),
-      );
-      if (!existing.has('first_hb')) db.prepare(`ALTER TABLE relay_race ADD COLUMN first_hb INTEGER`).run();
-    });
-
-    migrate('peer_session_services_v1_18_0', 'recorded what each peer offers and whether Core knows its chain', () => {
-      const existing = new Set(
-        db.prepare(`SELECT name FROM pragma_table_info('peer_session')`).all().map((r) => r.name),
-      );
-      for (const [name, type] of [['services', 'TEXT'], ['relay_txes', 'INTEGER'], ['synced_headers', 'INTEGER']]) {
-        if (!existing.has(name)) db.prepare(`ALTER TABLE peer_session ADD COLUMN ${name} ${type}`).run();
-      }
-    });
-
-    // Parking went with the rotation: the slot fill takes its candidates from
-    // Core's address book, which holds thousands. The table stays, empty, so
-    // older queries and the migrations above still find it.
-    // Slot Fill took over the old rotation's switch (peer_rotation_enabled),
-    // but it does something else - it adds peers from Core's address book.
-    // Whoever had the rotation on starts with Slot Fill off and chooses it
-    // themselves (11.11.2026). A fresh install has no row: off anyway.
-    migrate('slot_fill_off_once_v2_6_0', 'switched Slot Fill off once, to be chosen anew', () => {
-      db.prepare(`UPDATE meta SET value = '0' WHERE key = 'peer_rotation_enabled'`).run();
-    });
-
-    migrate('parked_peer_retired_v2_6_0', 'stopped keeping parked peers', () => {
-      db.prepare(`DELETE FROM parked_peer`).run();
-    });
-
-    // The log starts over with the slot fill: kicks, parks and swaps are moves
-    // it no longer makes, and their lines only needed code to show them. Once;
-    // the slot fill's own lines are kept from here on. The probe index went
-    // with the probing.
-    migrate('rotation_log_slot_fill_v2_6_0', 'started the log over for the slot fill', () => {
-      db.prepare(`DELETE FROM rotation_log`).run();
-      db.prepare(`DROP INDEX IF EXISTS idx_parked_peer_probe`).run();
-    });
-  } finally {
-    db.pragma(`busy_timeout = ${previousTimeout}`);
-  }
-}
-
-function migrate(flag, description, work) {
-  const done = db.prepare(`SELECT value FROM meta WHERE key = ?`).get(`migration:${flag}`);
-  if (done) return;
-  const tx = db.transaction(() => {
-    // Re-check inside the transaction: another process may have finished this
-    // same migration between our read above and acquiring the write lock.
-    const raced = db.prepare(`SELECT value FROM meta WHERE key = ?`).get(`migration:${flag}`);
-    if (raced) return false;
-    work();
-    db.prepare(`INSERT INTO meta (key, value) VALUES (?, ?)`).run(`migration:${flag}`, String(Date.now()));
-    return true;
-  });
-  // IMMEDIATE: the write lock is taken up front. A deferred transaction reads
-  // the flag first and only then asks to write, and when another process
-  // committed in between, SQLite refuses the upgrade at once with
-  // SQLITE_BUSY_SNAPSHOT - no busy_timeout applies to that.
-  if (tx.immediate()) logger.info(`migration: ${description}`, { flag });
 }
 
 function seedDefaultPools() {
@@ -780,8 +414,7 @@ function seedDefaultPools() {
   );
   const now = Date.now();
   const tx = db.transaction(() => {
-    // Re-check inside the transaction, exactly like migrate() above and for
-    // the same reason: all four processes call open() at once, and on a fresh
+    // Re-check inside the transaction: all four processes call open() at once, and on a fresh
     // install all four read "not seeded yet". meta.key is a PRIMARY KEY, so
     // without this the losers of that race threw SQLITE_CONSTRAINT_PRIMARYKEY
     // straight out of open() and died on first boot - the relay profiler
@@ -793,7 +426,10 @@ function seedDefaultPools() {
     db.prepare(`INSERT INTO meta (key, value) VALUES ('pools_seeded', '1')`).run();
     return true;
   });
-  // IMMEDIATE for the same reason as migrate() above.
+  // IMMEDIATE: the write lock is taken up front. A deferred transaction reads
+  // the flag first and only then asks to write, and when another process
+  // committed in between, SQLite refuses the upgrade at once with
+  // SQLITE_BUSY_SNAPSHOT - no busy_timeout applies to that.
   if (tx.immediate()) logger.info('seeded default stratum pools', { count: DEFAULT_POOLS.length });
 }
 
@@ -895,7 +531,7 @@ function rebuildRelayStats() {
  *
  *   - its manual sessions, which say Core has really held it (everManual).
  *     Without them a protected peer reads as an address that never stood up,
- *     the one kind of protected peer the rotation does park.
+ *     the one kind of protected peer the rotation does retire.
  *   - trusted_peer.created_at, the clock an offline peer with no closed
  *     session is timed from. Left at the day it was added, a peer reset while
  *     offline was already past its grace on the next tick.
@@ -922,7 +558,6 @@ function resetPeerData() {
           WHERE NOT (connection_type = 'manual'
                      AND peer_id IN (SELECT p.id FROM peer p JOIN trusted_peer tp ON tp.address = p.address))`,
       ).run();
-      db.prepare(`DELETE FROM parked_peer`).run();
       db.prepare(`DELETE FROM slot_fill_tried`).run();
       db.prepare(`DELETE FROM rotation_log`).run();
       // Goes with the rest, not on its own. Everything the funnel shows -
@@ -1002,7 +637,7 @@ function sizeBytes() {
 // and is never touched by a reset.
 const PEER_DATA_TABLES = [
   'relay_race', 'relay_observation', 'peer_relay_stats',
-  'peer', 'peer_session', 'parked_peer', 'rotation_log', 'promoted_peer',
+  'peer', 'peer_session', 'rotation_log', 'promoted_peer',
 ];
 const POOL_HISTORY_TABLES = ['stratum_race', 'stratum_observation'];
 
@@ -1061,10 +696,5 @@ module.exports = {
   resetPoolHistory,
   PEER_DATA_TABLES,
   rebuildRelayStats,
-  // Exported so the suite can run them a second time and assert they are
-  // genuinely no-ops. Asserting a list of flag names instead proved nothing:
-  // the guard could be removed and the test stayed green, over a migration
-  // that deletes the user's whole stratum history.
-  runMigrations,
   seedDefaultPools,
 };

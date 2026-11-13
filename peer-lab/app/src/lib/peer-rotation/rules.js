@@ -55,14 +55,10 @@ function evictableTrusted(trusted) {
  * minute ago is not five hours overdue, it is one minute old. Core has not
  * even had a chance to dial it yet.
  *
- * Reading only the session clock made the rotation loop eat itself. Retiring
- * parks the peer; the revival pass probes it, finds it answering, and puts it
- * straight back; the next tick reads the same stale session end and retires it
- * again - park, revive, park, revive, every ten minutes forever. Since only
- * one peer may join the manual set per tick, that loop consumed the tick's one
- * move every single time, so no genuine candidate was ever promoted while it
- * ran. Taking the later of the two clocks is what stops it: being (re-)added
- * restarts the grace period, which is what "grace" means.
+ * Reading only the session clock retired a peer re-added a minute ago on a
+ * session that had ended hours before. Taking the later of the two clocks is
+ * what stops it: being (re-)added restarts the grace period, which is what
+ * "grace" means.
  *
  * Returns null when neither clock is known - "no evidence it is offline".
  */

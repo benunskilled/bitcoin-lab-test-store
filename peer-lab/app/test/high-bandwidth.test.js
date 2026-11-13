@@ -93,23 +93,6 @@ test('the ranking reports the place now', () => {
   assert.equal(rows[B].first, 1);
 });
 
-test('an install from 1.26.0 gains the column and keeps its open sessions', () => {
-  const d = db.instance;
-  upsertSessions([corePeer(A, { id: 1 })]);
-  // As 1.26.0 left it: no hb_to, and the migration not yet run.
-  d.exec(`ALTER TABLE peer_session DROP COLUMN hb_to`);
-  d.prepare(`DELETE FROM meta WHERE key = ?`).run('migration:bip152_hb_v2_0_0');
-
-  db.runMigrations();
-
-  const cols = d.prepare(`SELECT name FROM pragma_table_info('peer_session')`).all().map((r) => r.name);
-  assert.ok(cols.includes('hb_to'));
-  assert.equal(sessionHb(A), null, 'the open session survives, its place not known yet');
-  upsertSessions([corePeer(A, { id: 1, hb: true })]);
-  assert.equal(sessionHb(A), 1);
-  assert.equal(Object.fromEntries(queries.peerRanking().map((r) => [r.address, r]))[A].hb, true);
-});
-
 // bip152_hb_from, the other way round: the peer has picked this node.
 test('the place a peer gives this node is kept apart from the one it holds', () => {
   upsertSessions([corePeer(A, { id: 1, hb: true, hbFrom: false }), corePeer(B, { id: 2, hb: false, hbFrom: true })]);
@@ -132,18 +115,3 @@ test('a Core that does not report hb_from leaves it unknown, and the ranking say
   assert.equal(Object.fromEntries(queries.peerRanking().map((r) => [r.address, r]))[A].hbFrom, false);
 });
 
-test('an install from 2.0.3 gains hb_from and keeps its open sessions', () => {
-  const d = db.instance;
-  upsertSessions([corePeer(A, { id: 1, hb: true })]);
-  d.exec(`ALTER TABLE peer_session DROP COLUMN hb_from`);
-  d.prepare(`DELETE FROM meta WHERE key = ?`).run('migration:bip152_hb_from_v2_0_4');
-
-  db.runMigrations();
-
-  const cols = d.prepare(`SELECT name FROM pragma_table_info('peer_session')`).all().map((r) => r.name);
-  assert.ok(cols.includes('hb_from'));
-  assert.equal(sessionHb(A), 1, 'the open session keeps what it had');
-  assert.equal(sessionHbFrom(A), null);
-  upsertSessions([corePeer(A, { id: 1, hb: true, hbFrom: true })]);
-  assert.equal(sessionHbFrom(A), 1);
-});

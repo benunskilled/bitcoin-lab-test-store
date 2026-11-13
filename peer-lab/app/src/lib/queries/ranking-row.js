@@ -145,7 +145,7 @@ function mapRankingRow(now, graceFrom = 0, liveTip = 0) {
       // a manual peer that has never once connected has no offlineSinceMs to
       // measure from, so its grace runs from when it was added instead.
       trustedSince: r.trustedSince ?? null,
-      // Protected by hand: the rotation must not displace or park it. Only
+      // Protected by hand: the rotation must not displace or retire it. Only
       // meaningful on a manual peer; false everywhere else.
       kept: Boolean(r.kept),
       // Still inside the grace a new slot holder gets before it can be

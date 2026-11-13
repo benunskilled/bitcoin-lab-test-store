@@ -20,11 +20,8 @@ const db = require('../db');
  * peers with the same record, the one that is not even here should go first.
  * A peer with no record at all (firstPct null) sorts below 0%.
  *
- * Lives here, in one place, because three callers need the identical answer:
- * the rotation loop's swap branch, the manual "Add as Manual" flow when all
- * eight slots are taken, and the revival of a parked peer. Three private
- * copies of "weakest" would be three chances for the dashboard to explain one
- * rule while the code follows another.
+ * Used by "Add as Manual" when all eight slots are taken. It lives here, in
+ * one place, so the dashboard explains the same rule the code follows.
  */
 function weakestTrustedPeer(peers) {
   if (!peers || peers.length === 0) return null;

@@ -838,7 +838,6 @@ test('resetPeerData clears the measurement history but keeps the manual peers', 
     .run('reset-test-hash', Date.now()).lastInsertRowid;
   db.instance.prepare('INSERT INTO relay_observation (race_id, peer_id, eligible, first) VALUES (?, ?, 1, 1)').run(raceId, keptPeer.id);
   db.instance.prepare('INSERT INTO relay_observation (race_id, peer_id, eligible, first) VALUES (?, ?, 1, 0)').run(raceId, stranger.id);
-  db.instance.prepare('INSERT INTO parked_peer (address, first_pct, eligible, parked_at, probe_failures) VALUES (?, 5, 100, ?, 0)').run('198.51.100.9:8333', Date.now());
 
   const result = db.resetPeerData();
 
@@ -847,7 +846,6 @@ test('resetPeerData clears the measurement history but keeps the manual peers', 
   assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM relay_race').get().n, 0);
   assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM relay_observation').get().n, 0);
   assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM peer_relay_stats').get().n, 0);
-  assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM parked_peer').get().n, 0);
   // The manual peer gets an empty peer row back, so it appears in the ranking
   // at once rather than only when Core next reconnects it.
   assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM peer WHERE address = ?').get(kept).n, 1);
@@ -913,47 +911,10 @@ test('the promotion record is charged to the peer data group', () => {
     'otherwise its bytes belong to no group and the storage panel quietly under-reports');
 });
 
-test('the backfill counts peers that were kept before the record existed', () => {
-  // An installed node: manual peers and a parked one, none of them in
-  // promoted_peer because the table did not exist when they were kept.
-  db.instance.prepare(`DELETE FROM promoted_peer`).run();
-  db.instance.prepare(`DELETE FROM trusted_peer`).run();
-  db.instance.prepare(`DELETE FROM parked_peer`).run();
-  const now = Date.now();
-  db.instance.prepare(`INSERT OR REPLACE INTO trusted_peer (address, label, created_at) VALUES (?, ?, ?)`).run('203.0.113.41:8333', null, now);
-  db.instance.prepare(`INSERT OR REPLACE INTO trusted_peer (address, label, created_at) VALUES (?, ?, ?)`).run('[2001:db8::5]:8333', null, now);
-  db.instance.prepare(`INSERT OR REPLACE INTO parked_peer (address, first_pct, eligible, parked_at, probe_failures) VALUES (?, ?, ?, ?, 0)`).run('198.51.100.41:8333', 3.2, 400, now);
-  // Same host as the first manual peer, under the port an inbound peer dials
-  // from: must not become a second row.
-  db.instance.prepare(`INSERT OR REPLACE INTO parked_peer (address, first_pct, eligible, parked_at, probe_failures) VALUES (?, ?, ?, ?, 0)`).run('203.0.113.41:51234', 1.0, 200, now);
-  // No port at all, which is how Core echoes back a peer added on the default
-  // one. The old expression stripped from the first colon, found none, and
-  // produced the empty string - so every portless peer landed in a single
-  // nameless row and the count of them was one.
-  db.instance.prepare(`INSERT OR REPLACE INTO trusted_peer (address, label, created_at) VALUES (?, ?, ?)`).run('192.0.2.7', null, now);
-  db.instance.prepare(`INSERT OR REPLACE INTO trusted_peer (address, label, created_at) VALUES (?, ?, ?)`).run('192.0.2.8', null, now);
-
-  db.instance.prepare(`DELETE FROM meta WHERE key = ?`).run('migration:promoted_peer_backfill_v1_15_10');
-  db.runMigrations();
-
-  const ips = db.instance.prepare(`SELECT ip FROM promoted_peer ORDER BY ip`).all().map(r => r.ip);
-  // The IPv6 host bare, not bracketed: one spelling, the one the rotation also
-  // writes, or the same host is two peers.
-  assert.deepEqual(ips, ['192.0.2.7', '192.0.2.8', '198.51.100.41', '2001:db8::5', '203.0.113.41']);
-});
-
-/**
- * The two halves of "what is the host part of this address" have to give the
- * same answer, because one of them runs at promotion time and the other over a
- * whole table in a migration, and their answers are compared by a primary key.
- *
- * They disagreed for eight versions - brackets in SQL, bare in JavaScript - and
- * an IPv6 peer was silently counted twice.
- */
-test('the SQL and JavaScript host rules agree on every shape of address', () => {
-  const { hostFromAddress, sqlHostFromAddress } = require('../src/lib/address');
-  // A named parameter, because the expression mentions its column repeatedly.
-  const inSql = db.instance.prepare(`SELECT ${sqlHostFromAddress('@address')} AS host`);
+// One host has one spelling: brackets and ports go, so an IPv6 peer is never
+// counted twice under two forms.
+test('the host rule handles every shape of address', () => {
+  const { hostFromAddress } = require('../src/lib/address');
   const cases = [
     ['203.0.113.5:8333', '203.0.113.5'],
     ['[2001:db8::5]:8333', '2001:db8::5'],
@@ -968,108 +929,19 @@ test('the SQL and JavaScript host rules agree on every shape of address', () => 
   ];
   for (const [address, host] of cases) {
     assert.equal(hostFromAddress(address), host, `hostFromAddress(${address})`);
-    assert.equal(inSql.get({ address }).host, host, `SQL host of ${address}`);
   }
 });
 
-/**
- * The same host under two spellings is two rows, and the funnel then reports
- * one peer as two. Folding them is not optional on an installed node: it has
- * been writing both forms since the table existed.
- */
-test('the canonical-IP migration folds a bracketed duplicate into the bare host', () => {
-  db.instance.prepare(`DELETE FROM promoted_peer`).run();
-  const insert = db.instance.prepare(`INSERT INTO promoted_peer (ip, first_promoted_at) VALUES (?, ?)`);
-  // Written by the old backfill, on the day the node was updated...
-  insert.run('[2001:db8::5]', 5000);
-  // ...and by the rotation, back when it first kept this host.
-  insert.run('2001:db8::5', 1000);
-  // A bracketed host with no bare twin still has to lose its brackets.
-  insert.run('[2001:db8::9]', 7000);
-  insert.run('203.0.113.41', 2000);
-
-  db.instance.prepare(`DELETE FROM meta WHERE key = ?`).run('migration:promoted_peer_canonical_ip_v1_23_1');
-  db.runMigrations();
-
-  const rows = db.instance.prepare(`SELECT ip, first_promoted_at AS at FROM promoted_peer ORDER BY ip`).all();
-  assert.deepEqual(rows, [
-    { ip: '2001:db8::5', at: 1000 },
-    { ip: '2001:db8::9', at: 7000 },
-    { ip: '203.0.113.41', at: 2000 },
-  ]);
-});
-
-/**
- * An index CREATE INDEX IF NOT EXISTS can only add, so removing one from the
- * schema does nothing for a database that already has it - and this one is
- * worth being rid of: nothing filters relay_observation by peer alone, but
- * SQLite preferred it for recentRelayStats() and read the node's whole history
- * to answer a question about the last five hundred blocks.
- */
-test('the peer-only index on relay_observation is dropped on an existing install', () => {
-  const exists = (name) =>
-    db.instance.prepare(`SELECT COUNT(*) AS n FROM sqlite_schema WHERE type = 'index' AND name = ?`).get(name).n > 0;
-
-  assert.equal(exists('idx_relay_obs_peer'), false, 'a fresh database never gets it in the first place');
-
-  // An installed node, which does.
-  db.instance.prepare(`CREATE INDEX idx_relay_obs_peer ON relay_observation(peer_id)`).run();
-  db.instance.prepare(`DELETE FROM meta WHERE key = ?`).run('migration:drop_relay_obs_peer_index_v1_23_1');
-  db.runMigrations();
-
-  assert.equal(exists('idx_relay_obs_peer'), false);
-  // And what replaces it stays: the foreign key from relay_observation to peer
-  // needs an index starting with peer_id, or every peer the daily prune deletes
-  // costs a full scan of the observation table to prove nothing points at it.
-  assert.equal(exists('idx_relay_obs_peer_race'), true);
-});
-
-test('the network migration adds the column once and is safe to run again', () => {
-  // The first column this schema adds to an existing table, so the guard
-  // matters twice over: an unconditional ALTER would throw on every install
-  // created after this version (the CREATE TABLE already has the column), and
-  // the migration must survive being re-run without losing what is in it.
-  const hasColumn = () =>
-    db.instance.prepare(`SELECT COUNT(*) AS n FROM pragma_table_info('peer_session') WHERE name = 'network'`).get().n;
-
-  assert.equal(hasColumn(), 1, 'fresh databases get the column from CREATE TABLE');
-
-  const peer = db.getOrCreatePeer('198.51.100.77:8333');
-  db.instance
-    .prepare(
-      `INSERT INTO peer_session (peer_id, direction, connection_type, network, started_at)
-       VALUES (?, 'outbound', 'outbound-full-relay', 'onion', ?)`,
-    )
-    .run(peer.id, Date.now());
-
-  db.instance.prepare(`DELETE FROM meta WHERE key = ?`).run('migration:peer_session_network_v1_16_0');
-  db.runMigrations();
-
-  assert.equal(hasColumn(), 1);
-  assert.equal(
-    db.instance.prepare(`SELECT network FROM peer_session WHERE peer_id = ?`).get(peer.id).network,
-    'onion',
-    're-running the migration must not disturb the data',
-  );
-});
-
-/**
- * The one migration whose failure mode is silent and universal: getting this
- * wrong switches Stratum Race off on every machine that already had it, on
- * update, with nothing in the log that reads like a fault.
- *
- * Both branches need a database of their own and migrations run once per
- * database, so each runs in its own child process against its own temp
- * directory rather than against the shared one this file uses.
- */
+// A fresh install starts quiet: no connections to public pools before anyone
+// has looked at the switch. It needs a database of its own, so it runs in a
+// child process against its own temp directory.
 const { execFileSync } = require('child_process');
 
-function flagAfterOpen(dir, prepare = '') {
+function flagAfterOpen(dir) {
   const script = `
     const db = require(${JSON.stringify(path.resolve(__dirname, '../src/lib/db'))});
     const toggle = require(${JSON.stringify(path.resolve(__dirname, '../src/lib/stratum-race-toggle'))});
     db.open();
-    ${prepare}
     process.stdout.write(String(toggle.isEnabled()));
   `;
   return execFileSync(process.execPath, ['-e', script], {
@@ -1078,28 +950,31 @@ function flagAfterOpen(dir, prepare = '') {
   });
 }
 
+// The schema alone builds every column and index a fresh install needs - no
+// migration adds anything any more. The peer-only index on relay_observation
+// must not be there (SQLite chose it and read the whole history for a question
+// about the last 500 blocks); the wider one must, for the daily prune's
+// foreign key.
+test('a fresh schema has the columns and indexes the app relies on', () => {
+  const cols = (t) => db.instance.prepare(`SELECT name FROM pragma_table_info(?)`).all(t).map((r) => r.name);
+  const indexes = db.instance.prepare(`SELECT name FROM sqlite_master WHERE type = 'index'`).all().map((r) => r.name);
+  for (const c of ['first_count', 'nearest_delta_ms', 'template_ms', 'first_ping_ms', 'template_tx', 'pool_name',
+    'pool_tag', 'pool_source', 'recon', 'recon_missing_bytes', 'block_size', 'first_hb']) {
+    assert.ok(cols('relay_race').includes(c), `relay_race.${c}`);
+  }
+  for (const c of ['network', 'hb_to', 'hb_from', 'services', 'relay_txes', 'synced_headers']) {
+    assert.ok(cols('peer_session').includes(c), `peer_session.${c}`);
+  }
+  assert.ok(cols('trusted_peer').includes('kept'));
+  assert.deepEqual(cols('traffic_day'), ['day', 'recv', 'sent']);
+  assert.ok(indexes.includes('idx_relay_obs_peer_race'));
+  assert.ok(!indexes.includes('idx_relay_obs_peer'));
+  assert.ok(!db.instance.prepare(`SELECT 1 FROM sqlite_master WHERE name = 'parked_peer'`).get());
+});
+
 test('a fresh install starts with Stratum Race switched off', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'peerlab-fresh-'));
   assert.equal(flagAfterOpen(dir), 'false', 'nothing has run here, so nothing is switched on');
-});
-
-test('an install that has already run keeps Stratum Race switched on across the update', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'peerlab-existing-'));
-
-  // First open: the database as it was before the switch existed. The two
-  // deletes put it back into that state - schema present, a session recorded,
-  // and no trace of this migration having run.
-  const before = flagAfterOpen(dir, `
-    db.instance.prepare('DELETE FROM meta WHERE key = ?').run('migration:stratum_race_toggle_v1_16_3');
-    db.instance.prepare('DELETE FROM meta WHERE key = ?').run('stratum_race_enabled');
-    const id = db.instance.prepare('INSERT INTO peer (address, first_seen_at) VALUES (?, ?)').run('203.0.113.1:8333', Date.now()).lastInsertRowid;
-    db.instance.prepare('INSERT INTO peer_session (peer_id, direction, connection_type, started_at) VALUES (?,?,?,?)')
-      .run(id, 'outbound', 'outbound-full-relay', Date.now());
-  `);
-  assert.equal(before, 'false', 'the flag really is absent before the migration runs');
-
-  // Second open: the update.
-  assert.equal(flagAfterOpen(dir), 'true', 'an existing install is switched on rather than going quiet');
 });
 
 test('pruneNeverFirstPeers removes only peers that never delivered first and are long gone', () => {

@@ -79,7 +79,7 @@ test.beforeEach(() => {
 
 test.afterEach(() => {
   mock.restoreAll();
-  // Full reset between tests except `meta` (migration flags, pools_seeded) -
+  // Full reset between tests except `meta` (pools_seeded and the switches) -
   // each test that cares about the rotation-enabled flag sets/resets it
   // itself via setEnabled().
   // Children before parents - db.js turns on `foreign_keys = ON`, and
@@ -90,7 +90,6 @@ test.afterEach(() => {
     DELETE FROM peer_relay_stats;
     DELETE FROM relay_race;
     DELETE FROM trusted_peer;
-    DELETE FROM parked_peer;
     DELETE FROM rotation_log;
     DELETE FROM promoted_peer;
     DELETE FROM peer;
@@ -372,16 +371,9 @@ test('the rotation log never holds more than it can show', async () => {
 test('a host added by hand and promoted by the rotation is one kept peer, not two', () => {
   const address = '[2001:db8::5]:8333';
 
-  // Added by hand before the promotion record existed - the backfill is what
-  // writes such a peer down.
-  db.instance
-    .prepare(`INSERT INTO trusted_peer (address, label, kept, created_at) VALUES (?, NULL, 0, ?)`)
-    .run(address, 1000);
-  db.instance.prepare(`DELETE FROM meta WHERE key = ?`).run('migration:promoted_peer_backfill_v1_15_10');
-  db.runMigrations();
-
-  // ...and then promoted by the rotation, which writes the same host its way.
+  // Promoted twice, once under the bracketed spelling and once bare: one host.
   peerRotation.logAction({ action: 'promote', address, firstPct: 12.5, eligible: 300 });
+  peerRotation.logAction({ action: 'promote', address: '2001:db8::5', firstPct: 12.5, eligible: 300 });
 
   const ips = db.instance.prepare(`SELECT ip FROM promoted_peer ORDER BY ip`).all().map((r) => r.ip);
   assert.deepEqual(ips, ['2001:db8::5']);
@@ -393,14 +385,14 @@ test('a host added by hand and promoted by the rotation is one kept peer, not tw
 // Its whole purpose is to hold a slot for a reason the app cannot measure: a
 // friend's node, a second node of your own, a peer kept for how it is reached
 // rather than for what it delivers. So the two ways the rotation can take a
-// slot away - displacing it for a better peer, parking it while it is offline
+// slot away - displacing it for a better peer, retiring it while it is offline
 // - both have to leave it alone. With one exception, which the last test here
 // pins down.
 // ---------------------------------------------------------------------------
 
 test('re-adding a peer never clears a star that is already set', async () => {
   // addTrustedPeer is called by the rotation too - adopting a peer Core
-  // already knows, reviving a parked one - and those calls pass kept=false.
+  // already knows - and those calls pass kept=false.
   // Taking the star off is the star's own control, not a side effect.
   const address = seedLivePeer({ address: '198.51.100.100:8333', trusted: true, kept: true });
   await peerSync.addTrustedPeer(address, null);
@@ -481,14 +473,12 @@ test('a Tor manual peer that stays offline is let go, not parked', async () => {
   });
   assert.equal(await peerRotation.retireOfflineManualPeers(ranking()), 1);
   assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM trusted_peer WHERE address = ?').get(onion).n, 0);
-  assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM parked_peer WHERE address = ?').get(onion).n, 0);
 });
 
 // --- Manual slot fill: a candidate on trial, and Core decides ----------------
 //
 // The slot fill never dials anyone itself and never touches Core's own
-// connections. It adds a candidate from Core's address book (or a parked
-// peer), lets the peer it replaces go, and waits for Core: a manual
+// connections. It adds a candidate from Core's address book, lets the peer it replaces go, and waits for Core: a manual
 // connection to a node that serves blocks on our tip within the trial, or the
 // candidate goes and the peer it replaced comes back.
 

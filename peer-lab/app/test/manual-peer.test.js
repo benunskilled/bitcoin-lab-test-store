@@ -32,7 +32,7 @@ test.afterEach(() => {
   // on random local ports, a port comes round again now and then, and a test
   // that looks up its own log row by address then found an earlier test's
   // (Node 22 on main, 05.11.2026).
-  db.instance.exec('DELETE FROM trusted_peer; DELETE FROM parked_peer; DELETE FROM rotation_log;');
+  db.instance.exec('DELETE FROM trusted_peer; DELETE FROM rotation_log;');
 });
 
 // A real local listener that answers a version message with one of its own,

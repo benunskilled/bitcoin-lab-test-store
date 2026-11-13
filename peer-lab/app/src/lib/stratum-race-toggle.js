@@ -14,10 +14,8 @@
  * healthcheck would restart it in a loop (see health.js). What it costs while
  * switched off is one idle Node process.
  *
- * Absent means off, like the rotation. Existing installs are switched on by a
- * migration instead (see db.js), because for them the race has been running
- * since the day they installed it and an update must not quietly take that
- * away.
+ * Absent means off, like the rotation: a fresh install opens no connection to
+ * any pool before someone has switched it on.
  */
 
 const db = require('./db');

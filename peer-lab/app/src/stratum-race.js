@@ -238,8 +238,8 @@ function writeRace(race, { misses }) {
   // pool violates the foreign key. ON CONFLICT resolution does NOT cover
   // foreign-key violations, so inside one transaction that row took every
   // other pool's row down with it on rollback: the race ended up with rows
-  // only for some pools, which is precisely the Win%/Miss bias the
-  // stratum_history_reset_v1_12_0 migration had to erase once already.
+  // only for some pools, which is precisely the Win%/Miss bias that once had
+  // to be erased from the whole history.
   // Per-row failure costs exactly that row, and never crashes this process.
   for (const r of race.results) {
     try {

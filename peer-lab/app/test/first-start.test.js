@@ -8,8 +8,8 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 // On a fresh install all four services start at once and open the same, not
-// yet existing, database. Each one switches it to WAL, creates the schema,
-// runs the migrations and seeds the pools - and every one of those steps used
+// yet existing, database. Each one switches it to WAL, creates the schema
+// and seeds the pools - and every one of those steps used
 // to be able to fail with SQLITE_BUSY in the losers of the race, taking the
 // process down on its first boot.
 const OPEN = `

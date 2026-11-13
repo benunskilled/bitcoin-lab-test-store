@@ -5,7 +5,7 @@ const config = require('../config');
 
 // Caps unbounded growth WITHOUT touching what gives this app its long-term
 // value: every block (relay_race), and every peer that delivered one first,
-// is manual or parked, or was an outbound choice (kept forever, sessions
+// is manual, or was an outbound choice (kept forever, sessions
 // included). Inbound peers that never delivered first go after a month, see
 // pruneNeverFirstPeers below. Only "feeler" peers - no relay history, ever, not trusted -
 // and old stratum-pool history are pruned by age. Runs as one transaction,
