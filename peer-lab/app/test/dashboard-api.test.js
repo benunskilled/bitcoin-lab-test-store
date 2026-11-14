@@ -562,10 +562,18 @@ test('the event stream is capped, and says so politely past the limit', async ()
     for (const req of open) req.destroy();
   }
 
-  // And the limit is a limit, not a latch: closing a tab frees its slot.
-  await new Promise((r) => setTimeout(r, 200));
-  const again = await connect();
-  again.req.destroy();
+  // And the limit is a limit, not a latch: closing a tab frees its slot - as
+  // soon as the server has seen the close, which takes a moment, so it is
+  // asked again until then (up to two seconds) rather than after a fixed wait.
+  let again;
+  for (const end = Date.now() + 2000; ;) {
+    // eslint-disable-next-line no-await-in-loop
+    again = await connect();
+    again.req.destroy();
+    if (again.status === 200 || Date.now() > end) break;
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((r) => setTimeout(r, 20));
+  }
   assert.equal(again.status, 200, 'a freed slot is usable again');
 });
 

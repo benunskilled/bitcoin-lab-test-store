@@ -35,7 +35,14 @@ test.before(() => {
 
 // Ten minutes apart, like real blocks: blocks seconds apart are a backlog.
 const block = (i) => ({ blockHash: String(i).padStart(64, 'd'), detectedAtMs: now + i * 600_000, t0: process.hrtime.bigint() });
+// For "nothing happens" a short wait is all a test can do; for something that
+// should happen, it waits until it has (up to two seconds), not a fixed time
+// a slow runner might miss.
 const settle = () => new Promise((r) => setTimeout(r, 20));
+async function until(done, ms = 2000) {
+  for (const end = Date.now() + ms; !done() && Date.now() < end;) await new Promise((r) => setTimeout(r, 5));
+  return done();
+}
 
 test('with Stratum Race off, no block template is requested', async () => {
   stratumRace.setEnabled(false);
@@ -62,10 +69,10 @@ test('with Stratum Race on and a local pool app, the template is timed as before
   db.instance.prepare(`INSERT INTO stratum_pool (label, host, port, enabled, created_at) VALUES ('GoBrrr', 'gobrrr-pool_ckpool_1', 3333, 1, ?) ON CONFLICT(host, port) DO UPDATE SET enabled = 1`).run(now);
   templateCalls = 0;
   await relay.handleHashBlock(block(6));
-  await settle();
+  const tx = () => db.instance.prepare('SELECT template_tx AS tx FROM relay_race WHERE block_hash = ?').get(block(6).blockHash).tx;
+  assert.ok(await until(() => tx() != null), 'the template is timed');
   assert.equal(templateCalls, 1);
-  const row = db.instance.prepare('SELECT template_tx AS tx FROM relay_race WHERE block_hash = ?').get(block(6).blockHash);
-  assert.equal(row.tx, 3);
+  assert.equal(tx(), 3);
 });
 
 test('with a local pool app but Stratum Race off, no block template is requested', async () => {
@@ -86,6 +93,7 @@ test('while Core catches up, the blocks after the first get no template', async 
     // eslint-disable-next-line no-await-in-loop
     await relay.handleHashBlock({ blockHash: String(10 + i).padStart(64, 'd'), detectedAtMs: at + i * 500, t0: process.hrtime.bigint() });
   }
+  assert.ok(await until(() => templateCalls >= 1), 'the first is timed');
   await settle();
   assert.equal(templateCalls, 1, 'only the first, before it is known to be a catch-up');
   rpc.getBlockchainInfo = async () => ({ blocks: 1, headers: 1, initialblockdownload: false });

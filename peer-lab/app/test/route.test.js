@@ -120,7 +120,7 @@ test('a large reply is timed to its last byte and not kept', async () => {
   reply = () => ({ status: 200, body: big });
   const got = await rpc.timeCall('getblocktemplate', [{ rules: ['segwit'] }]);
   assert.equal(got.bytes, Buffer.byteLength(big));
-  assert.ok(got.ms >= 0);
+  assert.ok(Number.isFinite(got.ms) && got.ms > 0, `a time was taken: ${got.ms}`);
   assert.equal(Object.keys(got).sort().join(','), 'bytes,ms');
 });
 
