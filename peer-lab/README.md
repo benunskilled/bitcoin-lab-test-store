@@ -5,8 +5,9 @@ of them brings new blocks first, Slot Fill for Core's manual slots, and Stratum
 Race for mining pools. Test build, app ID `bltest-peerlab`, port **8796**.
 Bitcoin Node is the only dependency.
 
-The test build changes Core's peers (Slot Fill, Add a Peer, Remove,
-Disconnect), so it should not run next to Bitcoin Lab. It keeps its own data.
+It replaces Bitcoin Lab and Peer Map. Turn off Bitcoin Lab's rotation before
+you install it; Peer Lab keeps the manual peers it finds. It keeps its own
+data.
 
 ## Layout
 
