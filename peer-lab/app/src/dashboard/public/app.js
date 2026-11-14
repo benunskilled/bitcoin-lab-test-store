@@ -118,15 +118,15 @@ const KIND_RULES = [
   // Bitcoin Unlimited's old Bitcoin edition: a node of this chain, before
   // its "(EB16)" reads as another one's.
   [/^\/BitcoinUnlimited:/i, null, 'whole'],
-  [/Bitcoin ABC|BUCash|Bitcoin SV|BCH ?Unlimited|Bitcoin XT|Classic:|\(EB[0-9]|SuperBitcoin|iriumd|vds[_ ]|^\/Aurum:|^\/Ladybug:|\/Purity:|^\/dexcash-nodes:/i, 'a client of another chain', 'whole'],
+  [/Bitcoin ABC|BUCash|Bitcoin SV|BCH ?Unlimited|Bitcoin XT|OracleKnots:|UASF-BIP110:|^\/Bitcoin Interest:|^\/Bitcoin Clashic|Classic:|\(EB[0-9]|SuperBitcoin|iriumd|vds[_ ]|^\/Aurum:|^\/Ladybug:|\/Purity:|^\/dexcash-nodes:/i, 'a client of another chain', 'whole'],
   // Scanners run as a service and scanners run by universities - the second
   // kind announces itself with its department's domain.
-  [/kit\.edu|dsn\.tm|dsn\.kastel|\.ac\.|uni-|^\/btcwire:[^/]*\/Satoshi:|^\/rske-research:|^\/acsrg-research:|^\/dataforge-observer:|^\/connector\/$/i, 'a research scanner'],
+  [/kit\.edu|dsn\.tm|dsn\.kastel|\.ac\.|uni-|^\/btcwire:[^/]*\/Satoshi:|^\/rske-research:|^\/acsrg-research:|^\/dataforge-observer:|^\/connector\/$|^\/Coinscope-GH:|^\/JBS:|\/UU-Network-Research:/i, 'a research scanner'],
   // Koyn's header tool, on bitcoinj: a light client, not a crawler.
   [/\/PeerMonitor:/, 'a light client'],
   // Crawlers, seeders and node counters, including the ones that only say
   // "scan", "seeder", "census" or "monitor".
-  [/bitnodes|bluematt-tokio-client|metrika|nodemap|crawl|scan|seeder|census|monitor|observatory|sonar|scout|nebula|watch|listener|argus|readonly|bitdash|logosnaut|dnsseed|survey|lionseed|gnoban|^\/p2p-observer:|^\/p2p-extractor:|^\/bip324-probe:|^\/topology-probe:|^\/p2p-probe:|^\/probe:|^\/BTC-Nodes:[^/]*\/Probe\/|^\/btc-peers:|^\/bitcoin-peers:|^\/logos-peer-list:|^\/bip110-observer:|^\/nodes\.mom\.market:|^\/btcwire:[^/]*\/bitcoinstats\.com:/i, 'a network crawler'],
+  [/bitnodes|bluematt-tokio-client|metrika|nodemap|crawl|scan|seeder|census|monitor|observatory|sonar|scout|nebula|watch|listener|argus|readonly|bitdash|logosnaut|dnsseed|survey|lionseed|gnoban|^\/p2p-observer:|^\/p2p-extractor:|^\/bip324-probe:|^\/topology-probe:|^\/p2p-probe:|^\/probe:|^\/BTC-Nodes:[^/]*\/Probe\/|^\/btc-peers:|^\/bitcoin-peers:|^\/logos-peer-list:|^\/bip110-observer:|^\/nodes\.mom\.market:|^\/btcwire:[^/]*\/bitcoinstats\.com:|^\/open-nodes:|^\/btz:|^fluxture$|^\/buidl-bootcamp\/|\/HTTPSeed:/i, 'a network crawler'],
   // Address indexers for wallets: they follow the chain and relay nothing.
   [/electrs|electrum|esplora|\/mempool|^NBXplorer-|^\/symphony:/i, 'an address indexer'],
   [/bitcoinj|breadwallet|\/bread:|bither|multibit|wasabi|Bitcoin Wallet|^\/blueberry:|^\/winnow:|^\/BitcoinKit:|^\/WalletKit:|\/hodlwallet:|\/spvwallet:|^\/btcwire:[^/]*\/bitfyn:|^\/twotbit:|^\/bitc:|^MagicalBitcoinWallet$|^Wallet v0\.1$|^\/BitcoinSPV:|^\/enginecore:|^\/BitcoinWallet:/i, 'a wallet'],

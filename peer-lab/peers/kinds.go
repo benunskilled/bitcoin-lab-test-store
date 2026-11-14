@@ -78,7 +78,7 @@ var kindRules = []struct {
 	// client for Bitcoin itself, not another chain; it sends "(EB16)" too, so
 	// it comes first (see about.go).
 	{"Node (other)", regexp.MustCompile(`(?i)^/BitcoinUnlimited:`), true},
-	{"Other chain", regexp.MustCompile(`(?i)Bitcoin ABC|BUCash|Bitcoin SV|BCH ?Unlimited|Bitcoin XT|Classic:|\(EB[0-9]|SuperBitcoin|iriumd|vds[_ ]|^/Aurum:|^/Ladybug:|/Purity:|^/dexcash-nodes:`), false},
+	{"Other chain", regexp.MustCompile(`(?i)Bitcoin ABC|BUCash|Bitcoin SV|BCH ?Unlimited|Bitcoin XT|OracleKnots:|UASF-BIP110:|^/Bitcoin Interest:|^/Bitcoin Clashic|Classic:|\(EB[0-9]|SuperBitcoin|iriumd|vds[_ ]|^/Aurum:|^/Ladybug:|/Purity:|^/dexcash-nodes:`), false},
 	// Network scanners, in two flavours: the ones run as a service and the
 	// ones run by universities. Both announce themselves honestly.
 	// Pool Detective, MIT's Digital Currency Initiative watching what mining
@@ -94,15 +94,16 @@ var kindRules = []struct {
 	// /dataforge-observer:/ only listened to what was announced.
 	// DaeConn, a measurement tool for Bitcoin-derived networks, says
 	// "/connector/" (app/network/scanner.py in DogukanBaysal/DaeConn).
-	{"Research scanner", regexp.MustCompile(`(?i)kit\.edu|dsn\.tm|dsn\.kastel|\.ac\.|uni-|^/btcwire:[^/]*/Satoshi:|^/rske-research:|^/acsrg-research:|^/dataforge-observer:|^/connector/$`), false},
+	{"Research scanner", regexp.MustCompile(`(?i)kit\.edu|dsn\.tm|dsn\.kastel|\.ac\.|uni-|^/btcwire:[^/]*/Satoshi:|^/rske-research:|^/acsrg-research:|^/dataforge-observer:|^/connector/$|^/Coinscope-GH:|^/JBS:|/UU-Network-Research:`), false},
 	// Crawlers, seeders and node counters: they collect addresses and look,
 	// and several of them say so only as "scan", "seeder", "census" or
 	// "monitor" - on one node 953 sessions of /bitcoin-seeder/ and 372 of
 	// /btc-range-scan/ used to land in "Other". /cryptexplorer:/,
 	// /BlockSail:/ and /your-fork:/ have no public source and stay "Other",
 	// although on that node they asked for addresses and nothing else
-	// (peer-observer, 21. to 29.10.2026); /topology-probe:/ and the other
-	// probes are crawlers by what their names say. BIP-110 Observer collects peer
+	// (peer-observer, 21. to 29.10.2026); /topology-probe:/ is a crawler by its
+	// source (bitcoin_probe.py in dutenrapha/bitcoin-topology-discovery), the
+	// other probes by what their names say. BIP-110 Observer collects peer
 	// user agents and services (app/crawler.py in decentralizedb/bip110-observer).
 	// nodes.mom.market and bitcoinstats.com listened to what was announced and
 	// asked for nothing in 0xB10C's list of 15.05.2023 (entities.toml on the
@@ -114,7 +115,7 @@ var kindRules = []struct {
 	// Koyn's header tool says "/bitcoinj:0.14.7/PeerMonitor:1.0/" (Main.java in
 	// elkrem/koyn-sync): a light client, not a crawler, whatever "monitor" says.
 	{"Other light client", regexp.MustCompile(`/PeerMonitor:`), false},
-	{"Crawler", regexp.MustCompile(`(?i)bitnodes|bluematt-tokio-client|metrika|nodemap|crawl|scan|seeder|census|monitor|observatory|sonar|scout|nebula|watch|listener|argus|readonly|bitdash|logosnaut|dnsseed|survey|lionseed|gnoban|^/p2p-observer:|^/p2p-extractor:|^/bip324-probe:|^/topology-probe:|^/p2p-probe:|^/probe:|^/BTC-Nodes:[^/]*/Probe/|^/btc-peers:|^/bitcoin-peers:|^/logos-peer-list:|^/bip110-observer:|^/nodes\.mom\.market:|^/btcwire:[^/]*/bitcoinstats\.com:`), false},
+	{"Crawler", regexp.MustCompile(`(?i)bitnodes|bluematt-tokio-client|metrika|nodemap|crawl|scan|seeder|census|monitor|observatory|sonar|scout|nebula|watch|listener|argus|readonly|bitdash|logosnaut|dnsseed|survey|lionseed|gnoban|^/p2p-observer:|^/p2p-extractor:|^/bip324-probe:|^/topology-probe:|^/p2p-probe:|^/probe:|^/BTC-Nodes:[^/]*/Probe/|^/btc-peers:|^/bitcoin-peers:|^/logos-peer-list:|^/bip110-observer:|^/nodes\.mom\.market:|^/btcwire:[^/]*/bitcoinstats\.com:|^/open-nodes:|^/btz:|^fluxture$|^/buidl-bootcamp/|/HTTPSeed:`), false},
 	// Address indexers for wallets: they follow the chain but relay nothing.
 	// "/mempool" at the start of a part of the agent: "/mempool/" and
 	// "/mempool.space:1.0/" are the indexer, "(mempool.guide)" is a node label.
@@ -191,7 +192,7 @@ var kindRules = []struct {
 	// /Natasha:/ offers the same services and sent headers. BTC-Nodes' other
 	// names, "/BTC-Nodes:<date>/Sonar/" and ".../Probe/", are caught as a
 	// crawler first.
-	{"Node (other)", regexp.MustCompile(`(?i)^/(CamlCoin|rustoshi|LunarBlock|Haskoin|beamchain|blockbrew|clearbit|nimrod|hotbuns|bitcoin-hybrid|ouroboros|mako|rbitcoin|rbtc|BitcoinEcho|BitcoinMachineCode|kernel-node|bitcoinkernel-node|tbcd|mantle|bitcoin-rs|satd):|/utreexod:`), true},
+	{"Node (other)", regexp.MustCompile(`(?i)^/(CamlCoin|rustoshi|LunarBlock|Haskoin|beamchain|blockbrew|clearbit|nimrod|hotbuns|bitcoin-hybrid|ouroboros|mako|rbitcoin|rbtc|BitcoinEcho|BitcoinMachineCode|kernel-node|bitcoinkernel-node|tbcd|mantle|bitcoin-rs|satd|bitcoinpr|btclib|Bitcoin Commons|bitcoin-spec-node|Forseti|SwiftBitcoin|BitcoinWolfe|Subcoin|rust_bitcoin_node|bitcoin-ruby):|/utreexod:|^StratisNode:`), true},
 	// GrayersDad: see its line in about.go.
 	{"Node (Knots)", regexp.MustCompile(`(?i)Knots|^/GrayersDad:`), true},
 	{"Node (Core)", regexp.MustCompile(`^/Satoshi:`), true},

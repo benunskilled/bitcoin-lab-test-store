@@ -65,7 +65,7 @@ func libreRelay(subver string, services []string) (kind, about, label string) {
 }
 
 // Service bits Knots gives to rules other than Bitcoin's (src/protocol.h on
-// its 29.x-knots branch): bit 27 NODE_REDUCED_DATA, a node enforcing BIP110's
+// its 29.x-knots branch; Oracle Knots sets bit 28 too, MarcanoFilms/oracle-knots): bit 27 NODE_REDUCED_DATA, a node enforcing BIP110's
 // ReducedData rules, bit 28 NODE_BLAKE2B, a node enforcing a hard fork to
 // BLAKE2b proof of work (and ReducedData). Core lists them as UNKNOWN[2^n].
 // In peer-observer's record of the node this was written for, 21. to
