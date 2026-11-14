@@ -102,7 +102,7 @@ test.afterEach(() => {
   require('../src/lib/peer-rotation/addrbook').resetForTests();
   db.instance.exec(`DELETE FROM slot_fill_tried;
     DELETE FROM meta WHERE key IN ('slot_fill_trial', 'slot_fill_swap_rest_until', 'peer_rotation_enabled',
-      'slot_fill_last_pass', 'slot_fill_core_down', 'slot_fill_gaps');`);
+      'slot_fill_last_pass', 'slot_fill_core_down', 'slot_fill_core_down_last', 'slot_fill_gaps');`);
 });
 
 // Core's chain tip in these tests.
@@ -1456,12 +1456,15 @@ test('slot fill: a Core restart during the trial starts it over, no "no connecti
   setPeers([coreOut()]);
   await peerRotation.tick();
   const startedAt = fill.currentTrial().startedAt;
-  // Core restarts: two minutes of no answer, then back, with no connection
-  // to the candidate yet - past the five minutes a clearnet one gets.
-  t.mock.timers.tick(2 * MIN);
+  // Core restarts: no answer at the checks a minute apart for three minutes,
+  // then back, with no connection to the candidate yet - past the five
+  // minutes a clearnet one gets.
   rpc.getPeerInfo.mock.mockImplementation(async () => { throw new Error('connect ECONNREFUSED'); });
-  await peerRotation.tick();
-  t.mock.timers.tick(4 * MIN);
+  for (let i = 0; i < 4; i += 1) {
+    t.mock.timers.tick(MIN);
+    await peerRotation.tick();
+  }
+  t.mock.timers.tick(2 * MIN);
   setPeers([coreOut()]);
   const result = await peerRotation.tick();
 
@@ -1521,8 +1524,10 @@ test('a peer offline for hours before Core went down still goes once Core is bac
   rpc.getPeerInfo.mock.mockImplementation(async () => { throw new Error('connect ECONNREFUSED'); });
   t.mock.timers.tick(MIN);
   await peerRotation.tick();
+  t.mock.timers.tick(10 * MIN);
+  await peerRotation.tick();
   // Five hours offline, the last half hour of it with Core down.
-  t.mock.timers.tick(30 * MIN);
+  t.mock.timers.tick(20 * MIN);
   const gone = seedOfflineTrustedPeer({ eligible: 10, first: 0, offlineHours: 5 });
   setPeers([]);
 
@@ -1538,9 +1543,46 @@ test('the gap clock: only the part of a gap after a peer went offline is taken o
   clock.passed(10 * HOUR);
   assert.equal(clock.passed(10 * HOUR + 5 * MIN), false, 'a normal step');
   clock.coreDown(10 * HOUR + 6 * MIN);
-  assert.equal(clock.passed(11 * HOUR + 5 * MIN), true, 'Core was down in between');
-  assert.equal(clock.lostBetween(10 * HOUR + 35 * MIN, 12 * HOUR), 30 * MIN);
-  assert.equal(clock.lostBetween(9 * HOUR, 12 * HOUR), HOUR);
+  assert.equal(clock.passed(10 * HOUR + 16 * MIN), false, 'one pass Core missed is no gap, even ten minutes before the next');
+  clock.coreDown(10 * HOUR + 26 * MIN);
+  clock.coreDown(10 * HOUR + 36 * MIN);
+  assert.equal(clock.passed(10 * HOUR + 46 * MIN), true, 'Core missed passes ten minutes apart');
+  assert.equal(clock.lostBetween(10 * HOUR + 36 * MIN, 12 * HOUR), 10 * MIN, 'only from when it was first missed');
+  assert.equal(clock.lostBetween(9 * HOUR, 12 * HOUR), 20 * MIN);
   assert.equal(clock.passed(10 * HOUR), true, 'a clock that went back');
-  assert.equal(clock.lostBetween(9 * HOUR, 12 * HOUR), HOUR, 'which adds nothing');
+  assert.equal(clock.lostBetween(9 * HOUR, 12 * HOUR), 20 * MIN, 'which adds nothing');
+});
+
+test('slot fill: a Core that misses a call now and then holds nothing up', async (t) => {
+  // A busy Core (electrs, mempool on the same node) misses a check here and
+  // there: each was a gap, the trial started over every time and never ended.
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
+  peerRotation.setEnabled(true);
+  at(seedLivePeer({ eligible: 144, first: 90, trusted: true }), 'EU');
+  const asia = inBook('198.18.0.10', 'AS');
+  setPeers([coreOut()]);
+  await peerRotation.tick();
+  let reverted = 0;
+  for (let m = 1; m <= 8 && !reverted; m += 1) {
+    t.mock.timers.tick(MIN);
+    if (m % 3 === 0) rpc.getPeerInfo.mock.mockImplementation(async () => { throw new Error('work queue depth exceeded'); });
+    else setPeers([coreOut()]);
+    reverted = (await peerRotation.tick()).reverted;
+  }
+  assert.equal(reverted, 1, 'judged at its five minutes, not started over');
+  assert.ok(!isManual(asia));
+  peerRotation.setEnabled(false);
+});
+
+test('slot fill: a trial starts over three times at most', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
+  peerRotation.setEnabled(true);
+  at(seedLivePeer({ eligible: 144, first: 90, trusted: true }), 'EU');
+  inBook('198.18.0.10', 'AS');
+  setPeers([coreOut()]);
+  await peerRotation.tick();
+  for (let i = 0; i < fill.MAX_RESTARTS; i += 1) assert.equal(fill.restart({ headers: TIP }), true);
+  assert.equal(fill.restart({ headers: TIP }), false, 'the fourth gap leaves it as it stands');
+  assert.equal(fill.currentTrial().restarts, fill.MAX_RESTARTS);
+  peerRotation.setEnabled(false);
 });

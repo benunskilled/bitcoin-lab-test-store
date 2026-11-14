@@ -505,7 +505,8 @@
   // it before the tables are drawn and stays at the top, so the page goes
   // there once they are.
   if (location.hash.length > 1) {
-    const id = decodeURIComponent(location.hash.slice(1));
+    let id = location.hash.slice(1);
+    try { id = decodeURIComponent(id); } catch { /* a broken escape: taken as it stands */ }
     const wait = setInterval(() => {
       const el = document.getElementById(id);
       if (!el || !document.querySelector("#tables tr[data-anchor]")) return;

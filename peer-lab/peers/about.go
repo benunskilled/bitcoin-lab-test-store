@@ -493,7 +493,7 @@ var aboutRules = []aboutRule{
 	// whose Bitcoin edition ended in January 2018 (85f5bd6); "BUCash" for the
 	// Bitcoin Cash edition from 25.07.2017 (849199f), "BCH Unlimited" with a
 	// space from 02.04.2020 (4ce5b9e). Before the "(EB" rule: they send it too.
-	{regexp.MustCompile(`(?i)BitcoinUnlimited`), "Bitcoin Unlimited, a big-block client for Bitcoin; this edition ended in 2018", "Bitcoin Unlimited (old)", ""},
+	{regexp.MustCompile(`(?i)^/BitcoinUnlimited:`), "Bitcoin Unlimited, a big-block client for Bitcoin; this edition ended in 2018", "Bitcoin Unlimited (old)", ""},
 	{regexp.MustCompile(`(?i)BUCash|BCH ?Unlimited`), "Bitcoin Unlimited's Bitcoin Cash edition (BUCash, now BCH Unlimited)", "Bitcoin Unlimited (BCH)", ""},
 	{regexp.MustCompile(`(?i)Bitcoin SV`), "Bitcoin SV, the node of BSV, which split from Bitcoin Cash in 2018", "Bitcoin SV (BSV)", ""},
 	{regexp.MustCompile(`(?i)Bitcoin XT`), "Bitcoin XT, a fork of Core for bigger blocks that went on to Bitcoin Cash", "Bitcoin XT", ""},

@@ -768,4 +768,7 @@ test('GET /api/storage answers from a cache for a minute, and a reset clears it'
   await api('/api/reset', { method: 'POST', body: JSON.stringify({ scope: 'pools' }) });
   await api('/api/storage');
   assert.equal(scans, 3, 'after a reset it reads again at once');
+  t.mock.timers.setTime(Date.now() - 60 * 60 * 1000);
+  await api('/api/storage');
+  assert.equal(scans, 4, 'and after the clock stepped back, instead of waiting for it to catch up');
 });

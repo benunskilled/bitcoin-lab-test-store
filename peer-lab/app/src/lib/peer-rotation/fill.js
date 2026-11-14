@@ -364,12 +364,20 @@ function trialView(trial, peers, now = Date.now()) {
 
 // After a gap (clock.js) the trial starts over: Core may have been down, with
 // no connection to anyone, or the clock stepped, and either way the time so
-// far says nothing about the candidate. The tip is taken anew too.
+// far says nothing about the candidate. The tip is taken anew too. Three
+// times at most: a Core that keeps going away would otherwise keep one
+// candidate on trial, holding the slot, for good.
+const MAX_RESTARTS = 3;
 function restart(chain, now = Date.now()) {
   const trial = currentTrial();
   if (!trial) return false;
-  writeTrial({ ...trial, startedAt: now, tip: Number(chain.headers ?? chain.blocks) });
-  logger.info('slot fill: trial starts over after a gap', { address: trial.address });
+  const restarts = (trial.restarts || 0) + 1;
+  if (restarts > MAX_RESTARTS) {
+    logger.info('slot fill: trial not started over again, judged as it stands', { address: trial.address });
+    return false;
+  }
+  writeTrial({ ...trial, startedAt: now, tip: Number(chain.headers ?? chain.blocks), restarts });
+  logger.info('slot fill: trial starts over after a gap', { address: trial.address, restarts });
   return true;
 }
 
@@ -381,4 +389,4 @@ async function abandon(address, now = Date.now()) {
   logger.info('slot fill: candidate taken out, switched off while adding', { address, at: now });
 }
 
-module.exports = { settle, start, restart, abandon, markTried, currentTrial, works, withoutSession, trialView, lastLook: () => lastLook };
+module.exports = { MAX_RESTARTS, settle, start, restart, abandon, markTried, currentTrial, works, withoutSession, trialView, lastLook: () => lastLook };

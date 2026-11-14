@@ -765,7 +765,10 @@ const routes = {
   // left open, or anyone else on the node's network, cannot keep the
   // dashboard busy with it. A reset clears it: the numbers have just moved.
   'GET /api/storage': async (req, res, url) => {
-    if (!storageCache || Date.now() - storageCache.at >= STORAGE_CACHE_MS) {
+    // A clock that stepped back reads again too, instead of keeping the old
+    // split until it has caught up.
+    const age = storageCache ? Date.now() - storageCache.at : null;
+    if (age == null || age >= STORAGE_CACHE_MS || age < 0) {
       storageCache = { at: Date.now(), body: db.storageBreakdown() };
     }
     return sendJson(res, 200, storageCache.body);
