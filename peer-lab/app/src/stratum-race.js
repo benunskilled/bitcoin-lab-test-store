@@ -296,6 +296,12 @@ async function blockKnown(prevhash) {
 // the owner's own, and losing every race while Core restarts would be worse.
 const VERIFY_RETRY_MS = [60_000, 10 * 60_000];
 
+// A pool that sends well-formed but made-up prevhashes opens a race for each,
+// and every one waits here for Core to be asked again. Fifty is about eight
+// hours of real blocks; past that the new one is dropped unasked, so made-up
+// hashes cannot turn into a steady stream of getblockheader calls.
+const MAX_PENDING_RACES = 50;
+
 let verify = blockKnown;
 
 // Races waiting for Core to be asked again. A restart or the switch going off
@@ -311,6 +317,13 @@ async function settleRace(race, attempt = 0) {
   }
   if (known === true) return writeRace(race, { misses: true });
   if (attempt < VERIFY_RETRY_MS.length) {
+    if (attempt === 0 && pendingRaces.size >= MAX_PENDING_RACES) {
+      logger.warn('too many races waiting for Core, dropping this one', {
+        prevhash: race.prevhash,
+        first: race.results.length ? race.results[0].label : null,
+      });
+      return undefined;
+    }
     race.retry = setTimeout(() => {
       pendingRaces.delete(race);
       settleRace(race, attempt + 1).catch((err) =>
@@ -587,4 +600,5 @@ module.exports = {
   // Tests only: stand in for Core's answer.
   setVerifier: (fn) => { verify = fn || blockKnown; },
   VERIFY_RETRY_MS,
+  MAX_PENDING_RACES,
 };

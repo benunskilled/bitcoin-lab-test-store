@@ -516,6 +516,25 @@ test('a race waiting for Core is written without misses when the worker stops', 
   assert.deepEqual(observationsFor(prevhash(96)).map((r) => [r.poolId, r.latencyMs]), [[1, 0]]);
 });
 
+test('races waiting for Core stop at a limit, so made-up prevhashes cannot pile up', async (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const [a] = [fakePool(1, 'A')];
+  watchPools(a);
+  let asked = 0;
+  race.setVerifier(async () => { asked += 1; return false; });
+  for (let i = 0; i < race.MAX_PENDING_RACES + 5; i++) {
+    const hash = (0xa000 + i).toString(16).padStart(64, '0');
+    race.handleNotify(a, hash, hr());
+    await race.finalizeRace(hash);
+  }
+  assert.equal(race.pendingRaces.size, race.MAX_PENDING_RACES);
+  asked = 0;
+  t.mock.timers.tick(race.VERIFY_RETRY_MS[0]);
+  await new Promise((r) => setImmediate(r));
+  assert.equal(asked, race.MAX_PENDING_RACES, 'only the races kept are asked about again');
+  race.abandonOpenRaces();
+});
+
 test('when Core cannot be asked at all, the race is recorded unchecked', async (t) => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const a = fakePool(1, 'A');
