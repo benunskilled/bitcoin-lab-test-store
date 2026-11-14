@@ -267,8 +267,8 @@ const scheduleFit = () => { clearTimeout(fitTimer); fitTimer = setTimeout(fitTab
 // page's content: inside main, and not the beating dot or the bar that rides
 // along at the top.
 const QUIET = '.live-dot, .stick';
-// The peer list's status line is rewritten every second (its "ago"): one
-// line of text, which cannot change whether a table fits.
+// The peer list's status pill is redrawn every second: one line in the
+// header, which cannot change whether a table fits.
 const counts = (m) => !(m.target.closest && m.target.closest('#status'))
   && (m.type === 'childList' || (m.target.closest('main') && !m.target.closest(QUIET)));
 new MutationObserver((list) => {
@@ -1130,7 +1130,9 @@ function renderRotationLog(log) {
 function applyStratumEnabled(enabled) {
   const toggle = document.getElementById('stratum-toggle');
   if (!toggle) return;
-  if (document.activeElement !== toggle) toggle.checked = enabled;
+  // Disabling the box while its own answer is out drops its focus (WebKit,
+  // Chrome), so that is asked too.
+  if (document.activeElement !== toggle && !toggle.disabled) toggle.checked = enabled;
   foldSums();
   const body = document.getElementById('stratum-body');
   if (body) body.hidden = !enabled;
@@ -1798,6 +1800,8 @@ document.body.addEventListener('change', async (e) => {
       rotationToggleEpoch += 1;
       if (e.target.isConnected) e.target.checked = !enabled;
       showToast(`Could not change Slot Fill: ${err.message}`, 'error');
+      // An answer asked before the click was thrown away: ask again.
+      refreshRotation().catch(() => {});
     } finally {
       box.disabled = false;
     }

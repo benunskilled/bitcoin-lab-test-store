@@ -260,9 +260,11 @@
     // the page (the Slot Fill log, a pool) holds nothing here, as in the
     // dashboard's own tables (review 14.11.2026).
     const sel = window.getSelection && window.getSelection();
-    if (sel && !sel.isCollapsed && sel.anchorNode) {
-      const el = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement;
-      if (el && el.closest && el.closest(".peers, #map")) return true;
+    if (sel && !sel.isCollapsed) {
+      for (const n of [sel.anchorNode, sel.focusNode]) {
+        const el = n && (n.nodeType === 1 ? n : n.parentElement);
+        if (el && el.closest && el.closest(".peers, #map")) return true;
+      }
     }
     if (pressedAt && Date.now() - pressedAt < 2000) return true;
     const a = document.activeElement;
