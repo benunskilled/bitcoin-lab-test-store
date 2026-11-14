@@ -445,7 +445,7 @@ function applyBlockUpdate(race) {
 // in words what it does and what clicking will do next.
 function keepStar(p) {
   const on = Boolean(p.kept);
-  const title = on ? 'Locked: keeps its slot, even while offline - click to unlock' : 'Click to lock: it keeps its slot, even while offline';
+  const title = on ? 'Locked: once it has connected, it keeps its slot, even while offline - click to unlock' : 'Click to lock: once it has connected, it keeps its slot, even while offline';
   // The word beside the padlock: a faint lock alone did not read as a switch.
   return `<button class="keep-star${on ? ' on' : ''}" data-action="keep" data-address="${escapeHtml(p.address)}" data-kept="${on ? '1' : '0'}" title="${title}" aria-pressed="${on}"><span aria-hidden="true">🔒</span><span class="keep-word">${on ? 'Locked' : 'Lock'}</span></button>`;
 }
@@ -1678,7 +1678,7 @@ document.body.addEventListener('click', async (e) => {
       await api('/api/peers/keep', { method: 'POST', body: JSON.stringify({ address, kept }) });
       showToast(
         kept
-          ? `${address} is locked: it keeps its slot, even offline.`
+          ? `${address} is locked: once it has connected, it keeps its slot, even offline.`
           : `${address} is unlocked: it gives up its slot if it stays offline.`,
         'success',
       );

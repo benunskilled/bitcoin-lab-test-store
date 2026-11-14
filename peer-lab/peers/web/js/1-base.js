@@ -10,7 +10,7 @@
   // A manual peer locked in the dashboard keeps its slot even while offline:
   // the padlock stands in its row, where the legend and the Manual head
   // ("6 locked") promise it, not only in the opened detail.
-  const LOCKED_TITLE = "Locked: keeps its manual slot, even while offline";
+  const LOCKED_TITLE = "Locked: once it has connected, it keeps its manual slot, even while offline";
   const isLocked = (p) => p.group === "manual" && Boolean(window.peerLab.peer(p.addr)?.kept);
   const LABEL = { manual: "Manual", inbound: "Inbound", outbound: "Outbound" };
   const NS = "http://www.w3.org/2000/svg";
