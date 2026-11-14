@@ -90,10 +90,6 @@ CREATE TABLE IF NOT EXISTS trusted_peer (
   created_at INTEGER NOT NULL
 );
 
--- Parking went with the old rotation (11.11.2026): an install from before
--- then still has the empty table.
-DROP TABLE IF EXISTS parked_peer;
-
 -- Address-book candidates the slot fill has put to Core, and whether Core
 -- connected to them. One that did not is left alone for a week; the rows are
 -- dropped after a month. The candidate on trial right now is in meta
@@ -271,34 +267,10 @@ CREATE TABLE IF NOT EXISTS rotation_log (
   at INTEGER NOT NULL,
   action TEXT NOT NULL,             -- promote | retire | manual | unmanual | disconnect
   address TEXT NOT NULL,
-  first_pct REAL,
-  eligible INTEGER,
   replaced_address TEXT,            -- the peer a manual add pushed out
-  replaced_first_pct REAL,
   note TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_rotation_log_at ON rotation_log(at DESC);
-
--- Every IP the rotation has ever made manual, one row each, forever.
---
--- rotation_log cannot answer "how many peers were ever promoted": it is
--- trimmed to the last thirty actions on every write, so the count silently
--- shrinks as the loop keeps working. This table is the durable half of that
--- question and nothing else - no percentages, no timestamps beyond the first,
--- because the peer's own record already lives in peer_relay_stats.
---
--- Keyed by IP rather than by address on purpose. A promoted inbound peer joins
--- under its listening port, so the same host appears once as 203.0.113.5:51234
--- and again as 203.0.113.5:8333; counting addresses would count it twice. The
--- primary key makes the de-duplication a property of the schema rather than
--- something every reader has to remember - but only as far as every writer
--- spells a host the same way. There is exactly one spelling, the bare host
--- that address.js's hostFromAddress returns, so an
--- IPv6 peer is 2001:db8::5 here and never [2001:db8::5].
-CREATE TABLE IF NOT EXISTS promoted_peer (
-  ip TEXT PRIMARY KEY,
-  first_promoted_at INTEGER NOT NULL
-);
 
 -- The node's traffic per UTC day (see lib/traffic.js).
 CREATE TABLE IF NOT EXISTS traffic_day (
@@ -561,12 +533,6 @@ function resetPeerData() {
       ).run();
       db.prepare(`DELETE FROM slot_fill_tried`).run();
       db.prepare(`DELETE FROM rotation_log`).run();
-      // Goes with the rest, not on its own. Everything the funnel shows -
-      // seen, judged, delivered - is derived from the tables above and returns
-      // to zero here; a "kept" count that survived would leave the header
-      // reading "0 seen, 0 judged, 0 delivered, 8 kept", which is not a
-      // statistic but a contradiction.
-      db.prepare(`DELETE FROM promoted_peer`).run();
       db.prepare(`DELETE FROM peer WHERE id NOT IN (SELECT peer_id FROM peer_session)`).run();
     } finally {
       // Recreated inside the same transaction, so a failure anywhere above
@@ -638,7 +604,7 @@ function sizeBytes() {
 // and is never touched by a reset.
 const PEER_DATA_TABLES = [
   'relay_race', 'relay_observation', 'peer_relay_stats',
-  'peer', 'peer_session', 'rotation_log', 'promoted_peer',
+  'peer', 'peer_session', 'rotation_log',
 ];
 const POOL_HISTORY_TABLES = ['stratum_race', 'stratum_observation'];
 

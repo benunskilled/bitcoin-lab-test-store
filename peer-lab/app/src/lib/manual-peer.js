@@ -145,7 +145,6 @@ async function manualAddPeer(rawInput, label, { kept = false } = {}) {
       action: 'manual',
       address: probed.address,
       replacedAddress: result.evicted?.address,
-      replacedFirstPct: result.evicted?.firstPct,
       // Where the slot came from: the spread decides which peer goes
       // (spread.leastMissed), so the region says more than "the weakest".
       note: result.evicted ? `replaced one in ${spread.REGION_NAMES[spread.placeOf(result.evicted).region] || 'an unknown region'}` : null,

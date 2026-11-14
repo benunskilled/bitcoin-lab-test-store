@@ -91,7 +91,6 @@ test.afterEach(() => {
     DELETE FROM relay_race;
     DELETE FROM trusted_peer;
     DELETE FROM rotation_log;
-    DELETE FROM promoted_peer;
     DELETE FROM peer;
   `);
   racePool.length = 0;
@@ -361,7 +360,7 @@ test('the rotation log never holds more than it can show', async () => {
   const limit = LOG_ENTRIES;
 
   for (let i = 0; i < limit + 15; i += 1) {
-    peerRotation.logAction({ action: 'retire', address: `198.51.100.${i}:8333`, firstPct: 0, eligible: 144, note: `entry ${i}` });
+    peerRotation.logAction({ action: 'retire', address: `198.51.100.${i}:8333`, note: `entry ${i}` });
   }
 
   const stored = db.instance.prepare('SELECT COUNT(*) AS n FROM rotation_log').get().n;
@@ -386,23 +385,6 @@ test('an action written after the clock stepped back stays in the log', (t) => {
   t.mock.restoreAll();
   const notes = peerRotation.recentLog().map((e) => e.note);
   assert.equal(notes[0], 'after the step', 'the action written last is shown first and kept');
-});
-
-/**
- * One host, one spelling. The rotation wrote the bare host that
- * hostFromAddress returns; the backfill kept the brackets an IPv6 address
- * arrives in. Both meant "this host was kept", the primary key could not see
- * that they were the same, and one kept peer was counted as two.
- */
-test('a host added by hand and promoted by the rotation is one kept peer, not two', () => {
-  const address = '[2001:db8::5]:8333';
-
-  // Promoted twice, once under the bracketed spelling and once bare: one host.
-  peerRotation.logAction({ action: 'promote', address, firstPct: 12.5, eligible: 300 });
-  peerRotation.logAction({ action: 'promote', address: '2001:db8::5', firstPct: 12.5, eligible: 300 });
-
-  const ips = db.instance.prepare(`SELECT ip FROM promoted_peer ORDER BY ip`).all().map((r) => r.ip);
-  assert.deepEqual(ips, ['2001:db8::5']);
 });
 
 // ---------------------------------------------------------------------------
@@ -844,18 +826,6 @@ test('slot fill: what it adds carries no padlock; what a person types in does', 
   const byAddress = Object.fromEntries(ranking().map((p) => [p.address, p]));
   assert.equal(byAddress['198.51.100.98:8333']?.kept, true);
   assert.equal(byAddress[asia]?.kept, false);
-});
-
-test('promotions are remembered after the rotation log has been trimmed away', async () => {
-  const address = seedLivePeer({ eligible: 300, first: 100 });
-  peerRotation.logAction({ action: 'promote', address, note: 'test' });
-  const kept = () => db.instance.prepare(`SELECT COUNT(*) AS n FROM promoted_peer`).get().n;
-  assert.equal(kept(), 1);
-  for (let i = 0; i < LOG_ENTRIES + 5; i += 1) {
-    peerRotation.logAction({ action: 'retire', address: `198.51.100.${i + 1}:8333`, note: 'filler' });
-  }
-  assert.equal(db.instance.prepare(`SELECT COUNT(*) AS n FROM rotation_log WHERE action = 'promote'`).get().n, 0);
-  assert.equal(kept(), 1, 'the record survives the trim');
 });
 
 test('REGRESSION: a manual peer always has a peer row, so the slot fill can see it', async () => {

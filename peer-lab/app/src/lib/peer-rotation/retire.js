@@ -87,8 +87,6 @@ async function retireOfflineManualPeers(ranking, onTrial = null, peers = [], sti
     logAction({
       action: 'retire',
       address: peer.address,
-      firstPct: peer.firstPct,
-      eligible: peer.eligible,
       note: `offline ${fmtHours(offlineMs)}, allowed ${fmtHours(grace)}`,
     });
     logger.info('slot fill: retired a manual peer that stayed offline past its grace period', {

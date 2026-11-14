@@ -894,23 +894,6 @@ test('resetPoolHistory clears the races but keeps the configured pools', () => {
   assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM stratum_pool').get().n, poolsBefore, 'the pool list is configuration, not history');
 });
 
-test('resetting peer data clears the promotion record with everything else', () => {
-  db.instance.prepare(`INSERT OR IGNORE INTO promoted_peer (ip, first_promoted_at) VALUES (?, ?)`).run('203.0.113.99', Date.now());
-  assert.equal(db.instance.prepare(`SELECT COUNT(*) AS n FROM promoted_peer`).get().n, 1);
-
-  db.resetPeerData();
-
-  // The funnel's other three numbers come from the tables this reset empties,
-  // so a surviving "kept" count would read as a contradiction rather than as
-  // history worth keeping.
-  assert.equal(db.instance.prepare(`SELECT COUNT(*) AS n FROM promoted_peer`).get().n, 0);
-});
-
-test('the promotion record is charged to the peer data group', () => {
-  assert.ok(db.PEER_DATA_TABLES.includes('promoted_peer'),
-    'otherwise its bytes belong to no group and the storage panel quietly under-reports');
-});
-
 // One host has one spelling: brackets and ports go, so an IPv6 peer is never
 // counted twice under two forms.
 test('the host rule handles every shape of address', () => {
@@ -969,7 +952,6 @@ test('a fresh schema has the columns and indexes the app relies on', () => {
   assert.deepEqual(cols('traffic_day'), ['day', 'recv', 'sent']);
   assert.ok(indexes.includes('idx_relay_obs_peer_race'));
   assert.ok(!indexes.includes('idx_relay_obs_peer'));
-  assert.ok(!db.instance.prepare(`SELECT 1 FROM sqlite_master WHERE name = 'parked_peer'`).get());
 });
 
 test('a fresh install starts with Stratum Race switched off', () => {
@@ -978,6 +960,9 @@ test('a fresh install starts with Stratum Race switched off', () => {
 });
 
 test('pruneNeverFirstPeers removes only peers that never delivered first and are long gone', () => {
+  // Counts every peer in the database, so it starts from none.
+  db.resetPeerData();
+  db.instance.prepare('DELETE FROM trusted_peer').run();
   const day = 24 * 60 * 60 * 1000;
   const now = Date.now();
   const race = (h) => db.instance.prepare('INSERT INTO relay_race (block_hash, detected_at) VALUES (?, ?)').run(h, now - 60 * day).lastInsertRowid;

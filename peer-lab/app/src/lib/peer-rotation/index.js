@@ -20,7 +20,7 @@
  *   fill.js      the trial: a candidate goes into a free slot, and Core
  *                connects to it or it goes again.
  *   retire.js    frees the slot of a manual peer that went dark.
- *   log.js       the audit trail: rotation_log and promoted_peer.
+ *   log.js       the audit trail: rotation_log.
  */
 
 const config = require('../config');
