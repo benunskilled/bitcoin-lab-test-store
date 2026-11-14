@@ -73,7 +73,6 @@ function slotsOf(ranking, now) {
 }
 
 function isEnabled() {
-  if (config.readOnly) return false;
   const row = db.instance.prepare(`SELECT value FROM meta WHERE key = ?`).get(META_KEY);
   return row ? row.value === '1' : false;
 }

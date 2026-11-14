@@ -90,12 +90,6 @@ const SECURITY_HEADERS = {
   'Referrer-Policy': 'no-referrer',
 };
 
-// A read-only copy refuses every write but one: the lock, which only marks a
-// row in this copy's own table. A list of what to refuse missed the pools,
-// the Stratum switch, the reset and the probe - and the switch opens
-// connections to public pools from the node.
-const READ_ONLY_ALLOWED = new Set(['POST /api/peers/keep']);
-
 // The ranking runs to a few hundred kB of JSON and comes again every 20 s;
 // gzip makes it a tenth of that, which counts on a phone away from home.
 // Small answers are not worth it, and images are packed already. The event
@@ -666,8 +660,6 @@ const routes = {
       // The database's size on disk, for the folded Storage card: three file
       // sizes, nothing read. The split per table stays behind /api/storage.
       dbBytes: db.sizeBytes(),
-      // A test copy (see lib/config.js): read-only.
-      readOnly: config.readOnly,
     });
   },
 
@@ -1001,11 +993,6 @@ async function poolRoute(req, res, id) {
 }
 
 async function router(req, res, pathname, url) {
-  // Read-only test copy: no writes, see READ_ONLY_ALLOWED.
-  if (config.readOnly && req.method !== 'GET' && req.method !== 'HEAD' && pathname.startsWith('/api/')
-      && !READ_ONLY_ALLOWED.has(`${req.method} ${pathname}`)) {
-    return sendJson(res, 403, { error: 'This is a read-only test copy: it changes nothing.' });
-  }
   const handler = routes[`${req.method} ${pathname}`];
   if (handler) {
     await handler(req, res, url);

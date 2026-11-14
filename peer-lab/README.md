@@ -7,7 +7,6 @@ Bitcoin Node is the only dependency.
 
 The test build changes Core's peers (Slot Fill, Add a Peer, Remove,
 Disconnect), so it should not run next to Bitcoin Lab. It keeps its own data.
-`READ_ONLY=1` turns a copy read-only; see the configuration.
 
 ## Layout
 

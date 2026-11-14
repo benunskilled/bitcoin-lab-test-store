@@ -299,14 +299,6 @@ async function refreshStatus() {
   applyStratumEnabled(Boolean(s.stratumRaceEnabled));
   // Folded, the Storage card says how big the database is.
   if (s.dbBytes != null) document.getElementById('storage-total').textContent = fmtBytes(s.dbBytes);
-  if (Boolean(s.readOnly) !== readOnly) {
-    readOnly = Boolean(s.readOnly);
-    document.getElementById('readonly-banner').hidden = !readOnly;
-    document.getElementById('rotation-toggle').disabled = readOnly;
-    document.querySelector('#manual-add-form button[type="submit"]').disabled = readOnly;
-    // The list's buttons are drawn from actionsCell: drawn again without them.
-    window.dispatchEvent(new Event('peerlab:ranking'));
-  }
 
   setBlockHeight(s.blockHeight, { at: askedAt, fromCore: true });
 
@@ -463,10 +455,6 @@ function keepStar(p) {
 // other. In the manual list the lock sits in the first slot.
 function actionsCell(p, { lock = '' } = {}) {
   const placeholder = `<span class="action-slot" aria-hidden="true"></span>`;
-  // A read-only copy refuses every change to Core's peers (READ_ONLY in
-  // dashboard-server.js), so it offers none: the lock alone, which only
-  // marks the row in this app's own table.
-  if (readOnly) return (p.trusted && lock ? `<span class="action-slot lock-slot">${lock}</span>` : placeholder) + placeholder;
 
   // Three kinds of peer have nothing this app can do to them, and all three
   // now look the same here: an empty slot.
@@ -667,9 +655,6 @@ window.addEventListener('peerlab:list', (ev) => {
   const asked = refreshPeers().catch(() => {});
   if (ev.detail) ev.detail.ranking = asked;
 });
-// A read-only test copy (READ_ONLY=1, from /api/status): no button that
-// changes Core's peers.
-let readOnly = false;
 // Peers with an action under way. The list is redrawn by the other script
 // while the request runs, with fresh buttons: they are drawn disabled, and a
 // click on one is refused here as well, so no action goes out twice.
@@ -1447,7 +1432,7 @@ function foldSums() {
 function manualAddBusy(busy, message) {
   const resultEl = document.getElementById('manual-add-result');
   document.getElementById('manual-test-button').disabled = busy;
-  document.querySelector('#manual-add-form button[type=submit]').disabled = busy || readOnly;
+  document.querySelector('#manual-add-form button[type=submit]').disabled = busy;
   resultEl.className = busy ? 'hint' : resultEl.className;
   if (message != null) resultEl.textContent = message;
 }
@@ -1469,9 +1454,8 @@ document.getElementById('manual-test-button').addEventListener('click', async ()
     // one its inbound connection to us came from.
     manualAddResult(`reachable - a node answered at ${result.address}. Nothing was added.`, 'ok');
   } catch (err) {
-    // Refused before any test (a Tor name, a proxied network, a read-only
-    // copy): "not reachable" would claim something nobody checked.
-    const untested = /cannot be tested|through a proxy|does not use|read-only/.test(err.message);
+    // Refused before any test (a Tor name, a proxied network): "not reachable" would claim something nobody checked.
+    const untested = /cannot be tested|through a proxy|does not use/.test(err.message);
     manualAddResult(`${untested ? 'not tested' : 'not reachable'} - ${err.message}`, 'error');
   } finally {
     manualAddBusy(false);

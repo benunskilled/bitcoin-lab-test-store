@@ -61,7 +61,6 @@ async function main() {
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'peerlab-smoke-'));
   process.env.DATA_DIR = temporary;
   process.env.SQLITE_PATH = path.join(temporary, 'sqlite', 'peerlab.db');
-  process.env.READ_ONLY = '1';
   process.env.LOG_LEVEL = 'error';
   const db = require('../src/lib/db');
   const { server } = require('../src/dashboard-server');

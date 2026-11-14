@@ -265,11 +265,8 @@ module.exports = {
   getBlockCount: () => call('getblockcount'),
   getBlockchainInfo: () => call('getblockchaininfo'),
   getNetworkInfo: () => call('getnetworkinfo'),
-  // In read-only mode (READ_ONLY=1, a test copy beside the real app) the
-  // two calls that change Core's peers are never sent; everything else reads.
-  addNode: (nodeAddr, command = 'add') => (config.readOnly ? Promise.resolve(null) : call('addnode', [nodeAddr, command])),
+  addNode: (nodeAddr, command = 'add') => call('addnode', [nodeAddr, command]),
   disconnectNode: (addressOrId) => {
-    if (config.readOnly) return Promise.resolve(null);
     // addnode-style address string vs numeric peer id
     if (typeof addressOrId === 'number') return call('disconnectnode', ['', addressOrId]);
     return call('disconnectnode', [addressOrId]);

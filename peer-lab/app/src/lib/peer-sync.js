@@ -26,9 +26,6 @@ const keyOf = (address) => addressKey(address, config.bitcoin.network);
  */
 async function syncTrustedToAddnode(knownAddedNodes) {
   const trusted = db.instance.prepare(`SELECT address FROM trusted_peer ORDER BY created_at ASC`).all();
-  // A read-only copy never issues an addnode: its table only mirrors Core's
-  // list (adoptExternalManualPeers), so there is nothing here to restore.
-  if (config.readOnly) return { trusted: trusted.length, existing: 0, added: 0, queued: 0 };
   let addedNodes = [];
   try {
     // Callers that already hold this list can pass it in. adoptExternalManualPeers
@@ -115,21 +112,6 @@ async function adoptExternalManualPeers() {
     return { adopted: 0, addedNodes: null };
   }
 
-  // A read-only copy never issues an addnode of its own, so Core's list is the
-  // whole truth for it and its table is only a mirror of that list. Left to
-  // the adoption below alone it could only grow: a peer removed in the real
-  // app stayed here as an offline manual peer, and once eight stale rows had
-  // piled up the limit kept every new one out.
-  if (config.readOnly) {
-    const inCore = new Set(addedNodes.map((n) => keyOf(n.addednode)));
-    const drop = db.instance.prepare(`DELETE FROM trusted_peer WHERE address = ?`);
-    for (const { address } of db.instance.prepare(`SELECT address FROM trusted_peer`).all()) {
-      if (inCore.has(keyOf(address))) continue;
-      drop.run(address);
-      logger.info('read-only: dropped a manual peer Core no longer has', { address });
-    }
-  }
-
   const known = new Set(
     db.instance.prepare(`SELECT address FROM trusted_peer`).all().map((r) => keyOf(r.address)),
   );
@@ -147,9 +129,7 @@ async function adoptExternalManualPeers() {
   const now = Date.now();
   let adopted = 0;
   const skipped = [];
-  // A read-only copy removes nothing, not even again: what it did not take
-  // out itself is not its to take out.
-  const pending = config.readOnly ? {} : pendingRemovals();
+  const pending = pendingRemovals();
   let pendingChanged = false;
   for (const { addednode } of addedNodes) {
     if (!addednode || known.has(keyOf(addednode))) continue;

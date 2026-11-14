@@ -27,11 +27,7 @@ const zmqPort = pick(process.env.BITCOIN_ZMQ_HASHBLOCK_PORT, process.env.APP_BIT
 
 const dataDir = pick(process.env.DATA_DIR, '/data');
 
-// For a test copy beside the real app on the same node (the test store):
-// READ_ONLY=1 keeps it from changing Core's peers at all.
-
 module.exports = {
-  readOnly: process.env.READ_ONLY === '1',
   // The app's own app_proxy container on umbrelOS 1.x
   // (<app-id>_app_proxy_1): writes are taken from there and from the
   // Docker gateway, where umbrelOS 2.x's proxy connects from. See
