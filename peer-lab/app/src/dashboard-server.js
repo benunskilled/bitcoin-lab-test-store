@@ -203,7 +203,7 @@ function readBody(req) {
  * cookie with a request another site makes it send. readBody parses whatever
  * arrives as JSON, so an HTML form posting `{"scope":"peers","x":"=` + `"}` as
  * text/plain could reset the measurements, disconnect peers or flip the
- * rotation from any page the operator happened to open.
+ * Slot Fill switch from any page the operator happened to open.
  *
  * Two rules, either of which stops that on its own:
  *
@@ -291,7 +291,7 @@ const sseClients = new Set();
 // What the page reads of a ranking row, and nothing else. The peer list
 // itself (place, client, ping, kind) comes from the peers service; this adds
 // only what the dashboard alone knows - blocks delivered first, the manual
-// slots, the padlock, Slot Fill's trial. The rest of a row is the rotation's
+// slots, the padlock, Slot Fill's trial. The rest of a row is Slot Fill's
 // business and stays on the server, which halves the answer. A flag that is
 // false and a value that is unknown are left out: the page reads both as no.
 const PAGE_FIELDS = ['address', 'where', 'client', 'status', 'live', 'trusted', 'kept',
@@ -776,8 +776,8 @@ const routes = {
     if (!readAddress(res, address)) return true;
     const wasManual = Boolean(db.instance.prepare('SELECT 1 FROM trusted_peer WHERE address = ?').get(address));
     await peerSync.removeTrustedPeer(address);
-    // In the log: a slot freed by hand is what Slot Fill fills next, and the entry it writes then needs
-    // this one before it to make sense.
+    // In the log: a slot freed by hand is what Slot Fill fills next, and the
+    // entry it writes then needs this one before it to make sense.
     if (wasManual) {
       try {
         // No note: where it was is under its address, and Slot Fill goes for
@@ -800,7 +800,7 @@ const routes = {
   'POST /api/peers/manual-add': async (req, res, url) => {
     // The typed-in box, and the only path that stars what it adds: an address
     // entered by hand names a peer this node may have no record of, so the
-    // rotation must not take it away before its owner has seen it work.
+    // Slot Fill must not take it away before its owner has seen it work.
     const { host } = await readBody(req);
     const result = await manualAddPeer(host, undefined, { kept: true });
     return sendJson(res, result.ok ? 200 : 422, result);
@@ -881,8 +881,8 @@ const routes = {
     } catch (err) {
       return sendJson(res, 422, { ok: false, error: err.message });
     }
-    // In the rotation log, as a manual add is: a peer dropped by hand went
-    // without a trace there, beside the rotation's own kicks (05.11.2026).
+    // In the Slot Fill log, as a manual add is: a peer dropped by hand
+    // belongs there beside Slot Fill's own changes.
     // The peer is gone by now; a busy database must not turn that into an
     // error the user would retry.
     try {

@@ -101,7 +101,7 @@ function upsertSessions(peers, nowMs = Date.now()) {
   // so a peer that dropped and came back between two polls (15s apart) is
   // detectable - and it happens routinely, not rarely: adding a live peer as
   // manual disconnects it on purpose so Core re-dials it as a manual
-  // connection, and every rotation kick does the same. Matching on address
+  // connection, and every Slot Fill change does the same. Matching on address
   // alone kept writing into the *old* row, so the session count never moved,
   // the downtime was counted as connected time, and the whole historical
   // session was retroactively relabelled with the new connection type.
@@ -468,9 +468,9 @@ async function main() {
     } catch (err) {
       logger.warn('offline-trusted-peer check failed', { error: err.message });
     }
-    // Independent of the sync/adopt/offline-log work above - a rotation
+    // Independent of the sync/adopt/offline-log work above - a Slot Fill
     // failure must never block or mask that bookkeeping, and vice versa.
-    // No-ops immediately unless the user has switched rotation on.
+    // No-ops immediately unless the user has switched Slot Fill on.
     peerRotation.tick().catch((err) => logger.warn('slot fill pass failed', { error: err.message }));
   }, PEER_SYNC_INTERVAL_MS);
 
