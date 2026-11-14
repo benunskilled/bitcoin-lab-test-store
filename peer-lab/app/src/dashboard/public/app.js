@@ -267,7 +267,10 @@ const scheduleFit = () => { clearTimeout(fitTimer); fitTimer = setTimeout(fitTab
 // page's content: inside main, and not the beating dot or the bar that rides
 // along at the top.
 const QUIET = '.live-dot, .stick';
-const counts = (m) => m.type === 'childList' || (m.target.closest('main') && !m.target.closest(QUIET));
+// The peer list's status line is rewritten every second (its "ago"): one
+// line of text, which cannot change whether a table fits.
+const counts = (m) => !(m.target.closest && m.target.closest('#status'))
+  && (m.type === 'childList' || (m.target.closest('main') && !m.target.closest(QUIET)));
 new MutationObserver((list) => {
   if (list.some(counts)) fitTables();
 }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'open', 'hidden'] });
@@ -426,7 +429,7 @@ function applyBlockUpdate(race) {
   if (race.blockHash) window.dispatchEvent(new CustomEvent('peerlab:block', { detail: race.blockHash }));
   if (!isNewRace) return;
 
-  refreshPeers();
+  refreshPeers().catch(() => {});
 }
 
 // Trusted/manual peers show "Remove" (forgets the peer AND force-disconnects
@@ -926,11 +929,17 @@ function rotationActionLabel(action) {
   return action;
 }
 
+// Which request is the newest: an answer to an older one that comes back
+// after it is thrown away, as is one asked before the switch was flipped -
+// it would put back the state from before the click.
+let rotationSeq = 0;
 async function refreshRotation() {
+  const seq = ++rotationSeq;
   const epochAtRequest = rotationToggleEpoch;
   const data = await api('/api/rotation');
+  if (seq !== rotationSeq || rotationToggleEpoch !== epochAtRequest) return;
   const toggle = document.getElementById('rotation-toggle');
-  if (toggle && rotationToggleEpoch === epochAtRequest) toggle.checked = Boolean(data.enabled);
+  if (toggle) toggle.checked = Boolean(data.enabled);
   foldSums();
 
   lastSlotStatus = { enabled: Boolean(data.enabled), status: data.status || null, trialWhere: data.trialWhere || null };
@@ -1129,6 +1138,7 @@ function applyStratumEnabled(enabled) {
   if (noMiner) noMiner.hidden = enabled;
 }
 
+let poolsSeq = 0;
 async function refreshPools() {
   // Nothing to ask for while it is off, and nowhere to put the answer.
   if (document.getElementById('stratum-body')?.hidden) return;
@@ -1138,7 +1148,11 @@ async function refreshPools() {
   // installed changes only by hand, and the server looks only every five
   // minutes (lib/local-pools.js), so asking more often brings nothing new.
   if (Date.now() - localPoolsAtMs >= LOCAL_POOLS_EVERY_MS) refreshLocalPools();
+  // Only the newest answer is drawn: an older one landing last would show its
+  // range's numbers under the button just chosen.
+  const seq = ++poolsSeq;
   const pools = await api(`/api/pools?range=${encodeURIComponent(range)}`);
+  if (seq !== poolsSeq) return;
   renderPools(pools);
 }
 
@@ -1395,9 +1409,6 @@ function foldable({ card, title, id, folded, save, onShow, onOpened, onOpening }
 // unless the reader closed it (28.10.2026). Storage keeps its own <details>.
 const FOLD_KEY = 'peerlab.panelsFolded';
 const folded = (() => { try { return new Set(JSON.parse(localStorage.getItem(FOLD_KEY) || '[]')); } catch { return new Set(); } })();
-// The card was called Manual Slot Fill until 10.11.2026: folded under that
-// name, it stays folded under the new one.
-if (folded.delete('Manual Slot Fill')) folded.add('Slot Fill');
 for (const card of document.querySelectorAll('main > section.panel')) {
   const title = card.querySelector(':scope > h2');
   if (!title) continue;
@@ -1474,7 +1485,7 @@ document.getElementById('manual-add-form').addEventListener('submit', async (e) 
     justGone.delete(result.address);
     manualAddResult(result.warning ? `added ${result.address} - ${result.warning}` : `added ${result.address}`, 'ok');
     input.value = '';
-    refreshPeers();
+    refreshPeers().catch(() => {});
     refreshRotation();
   } catch (err) {
     manualAddResult(err.message, 'error');
@@ -1694,7 +1705,7 @@ document.body.addEventListener('click', async (e) => {
     // The Slot Fill log notes a hand-made change at once; without this it would
     // wait for the slow two-minute round.
     if (PEER_ACTIONS.has(action)) {
-      refreshPeers();
+      refreshPeers().catch(() => {});
       refreshRotation();
       window.dispatchEvent(new Event('peerlab:acted'));
     }
@@ -1740,10 +1751,17 @@ document.body.addEventListener('change', async (e) => {
   }
 
   if (e.target.id === 'stratum-toggle' || e.target.id === 'rotation-toggle' || e.target.dataset.action === 'toggle-pool') foldSums();
+  // Each switch takes no second click while its answer is out: two POSTs
+  // finishing in the wrong order left the box and the server apart.
   if (e.target.id === 'stratum-toggle') {
-    const enabled = e.target.checked;
+    const box = e.target;
+    const enabled = box.checked;
+    box.disabled = true;
     try {
       const result = await api('/api/stratum/toggle', { method: 'POST', body: JSON.stringify({ enabled }) });
+      // What the server stored: the box keeps focus after a click, so the
+      // status poll (applyStratumEnabled) would leave it as it is.
+      if (box.isConnected) box.checked = Boolean(result.enabled);
       const body = document.getElementById('stratum-body');
       foldInPlace({ anchor: e.target, box: body.closest('section') || body, open: Boolean(result.enabled), set: (on) => applyStratumEnabled(on) });
       showToast(
@@ -1754,15 +1772,19 @@ document.body.addEventListener('change', async (e) => {
       );
       if (result.enabled) refreshPools();
     } catch (err) {
-      if (e.target.isConnected) e.target.checked = !enabled;
+      if (box.isConnected) box.checked = !enabled;
       showToast(`Could not change Stratum Race: ${err.message}`, 'error');
+    } finally {
+      box.disabled = false;
     }
     return;
   }
 
   if (e.target.id === 'rotation-toggle') {
     rotationToggleEpoch += 1;
-    const enabled = e.target.checked;
+    const box = e.target;
+    const enabled = box.checked;
+    box.disabled = true;
     try {
       // The server answers with the state it actually stored - use that
       // rather than assuming the click won.
@@ -1776,6 +1798,8 @@ document.body.addEventListener('change', async (e) => {
       rotationToggleEpoch += 1;
       if (e.target.isConnected) e.target.checked = !enabled;
       showToast(`Could not change Slot Fill: ${err.message}`, 'error');
+    } finally {
+      box.disabled = false;
     }
     return;
   }

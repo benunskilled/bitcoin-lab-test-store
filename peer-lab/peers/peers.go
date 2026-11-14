@@ -432,7 +432,7 @@ func convertAt(raw []rawPeer, now time.Time) []Peer {
 			p.Kind, p.About = "Research scanner", "Probably: "+researcher+"'s network research"
 			// The chip names the university; the line has room for what it is.
 			p.Name, p.Label = researcher, "Probably a university"
-			if r.Subver != "" {
+			if r.Subver != "" && !emptyName.MatchString(r.Subver) {
 				claim := claimOf(r.Subver)
 				if a := aboutOf(r.Subver); a != "" {
 					claim, _, _ = strings.Cut(a, ",")
@@ -544,7 +544,7 @@ func convertAt(raw []rawPeer, now time.Time) []Peer {
 			if quietAfterHandshake(r.BytesRecvPerMsg, r.ConnTime, now) {
 				lion += linkingLionQuiet
 			}
-			if r.Subver == "" {
+			if r.Subver == "" || emptyName.MatchString(r.Subver) {
 				p.About, p.Label = "Probably: "+lion, "Probably LinkingLion"
 				labelled = p.About
 			} else {
@@ -611,8 +611,11 @@ func convertAt(raw []rawPeer, now time.Time) []Peer {
 				p.Network = i2pHidden
 			}
 		}
-		// Umbrel's own apps reach Core from inside its network.
-		if p.Kind == "Indexer" && isPrivate(r.Addr) {
+		// Umbrel's own apps reach Core from inside its network - not through
+		// the gateway or a proxy, where every inbound IPv6, Tor and I2P peer
+		// from outside arrives too.
+		hidden := p.Network == hiddenIPv6 || p.Network == torHidden || p.Network == i2pHidden
+		if p.Kind == "Indexer" && isPrivate(r.Addr) && !hidden {
 			p.About = "Probably your own " + claimOf(r.Subver) + " on this Umbrel"
 			p.App, _, _ = strings.Cut(strings.Trim(r.Subver, "/"), ":")
 			p.Label, labelled = "Probably your own "+p.App, p.About

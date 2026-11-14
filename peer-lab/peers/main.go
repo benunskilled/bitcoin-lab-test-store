@@ -331,7 +331,7 @@ func newHandler(src *source, dash *dashboardClient) http.Handler {
 		if !isBlockHash(want) {
 			want = ""
 		}
-		call := fetch.join(func() snapshot {
+		call := fetch.join(want, func() snapshot {
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 			snap := src.get(ctx)
@@ -572,12 +572,15 @@ func listenConfig() *net.ListenConfig {
 	return lc
 }
 
-// sharedFetch runs at most one fetch at a time and hands its result to every
-// request that joined while it ran. A request that gives up only stops
-// waiting; the fetch finishes for the others, and nothing else is left behind.
+// sharedFetch runs at most one fetch at a time per key and hands its result
+// to every request with that key that joined while it ran. The key is the
+// block a page has just heard of: a request naming a new one does not take
+// the answer of a fetch that was not asked for it. A request that gives up
+// only stops waiting; the fetch finishes for the others, and nothing else is
+// left behind.
 type sharedFetch struct {
 	mu  sync.Mutex
-	cur *fetchCall
+	cur map[string]*fetchCall
 }
 
 type fetchCall struct {
@@ -585,18 +588,21 @@ type fetchCall struct {
 	snap snapshot
 }
 
-func (f *sharedFetch) join(fn func() snapshot) *fetchCall {
+func (f *sharedFetch) join(key string, fn func() snapshot) *fetchCall {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if f.cur != nil {
-		return f.cur
+	if c := f.cur[key]; c != nil {
+		return c
+	}
+	if f.cur == nil {
+		f.cur = map[string]*fetchCall{}
 	}
 	c := &fetchCall{done: make(chan struct{})}
-	f.cur = c
+	f.cur[key] = c
 	go func() {
 		c.snap = fn()
 		f.mu.Lock()
-		f.cur = nil
+		delete(f.cur, key)
 		f.mu.Unlock()
 		close(c.done)
 	}()

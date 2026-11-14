@@ -76,6 +76,11 @@ def read(path, v6, names):
             continue
         out.append((start, num))
         prev_end = max(prev_end, end)
+    # Above the last range nobody announces anything either: without this
+    # mark it would all go to the last AS (gengeo.py does the same).
+    top = (1 << 64) - 1 if v6 else (1 << 32) - 1
+    if 0 <= prev_end < top:
+        out.append((prev_end + 1, UNKNOWN))
     return out
 
 

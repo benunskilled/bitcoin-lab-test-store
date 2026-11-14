@@ -94,3 +94,32 @@ func TestDashboardBlockReplyThatCannotBeRead(t *testing.T) {
 		t.Errorf("no block yet is not a problem, but it logged: %q", logged.String())
 	}
 }
+
+// Review 14.11.2026.
+
+// Every inbound IPv6, Tor and I2P peer reaches Core through the gateway or a
+// proxy, a private address: an outside indexer there is not this Umbrel's.
+func TestIndexerBehindAProxyIsNotYourOwn(t *testing.T) {
+	for _, addr := range []string{torProxy + ":41234", dockerGateway + ":41234"} {
+		got := convert([]rawPeer{{Addr: addr, ConnectionType: "inbound", Inbound: true,
+			Network: "not_publicly_routable", Subver: "/electrs:0.10.0/"}})[0]
+		if got.App != "" || strings.Contains(got.About, "your own") {
+			t.Errorf("%s: about %q, app %q", addr, got.About, got.App)
+		}
+	}
+}
+
+// A name of nothing but slashes says nothing, as no name at all: LinkingLion
+// with it stays "No user agent", and a research host has no claim to quote.
+func TestEmptyNameClaimsNothing(t *testing.T) {
+	got := convertAt([]rawPeer{{Addr: "143.20.137.7:8333", ConnectionType: "inbound", Inbound: true,
+		Subver: "//", Version: 70016, ServicesNames: []string{}}}, time.Now())[0]
+	if got.Kind != noAgentKind || strings.Contains(got.About, "Claims:") || got.Label != "Probably LinkingLion" {
+		t.Errorf("LinkingLion: kind %q, about %q, label %q", got.Kind, got.About, got.Label)
+	}
+	got = convertAt([]rawPeer{{Addr: "147.229.8.240:8333", ConnectionType: "inbound", Inbound: true,
+		Subver: "/:0.1/", Version: 70016, ServicesNames: []string{}}}, time.Now())[0]
+	if strings.Contains(got.About, "Claims:") {
+		t.Errorf("research host: about %q", got.About)
+	}
+}

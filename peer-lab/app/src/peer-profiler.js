@@ -212,7 +212,9 @@ function upsertSessions(peers, nowMs = Date.now()) {
       }
     }
   });
-  tx2();
+  // IMMEDIATE, as it reads every peer row before its first write: a deferred
+  // one would be refused at once if another process committed in between.
+  tx2.immediate();
 }
 
 // Core reconnects a manual/trusted peer on its own, but that can silently

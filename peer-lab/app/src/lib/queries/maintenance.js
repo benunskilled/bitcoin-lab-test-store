@@ -115,7 +115,10 @@ function pruneNeverFirstPeers({ days = config.neverFirstPeerRetentionDays, maxSt
   });
   let removed = 0;
   for (let i = 0; i < maxSteps; i += 1) {
-    const n = step();
+    // IMMEDIATE: the step reads before it deletes, and a deferred one whose
+    // read another process overtakes is refused at the first write at once,
+    // busy_timeout or not (db.js, the pool seeding).
+    const n = step.immediate();
     if (!n) break;
     removed += n;
   }

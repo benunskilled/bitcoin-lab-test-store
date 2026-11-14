@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -43,7 +44,7 @@ func TestSharedFetchRunsOnceForEveryoneWaiting(t *testing.T) {
 	fn := func() snapshot { runs.Add(1); <-release; return snapshot{} }
 	var calls []*fetchCall
 	for i := 0; i < 500; i++ {
-		calls = append(calls, f.join(fn))
+		calls = append(calls, f.join("", fn))
 	}
 	close(release)
 	var wg sync.WaitGroup
@@ -56,7 +57,7 @@ func TestSharedFetchRunsOnceForEveryoneWaiting(t *testing.T) {
 		t.Errorf("%d fetches for 500 requests, want 1", n)
 	}
 	// Once done, the next request starts a fresh one.
-	c := f.join(func() snapshot { runs.Add(1); return snapshot{} })
+	c := f.join("", func() snapshot { runs.Add(1); return snapshot{} })
 	select {
 	case <-c.done:
 	case <-time.After(time.Second):
@@ -76,4 +77,24 @@ func TestAcceptsGzip(t *testing.T) {
 			t.Errorf("acceptsGzip(%q) = %v, want %v", h, got, want)
 		}
 	}
+}
+
+// A page that has just heard of a block does not take the answer of a fetch
+// already running without it (review 14.11.2026).
+func TestSharedFetchKeepsANewBlockApart(t *testing.T) {
+	f := &sharedFetch{}
+	release := make(chan struct{})
+	old := f.join("", func() snapshot { <-release; return snapshot{} })
+	h := strings.Repeat("ab", 32)
+	fresh := f.join(h, func() snapshot { return snapshot{LastBlock: &lastBlock{Hash: h}} })
+	select {
+	case <-fresh.done:
+	case <-time.After(time.Second):
+		t.Fatal("the request naming a block waited for the fetch without it")
+	}
+	if fresh.snap.LastBlock == nil || fresh.snap.LastBlock.Hash != h {
+		t.Errorf("got %+v", fresh.snap.LastBlock)
+	}
+	close(release)
+	<-old.done
 }
