@@ -32,6 +32,7 @@ const { logAction, recentLog } = require('./log');
 const { retireOfflineManualPeers } = require('./retire');
 const fill = require('./fill');
 const { offlineGraceMs, offlineForMs } = require('./rules');
+const clock = require('./clock');
 
 const META_KEY = 'peer_rotation_enabled';
 // A pass every ten minutes (peer-profiler.js), every minute while a candidate
@@ -66,7 +67,7 @@ function slotsOf(ranking, now) {
   const offline = trusted.filter((p) => !p.live).map((p) => {
     const where = p.where ? p.where.regionName : null;
     if (p.kept && p.everManual) return { address: p.address, where, keeps: true };
-    const off = offlineForMs(p, now);
+    const off = offlineForMs(p, now, clock.lostBetween);
     return { address: p.address, where, freesInMs: off == null ? null : Math.max(0, offlineGraceMs(p.firstPct) - off) };
   });
   return { used: trusted.length, max: config.maxManualPeers, offline };
@@ -175,6 +176,7 @@ async function watchTrial() {
 async function pass() {
   const idle = { enabled: false, retired: 0, started: 0, confirmed: 0, reverted: 0 };
   if (!isEnabled()) {
+    clock.idle();
     // Switched off with a trial still open - Core did not answer at that
     // moment: it is settled here, the next time Core does.
     if (fill.currentTrial()) await settleOnSwitchOff();
@@ -186,9 +188,14 @@ async function pass() {
     [peers, chain] = await Promise.all([rpc.getPeerInfo(), rpc.getBlockchainInfo()]);
   } catch (err) {
     logger.debug('slot fill: Core not answering, skipping this pass', { error: err.message });
+    clock.coreDown();
     writeStatus({ at: Date.now(), nextAt: nextCheckAt(Boolean(fill.currentTrial()), Date.now()), state: 'core' });
     return { ...idle, enabled: true };
   }
+  // Core was down since the last pass, or the clock stepped: the trial
+  // starts over and nobody is retired this pass (clock.js).
+  const gap = clock.passed();
+  if (gap) fill.restart(chain);
   const trialBefore = fill.currentTrial();
   const settled = await fill.settle(peers, chain);
   // A candidate taken out: the next one goes in this pass, on a fresh
@@ -199,6 +206,7 @@ async function pass() {
       peers = fill.withoutSession(await rpc.getPeerInfo(), trialBefore.address);
     } catch (err) {
       logger.debug('slot fill: Core not answering after a candidate went, next pass', { error: err.message });
+      clock.coreDown();
       writeStatus({ at: Date.now(), nextAt: nextCheckAt(false, Date.now()), state: 'core' });
       return { ...idle, enabled: true, reverted: 1 };
     }
@@ -208,7 +216,7 @@ async function pass() {
   if (!isEnabled()) return { ...idle, enabled: false, confirmed: settled === 'confirmed' ? 1 : 0, reverted: settled === 'reverted' ? 1 : 0 };
   const onTrial = fill.currentTrial();
   const ranking = queries.peerRanking();
-  const retired = await retireOfflineManualPeers(ranking, onTrial && onTrial.address, peers, isEnabled);
+  const retired = gap ? 0 : await retireOfflineManualPeers(ranking, onTrial && onTrial.address, peers, isEnabled);
   // Switched off while the retiring waited for Core: no candidate goes in.
   if (!isEnabled()) {
     return { ...idle, enabled: false, retired, confirmed: settled === 'confirmed' ? 1 : 0, reverted: settled === 'reverted' ? 1 : 0 };

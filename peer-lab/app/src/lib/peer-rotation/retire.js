@@ -18,6 +18,7 @@ const logger = require('../logger').make('peer-rotation');
 const { logAction } = require('./log');
 const { offlineForMs, offlineGraceMs, fmtHours } = require('./rules');
 const { markTried } = require('./fill');
+const { lostBetween } = require('./clock');
 
 const keyOf = (address) => addressKey(address, config.bitcoin.network);
 
@@ -70,7 +71,7 @@ async function retireOfflineManualPeers(ranking, onTrial = null, peers = [], sti
   // such address would sit on one of eight slots forever, protected.
   for (const peer of ranking.filter((p) => p.trusted && !p.live && !(p.kept && p.everManual) && p.address !== onTrial)) {
     if (connectedNow.has(keyOf(peer.address))) continue;
-    const offlineMs = offlineForMs(peer, now);
+    const offlineMs = offlineForMs(peer, now, lostBetween);
     if (offlineMs == null) continue;
     const grace = offlineGraceMs(peer.firstPct);
     if (offlineMs < grace) continue;

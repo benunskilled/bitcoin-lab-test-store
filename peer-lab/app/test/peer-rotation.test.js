@@ -101,7 +101,8 @@ test.afterEach(() => {
   BANNED = [];
   require('../src/lib/peer-rotation/addrbook').resetForTests();
   db.instance.exec(`DELETE FROM slot_fill_tried;
-    DELETE FROM meta WHERE key IN ('slot_fill_trial', 'slot_fill_swap_rest_until', 'peer_rotation_enabled');`);
+    DELETE FROM meta WHERE key IN ('slot_fill_trial', 'slot_fill_swap_rest_until', 'peer_rotation_enabled',
+      'slot_fill_last_pass', 'slot_fill_core_down', 'slot_fill_gaps');`);
 });
 
 // Core's chain tip in these tests.
@@ -1441,4 +1442,105 @@ test('the next check on the page is when the timer really fires', () => {
   assert.ok(Math.abs(st.nextAt - (now + 2 * 60 * 1000)) < 50, `nextAt ${st.nextAt - now} ms from now`);
   peerRotation.setEnabled(false);
   peerRotation.scheduled({ passAt: 1 });
+});
+
+// --- Core down, or the clock stepping: time the slot fill could not see ---
+
+const clock = require('../src/lib/peer-rotation/clock');
+
+test('slot fill: a Core restart during the trial starts it over, no "no connection" and no week\'s ban', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
+  peerRotation.setEnabled(true);
+  at(seedLivePeer({ eligible: 144, first: 90, trusted: true }), 'EU');
+  const asia = inBook('198.18.0.10', 'AS');
+  setPeers([coreOut()]);
+  await peerRotation.tick();
+  const startedAt = fill.currentTrial().startedAt;
+  // Core restarts: two minutes of no answer, then back, with no connection
+  // to the candidate yet - past the five minutes a clearnet one gets.
+  t.mock.timers.tick(2 * MIN);
+  rpc.getPeerInfo.mock.mockImplementation(async () => { throw new Error('connect ECONNREFUSED'); });
+  await peerRotation.tick();
+  t.mock.timers.tick(4 * MIN);
+  setPeers([coreOut()]);
+  const result = await peerRotation.tick();
+
+  assert.equal(result.reverted, 0);
+  assert.ok(isManual(asia), 'still on trial');
+  assert.ok(fill.currentTrial().startedAt > startedAt, 'its trial began again');
+  assert.equal(db.instance.prepare('SELECT COUNT(*) AS n FROM slot_fill_tried WHERE address = ?').get(asia).n, 0, 'no ban');
+  // Its own five minutes from the restart, and then it is judged as usual.
+  t.mock.timers.tick(6 * MIN);
+  assert.equal((await peerRotation.tick()).reverted, 1);
+  peerRotation.setEnabled(false);
+});
+
+test('slot fill: a clock stepping back does not leave the trial waiting', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
+  peerRotation.setEnabled(true);
+  at(seedLivePeer({ eligible: 144, first: 90, trusted: true }), 'EU');
+  const asia = inBook('198.18.0.10', 'AS');
+  setPeers([coreOut()]);
+  await peerRotation.tick();
+  t.mock.timers.setTime(Date.now() - 3 * HOUR);
+  await peerRotation.tick();
+  t.mock.timers.tick(6 * MIN);
+
+  const result = await peerRotation.tick();
+
+  assert.equal(result.reverted, 1, 'judged five minutes on, not three hours and five minutes');
+  assert.ok(!isManual(asia));
+  peerRotation.setEnabled(false);
+});
+
+test('a clock stepping forward a day retires nobody who was only briefly offline', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
+  for (let i = 0; i < 7; i += 1) seedLivePeer({ connectionType: 'manual', trusted: true });
+  const brief = seedOfflineTrustedPeer({ eligible: 10, first: 0, offlineHours: 0.25 });
+  peerRotation.setEnabled(true);
+  await peerRotation.tick();
+  t.mock.timers.setTime(Date.now() + 24 * HOUR);
+
+  const jumped = await peerRotation.tick();
+  t.mock.timers.tick(10 * MIN);
+  const next = await peerRotation.tick();
+
+  assert.equal(jumped.retired, 0, 'the pass after the step retires nobody');
+  assert.equal(next.retired, 0, 'and the day it skipped is not offline time');
+  assert.ok(isManual(brief));
+  // The hour runs on from where it was: 15 minutes before, 10 since.
+  const left = peerRotation.readStatus().slots.offline[0].freesInMs;
+  assert.ok(left > 30 * MIN && left <= 36 * MIN, `about 35 minutes left, got ${Math.round(left / MIN)} min`);
+  peerRotation.setEnabled(false);
+});
+
+test('a peer offline for hours before Core went down still goes once Core is back', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
+  peerRotation.setEnabled(true);
+  await peerRotation.tick();
+  rpc.getPeerInfo.mock.mockImplementation(async () => { throw new Error('connect ECONNREFUSED'); });
+  t.mock.timers.tick(MIN);
+  await peerRotation.tick();
+  // Five hours offline, the last half hour of it with Core down.
+  t.mock.timers.tick(30 * MIN);
+  const gone = seedOfflineTrustedPeer({ eligible: 10, first: 0, offlineHours: 5 });
+  setPeers([]);
+
+  assert.equal((await peerRotation.tick()).retired, 0, 'not in the pass right after the gap');
+  t.mock.timers.tick(10 * MIN);
+  assert.equal((await peerRotation.tick()).retired, 1, 'but at the next one');
+  assert.ok(!isManual(gone));
+  peerRotation.setEnabled(false);
+});
+
+test('the gap clock: only the part of a gap after a peer went offline is taken off', (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 10 * HOUR });
+  clock.passed(10 * HOUR);
+  assert.equal(clock.passed(10 * HOUR + 5 * MIN), false, 'a normal step');
+  clock.coreDown(10 * HOUR + 6 * MIN);
+  assert.equal(clock.passed(11 * HOUR + 5 * MIN), true, 'Core was down in between');
+  assert.equal(clock.lostBetween(10 * HOUR + 35 * MIN, 12 * HOUR), 30 * MIN);
+  assert.equal(clock.lostBetween(9 * HOUR, 12 * HOUR), HOUR);
+  assert.equal(clock.passed(10 * HOUR), true, 'a clock that went back');
+  assert.equal(clock.lostBetween(9 * HOUR, 12 * HOUR), HOUR, 'which adds nothing');
 });

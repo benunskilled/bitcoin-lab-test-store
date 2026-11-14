@@ -61,14 +61,20 @@ function evictableTrusted(trusted) {
  * "grace" means.
  *
  * Returns null when neither clock is known - "no evidence it is offline".
+ *
+ * `lostBetween` (clock.js) takes off the time the slot fill could not see:
+ * Core down, or the clock stepping forward.
  */
-function offlineForMs(peer, now) {
+function offlineForMs(peer, now, lostBetween = null) {
   if (peer.live) return null;
   const sinceLastSeen = peer.offlineSinceMs;
   const sinceAdded = peer.trustedSince != null ? now - peer.trustedSince : null;
-  if (sinceLastSeen == null) return sinceAdded;
-  if (sinceAdded == null) return sinceLastSeen;
-  return Math.min(sinceLastSeen, sinceAdded);
+  let off;
+  if (sinceLastSeen == null) off = sinceAdded;
+  else if (sinceAdded == null) off = sinceLastSeen;
+  else off = Math.min(sinceLastSeen, sinceAdded);
+  if (off == null || !lostBetween) return off;
+  return Math.max(0, off - lostBetween(now - off, now));
 }
 
 /**
