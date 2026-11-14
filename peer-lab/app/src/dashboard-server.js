@@ -38,7 +38,9 @@ const stratumRace = require('./lib/stratum-race-toggle');
 const logger = require('./lib/logger').make('dashboard');
 const { makeWriteSource } = require('./lib/write-source');
 
-const writeAllowedFrom = makeWriteSource({ host: config.trustedProxyHost });
+// let, not const: a test swaps in its own check, because every request in a
+// test comes from loopback, which the real one always lets through.
+let writeAllowedFrom = makeWriteSource({ host: config.trustedProxyHost });
 
 const PUBLIC_DIR = path.join(__dirname, 'dashboard', 'public');
 const MIME = {
@@ -1109,4 +1111,4 @@ function main() {
 
 if (require.main === module) main();
 
-module.exports = { server, main };
+module.exports = { server, main, setWriteSourceForTest: (check) => { writeAllowedFrom = check; } };
