@@ -602,6 +602,77 @@ test('GET /api/blocks/latest serves the neighbour', async () => {
   assert.equal('trustedLabel' in body, false);
 });
 
+// The peers service decodes this reply into a struct of its own
+// (peers/dashboard.go, "var got struct"): a field renamed here would vanish
+// there without an error, and its tests only use copies written by hand. So
+// every name that struct reads must be in the real reply.
+test('GET /api/blocks/latest has every field the peers service reads', async () => {
+  const go = fs.readFileSync(path.join(__dirname, '../../peers/dashboard.go'), 'utf8');
+  const start = go.indexOf('var got struct {');
+  assert.ok(start > 0, 'the struct is where it was');
+  const struct = go.slice(start, go.indexOf('\n\t}\n', start));
+  // A nested struct, by the tag on its closing line, taken out of the text so
+  // that what is left is the top level.
+  const names = (text) => {
+    const out = [];
+    for (const line of text.split('\n')) {
+      const tag = /json:"([^",]+)/.exec(line);
+      if (tag) { out.push(tag[1]); continue; }
+      // "Blocks, Mempool, Asked, Full int": no tag, matched by name.
+      const bare = /^\s*([A-Z][A-Za-z]*(?:, *[A-Z][A-Za-z]*)*)\s+\*?[a-z]/.exec(line);
+      if (bare) for (const n of bare[1].split(',')) out.push(n.trim());
+    }
+    return out;
+  };
+  const fields = {};
+  let rest = struct.slice('var got struct {'.length);
+  const nested = /\n\t\t[A-Za-z0-9]+ +\*?(?:\[\])?struct \{([\s\S]*?)\n\t\t\} `json:"([^"]+)"`/g;
+  for (const m of struct.matchAll(nested)) {
+    fields[m[2]] = names(m[1].replace(/\n\t\t\t[A-Za-z]+ +\[\]struct \{[\s\S]*?\n\t\t\t\} `json:"[^"]+"`/g, (x) => `\n${x.split('\n').pop()}`));
+    rest = rest.replace(m[0], `\n\t\tX x \`json:"${m[2]}"\``);
+  }
+  fields[''] = names(rest);
+  const entries = /\n\t\t\t[A-Za-z]+ +\[\]struct \{([\s\S]*?)\n\t\t\t\} `json:"entries"`/.exec(struct);
+  fields.entries = entries ? names(entries[1]) : [];
+  assert.ok(fields[''].length > 10, `read ${fields[''].length} top-level names from the Go struct`);
+
+  db.instance.prepare('DELETE FROM relay_observation').run();
+  db.instance.prepare('DELETE FROM relay_race').run();
+  const HASH = `0000000000000000000${'c'.repeat(45)}`;
+  // A block with everything the reply can carry: a race of the own pool for
+  // it, the template, the ping, how it was rebuilt.
+  const peer = db.getOrCreatePeer('1.2.3.5:8333');
+  const race = db.instance
+    .prepare(`INSERT INTO relay_race (block_hash, block_height, detected_at, pool_name, pool_tag, pool_source,
+                                      template_ms, template_tx, first_ping_ms, first_hb, recon, recon_missing_bytes)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(HASH, 967725, 1_700_000_600_000, 'Foundry USA', 'Foundry USA Pool', 'address', 40, 3000, 20, 1, 'asked', 1200);
+  db.instance.prepare('INSERT INTO relay_observation (race_id, peer_id, eligible, first) VALUES (?, ?, 1, 1)')
+    .run(race.lastInsertRowid, peer.id);
+  const pool = db.instance.prepare(`INSERT INTO stratum_pool (label, host, port, enabled, is_default, created_at)
+                                    VALUES ('Mine', 'own.example', 3333, 1, 0, 1)`).run();
+  const sr = db.instance.prepare(`INSERT INTO stratum_race (prevhash, created_at) VALUES (?, ?)`).run(HASH, 1_700_000_599_900);
+  db.instance.prepare(`INSERT INTO stratum_observation (race_id, pool_id, latency_ms, rank) VALUES (?, ?, 5, 1)`)
+    .run(sr.lastInsertRowid, pool.lastInsertRowid);
+
+  const { body } = await api('/api/blocks/latest');
+  const keysOf = (o) => new Set(Object.keys(o || {}).map((k) => k.toLowerCase()));
+  const top = keysOf(body);
+  const missing = fields[''].filter((k) => !top.has(k.toLowerCase()));
+  assert.deepEqual(missing, [], 'names the peers service reads that the reply does not have');
+  // And inside the parts.
+  const parts = { stratum: body.stratum, reconLast100: body.reconLast100, routeMedian: body.routeMedian,
+    entries: body.stratum && body.stratum.entries[0] };
+  for (const [part, value] of Object.entries(parts)) {
+    assert.ok(value, `the test block has ${part}`);
+    const have = keysOf(value);
+    const gone = fields[part].filter((k) => !have.has(k.toLowerCase()));
+    assert.deepEqual(gone, [], `${part}: names the peers service reads that the reply does not have`);
+  }
+  db.instance.exec('DELETE FROM stratum_observation; DELETE FROM stratum_race;');
+  db.instance.prepare('DELETE FROM stratum_pool WHERE host = ?').run('own.example');
+});
+
 test('the rotation and stratum switches take only true or false', async () => {
   // Boolean("false") is true: a client sending the string switched the
   // feature ON while asking for off, and the reply said so as if asked.
