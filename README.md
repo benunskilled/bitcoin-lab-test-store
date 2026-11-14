@@ -6,4 +6,4 @@ Pre-release builds of [Bitcoin Lab](https://github.com/benunskilled/bitcoin-lab)
 
 ## Peer Lab
 
-A test build of one combined app lives in [peer-lab/](peer-lab/README.md): `bltest-peerlab`, port **8796**, with its own data. It changes Core's peers like Bitcoin Lab does, so run only one of the two.
+Test builds of [Peer Lab](https://github.com/benunskilled/peer-lab), the app that combines both, are published from [peer-lab/](peer-lab/README.md): `bltest-peerlab`, port **8796**, with its own data. It changes Core's peers like Bitcoin Lab does, so run only one of the two.

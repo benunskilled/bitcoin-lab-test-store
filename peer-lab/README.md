@@ -1,38 +1,10 @@
-# Peer Lab
+# Peer Lab test builds
 
-One Umbrel app for your node's peers: where they are and what they are, which
-of them brings new blocks first, Slot Fill for Core's manual slots, and Stratum
-Race for mining pools. Test build, app ID `bltest-peerlab`, port **8796**.
-Bitcoin Node is the only dependency.
+Peer Lab's code lives in [benunskilled/peer-lab](https://github.com/benunskilled/peer-lab).
+This folder holds only the store entry template (`umbrel/`) and
+`prepare-store.py`, which pins the verified image into it.
 
-It replaces Bitcoin Lab and Peer Map. Turn off Bitcoin Lab's rotation before
-you install it; Peer Lab keeps the manual peers it finds. It keeps its own
-data.
-
-## Layout
-
-- `app/` – the page, measurements, Slot Fill, Stratum Race (Node)
-- `peers/` – the peer list, places and peer classification (Go), served under `/peers/`
-- `umbrel/` – the store entry the publish workflow fills in
-- `Dockerfile` – one image for all five services
-
-Settings: [app/docs/configuration.md](app/docs/configuration.md).
-
-## Build and test
-
-```sh
-cd peer-lab/app && npm ci && PEERS_DIR=../peers npm test
-cd ../peers && go test ./...
-```
-
-CI also runs both against real Bitcoin Core on regtest (`REQUIRE_BITCOIND=1 node test/integration/regtest.js`, `go test -tags integration .`) and loads the page in a browser.
-
-**Publish Peer Lab test build** (GitHub Actions) runs the tests, builds the
-image for amd64 and arm64, checks that it can be pulled publicly and then
-creates `bltest-peerlab/` with the exact digest.
-
-## Licence
-
-MIT. Geolocation and ASN data by DB-IP (CC BY 4.0), map data by Natural Earth
-(public domain). Sources of the bundled data: `peers/geo/SOURCE.md`,
-`peers/asn/SOURCE.md`, `peers/torexit/SOURCE.md`, `app/src/data/`.
+**Publish Peer Lab test build** (GitHub Actions) takes a commit of
+benunskilled/peer-lab whose CI is green, builds the image for amd64 and arm64,
+runs it on both, checks that it can be pulled publicly and then commits
+`bltest-peerlab/` with the exact digest.

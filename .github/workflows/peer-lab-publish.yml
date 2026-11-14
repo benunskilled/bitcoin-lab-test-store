@@ -1,69 +1,63 @@
 name: Publish Peer Lab test build
+# Builds a commit of benunskilled/peer-lab whose CI there is green, and
+# publishes it as the test store entry bltest-peerlab/.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch, tag or commit of benunskilled/peer-lab
+        required: true
+        default: main
 permissions:
   contents: read
 concurrency:
   group: peer-lab-test-release
   cancel-in-progress: false
 jobs:
-  # The push that brought this commit has already run Peer Lab CI on it; a
-  # green run there is the same proof as running every check again, which
-  # took seven of the ten minutes. Still running: wait for it. No run for
-  # this commit (none is started by a push that changed nothing it watches):
-  # run the checks here, as before.
-  ci-status:
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-    outputs:
-      green: ${{ steps.find.outputs.green }}
-    steps:
-      - id: find
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          id=$(gh run list --workflow peer-lab.yml --commit "$SHA" --event push --limit 1 --json databaseId --jq '.[0].databaseId // empty')
-          if [ -z "$id" ]; then
-            echo "No Peer Lab CI run for $SHA: the checks run here."
-            echo "green=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          gh run watch "$id" --interval 15 > /dev/null || true
-          conclusion=$(gh run view "$id" --json conclusion --jq .conclusion)
-          echo "Peer Lab CI run $id for $SHA: $conclusion"
-          case "$conclusion" in
-            success) echo "green=true" >> "$GITHUB_OUTPUT" ;;
-            failure) echo "::error::Peer Lab CI failed on this commit; nothing is published."; exit 1 ;;
-            # Cancelled by a later push, say: no verdict, so check here.
-            *) echo "green=false" >> "$GITHUB_OUTPUT" ;;
-          esac
-  checks:
-    needs: ci-status
-    if: needs.ci-status.outputs.green != 'true'
-    uses: ./.github/workflows/peer-lab.yml
   publish:
-    needs: [ci-status, checks]
     # From a branch only: from a tag, the push below would make a branch of
-    # the tag's name. Skipped checks are fine only when CI was green above.
-    if: >-
-      always() && github.ref_type == 'branch'
-      && needs.ci-status.result == 'success'
-      && (needs.checks.result == 'success'
-          || (needs.checks.result == 'skipped' && needs.ci-status.outputs.green == 'true'))
+    # the tag's name.
+    if: github.ref_type == 'branch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
     steps:
-      # The commit the checks above tested, not whatever the branch has by
-      # the time they are done.
+      # The exact commit, and proof that Peer Lab CI passed on it. Still
+      # running: wait for it. No run, or not green: nothing is published.
+      - name: Find the commit and its CI run
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_REPO: ${{ github.repository_owner }}/peer-lab
+          REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          sha=$(gh api "repos/$SOURCE_REPO/commits/$REF" --jq .sha)
+          id=$(gh run list -R "$SOURCE_REPO" --workflow ci.yml --commit "$sha" --event push --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -z "$id" ]; then
+            echo "::error::No Peer Lab CI run for $SOURCE_REPO@$sha; nothing is published."
+            exit 1
+          fi
+          gh run watch "$id" -R "$SOURCE_REPO" --interval 15 > /dev/null || true
+          conclusion=$(gh run view "$id" -R "$SOURCE_REPO" --json conclusion --jq .conclusion)
+          echo "Peer Lab CI run $id for $sha: $conclusion"
+          if [ "$conclusion" != success ]; then
+            echo "::error::Peer Lab CI is $conclusion on $sha; nothing is published."
+            exit 1
+          fi
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      # This repository at the commit the workflow started from, for the
+      # store entry; Peer Lab at the commit CI tested, for the image.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.sha }}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ github.repository_owner }}/peer-lab
+          ref: ${{ steps.source.outputs.sha }}
+          path: src
+          persist-credentials: false
       - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
       - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
@@ -83,7 +77,7 @@ jobs:
           import json, pathlib, re, sys
           version = sys.argv[1]
           for name in ['package.json', 'package-lock.json']:
-              p = pathlib.Path('peer-lab/app') / name
+              p = pathlib.Path('src/app') / name
               data = json.loads(p.read_text())
               data['version'] = version
               if 'packages' in data:
@@ -95,7 +89,7 @@ jobs:
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
         id: image
         with:
-          context: peer-lab
+          context: src
           platforms: linux/amd64,linux/arm64
           build-args: VERSION=${{ steps.version.outputs.value }}
           push: true
@@ -124,15 +118,20 @@ jobs:
         env:
           IMAGE: ghcr.io/${{ github.repository_owner }}/peer-lab:${{ steps.version.outputs.value }}@${{ steps.image.outputs.digest }}
         run: python3 peer-lab/prepare-store.py "$IMAGE"
+      # A store file that does not parse hides the app without a word.
+      - run: |
+          ruby -ryaml -e 'ARGV.each { |f| YAML.load_file(f); puts "ok #{f}" }' bltest-peerlab/*.yml
       - name: Commit the store entry
         env:
           GIT_AUTHOR_NAME: github-actions[bot]
           GIT_AUTHOR_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
           GIT_COMMITTER_NAME: github-actions[bot]
           GIT_COMMITTER_EMAIL: 41898282+github-actions[bot]@users.noreply.github.com
+          SOURCE_REPO: ${{ github.repository_owner }}/peer-lab
+          SOURCE_SHA: ${{ steps.source.outputs.sha }}
         run: |
-          git add peer-lab/app/package.json peer-lab/app/package-lock.json peer-lab/umbrel/bltest-peerlab/umbrel-app.yml bltest-peerlab
-          git -c commit.gpgsign=false commit -m "Publish verified Peer Lab test build"
+          git add peer-lab/umbrel/bltest-peerlab/umbrel-app.yml bltest-peerlab
+          git -c commit.gpgsign=false commit -m "Publish verified Peer Lab test build" -m "From ${SOURCE_REPO}@${SOURCE_SHA}"
           # Refused if the branch moved on meanwhile: then the entry belongs
           # to an older commit, and this build is not published.
           git push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
