@@ -81,7 +81,7 @@ Stratum Race is controlled from the dashboard. Switched off, its pool connection
 | `NEVER_FIRST_PEER_RETENTION_DAYS` | Retention for inbound peers that were seen at blocks but never delivered one first, in days | `30` |
 | `TRAFFIC_FLUSH_MS` | How often gathered traffic is written to the database, in milliseconds | `3600000` |
 
-Peers that delivered a block first, outbound peers, and manual peers keep their delivery and session history. Inactive peers that never appeared in a block observation go after 14 days; inbound peers that appeared at blocks but never delivered one first go, with their observations, after 30 days. No other peer's record changes when they go.
+Peers that delivered a block first, outbound peers that were connected for at least one block, and manual peers keep their delivery and session history. Inactive peers that never appeared in a block observation go after 14 days; inbound peers that appeared at blocks but never delivered one first go, with their observations, after 30 days. No other peer's record changes when they go.
 
 Retention never deletes blocks. You can clear peer measurements from the dashboard's Storage panel while keeping your manual selection.
 
