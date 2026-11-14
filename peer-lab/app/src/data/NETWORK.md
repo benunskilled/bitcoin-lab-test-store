@@ -17,7 +17,7 @@ from the same ASN database (peers/asn/asn.bin); `sh refresh-data.sh` in
 `peer-lab/` builds both from one download, so they cannot disagree.
 
 The continent of each country comes from `pycountry-convert` at build time.
-Current table: database build 2026-11-13 (same content as the 2026-11-08 build), 83,024 networks, 250 countries,
+Current table: database build 2026-11-14 (same content as the 2026-11-08 build), 83,024 networks, 250 countries,
 13,788,128 bytes.
 
 ## Refresh

@@ -6,8 +6,8 @@ attribution link the licence asks for; it covers this table and `geo.bin`.
 
 Source: `dbip-asn-ipv4.mmdb` and `dbip-asn-ipv6.mmdb` from the `latest` release
 of <https://github.com/sapics/ip-location-db>, which republishes that data as
-`.mmdb`. Current table: database build 2026-11-13 (same content as the 2026-11-05 build), 83,024 networks, 487,505
-IPv4 and 130,543 IPv6 ranges, 7,915,025 bytes.
+`.mmdb`. Current table: database build 2026-11-14 (same content as the 2026-11-05 build), 83,024 networks, 487,506
+IPv4 and 130,544 IPv6 ranges (each with the unknown space above the last one), 7,915,045 bytes.
 
 **Not from npm.** The same project publishes these databases as npm packages
 too, and warns on them that the data there contains errors and that npm updates

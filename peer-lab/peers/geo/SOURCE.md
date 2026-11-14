@@ -17,7 +17,7 @@ from the same place for the same reason.
 ## Refresh
 
 With the other two IP tables: `sh refresh-data.sh` in `peer-lab/`. The City
-database at the source was still the 2026-10-02 build on 2026-11-13. By hand:
+database at the source was still the 2026-10-02 build on 2026-11-14. By hand:
 
 ```sh
 pip install maxminddb

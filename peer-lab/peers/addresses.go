@@ -17,7 +17,7 @@ import (
 // It stays Disguised: the kind says what it does, the about says who.
 // Current ranges from the bnoc banlist (github.com/bitcoin-noc/banlist,
 // entities/linkinglion.toml since the split of 02.11.2026, compared on
-// 06.11.2026; the ranges are the same as after PR #4 of 16.09.2026): the IPv6
+// 14.11.2026, commit 7e4b8fc): the IPv6
 // range is one /64, not the
 // provider's whole /32, and two single hosts come on top. One of them,
 // 104.234.118.2, made 5,822 sessions on the node this was written for, with 82
@@ -30,8 +30,8 @@ var linkingLion = []netip.Prefix{
 	// used until the end of 2025
 	netip.MustParsePrefix("162.218.65.0/24"), netip.MustParsePrefix("209.222.252.0/24"),
 	netip.MustParsePrefix("91.198.115.0/24"), netip.MustParsePrefix("2604:d500:4:1::/64"),
-	// listed by bnoc, no longer announced since 2026-03-30
-	netip.MustParsePrefix("199.116.84.0/24"),
+	// 199.116.84.0/24 is gone: bnoc took it out on 14.11.2026, as a range it
+	// had never actually documented.
 }
 
 func isLinkingLion(addr string) bool {

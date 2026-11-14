@@ -7,14 +7,14 @@ import (
 
 func TestLinkingLion(t *testing.T) {
 	for _, a := range []string{"143.20.137.5:51234", "[2602:f5c0:0:ace::72:300]:8333", "[2602:f5c0:0:ace::60]:8333",
-		"104.234.118.2:41000", "69.17.52.1:8333", "91.198.115.9:1", "[::ffff:31.58.215.200]:8333", "199.116.84.20:8333"} {
+		"104.234.118.2:41000", "69.17.52.1:8333", "91.198.115.9:1", "[::ffff:31.58.215.200]:8333"} {
 		if !isLinkingLion(a) {
 			t.Errorf("%s not recognised", a)
 		}
 	}
 	// the rest of the provider's /32 and the neighbours of the single hosts are not LinkingLion
 	for _, a := range []string{"143.20.138.5:8333", "[2604:d500:4:2::1]:8333", "[2602:f5c0:1::7]:8333",
-		"104.234.118.3:8333", "69.17.52.2:8333", "10.21.0.4:40000", "abc.onion:8333", ""} {
+		"104.234.118.3:8333", "69.17.52.2:8333", "199.116.84.20:8333", "10.21.0.4:40000", "abc.onion:8333", ""} {
 		if isLinkingLion(a) {
 			t.Errorf("%s wrongly recognised", a)
 		}
