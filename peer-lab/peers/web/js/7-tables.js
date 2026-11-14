@@ -191,6 +191,7 @@
     summary.append(h, count);
     if (mix.childElementCount) summary.appendChild(mix);
     card.appendChild(summary);
+    const topLevel = !mix.childElementCount;
     const group = state.group && !special(state.group) ? state.group : only;
     if (group) {
       const inGroup = kindPool.filter((p) => groupOf(p.kind) === group);
@@ -203,6 +204,7 @@
         renderSubMix(card, kind, inGroup.filter((p) => p.kind === kind), group);
         renderLabelMix(card, inGroup.filter((p) => p.kind === kind), group);
       }
+      if (topLevel) card.querySelector(".pool-picks")?.classList.add("top-level");
     }
     return { summary, picksShown };
   }
@@ -499,3 +501,16 @@
     .catch((e) => { state.worldError = "The world map could not be loaded: " + e.message; showError(state.worldError); });
   startTicker();
   refresh();
+  // A link to a section (#group-manual, #slot-fill): the browser looks for
+  // it before the tables are drawn and stays at the top, so the page goes
+  // there once they are.
+  if (location.hash.length > 1) {
+    const id = decodeURIComponent(location.hash.slice(1));
+    const wait = setInterval(() => {
+      const el = document.getElementById(id);
+      if (!el || !document.querySelector("#tables tr[data-anchor]")) return;
+      clearInterval(wait);
+      requestAnimationFrame(() => window.scrollTo(0, el.getBoundingClientRect().top + window.scrollY - 8));
+    }, 200);
+    setTimeout(() => clearInterval(wait), 15000);
+  }

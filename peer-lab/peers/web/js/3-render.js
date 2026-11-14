@@ -87,6 +87,9 @@
   jumpBar.setAttribute("aria-label", "Jump to");
   document.body.appendChild(jumpBar);
   let lastY = window.scrollY;
+  // A jump up is a scroll up too: without this the bar came straight back
+  // and covered the heading it had just jumped to (82 px on a phone).
+  let jumpedUntil = 0;
   function fillJumpBar() {
     jumpBar.textContent = "";
     const go = (label, target) => {
@@ -95,6 +98,7 @@
       b.textContent = label;
       b.addEventListener("click", () => {
         const y = target ? target.getBoundingClientRect().top + window.scrollY - 8 : 0;
+        jumpedUntil = Date.now() + 1200;
         window.scrollTo({ top: Math.max(0, y), behavior: glide() });
         jumpBar.classList.remove("shown");
       });
@@ -114,6 +118,7 @@
   }
   window.addEventListener("scroll", () => {
     const y = window.scrollY;
+    if (Date.now() < jumpedUntil) { lastY = y; return; }
     const phone = window.matchMedia("(max-width: 600px)").matches;
     const up = y < lastY - 4, down = y > lastY + 4;
     // With a mouse the bar sits quietly in a corner whenever the reader is

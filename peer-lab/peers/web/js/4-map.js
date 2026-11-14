@@ -519,11 +519,18 @@
   }
   function setupPanZoom() {
     const svg = $("map");
+    // The wheel scrolls the page until the map is clicked: the map is two
+    // thirds of the window, and a wheel that zoomed whenever the pointer
+    // passed over it stopped the page there (14.11.2026). Clicked, the wheel
+    // zooms until the pointer leaves the map. Ctrl + wheel (and a trackpad
+    // pinch, which arrives as one) always zooms, or the browser zooms the
+    // whole page.
+    let wheelZooms = false;
+    svg.addEventListener("pointerdown", () => { wheelZooms = true; });
+    svg.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") wheelZooms = false; });
     svg.addEventListener("wheel", (e) => {
-      // Zoomed all the way out, turning the wheel further out is the page's:
-      // over a map that fills the screen, scrolling past it was impossible.
-      // A trackpad pinch arrives as a wheel with ctrlKey: still the map's, or
-      // the browser zooms the whole page.
+      if (!wheelZooms && !e.ctrlKey) return;
+      // Zoomed all the way out, turning the wheel further out is the page's.
       if (state.view.k <= 1 && e.deltaY > 0 && !e.ctrlKey) return;
       e.preventDefault();
       const p = toSvg(e.clientX, e.clientY);

@@ -672,6 +672,15 @@
     card.addEventListener("click", (ev) => {
       if (!card.contains(ev.target) || ev.target.closest("summary, a, button, input, select, textarea, label")) return;
       if (String(window.getSelection()).length > 0) return;
+      // Inside an open fold of its own (Pools): that one shuts, as a tap in
+      // any other fold does. It shut the whole Details instead, and left
+      // Pools open inside it (14.11.2026).
+      const inner = ev.target.closest("details");
+      if (inner && inner !== box && box.contains(inner) && inner.open) {
+        const own = inner.querySelector(":scope > summary");
+        foldInPlace({ anchor: own, box: inner, open: false, set: (open) => { inner.open = open; } });
+        return;
+      }
       const summary = box.querySelector(":scope > summary");
       if (!box.open) {
         foldInPlace({ anchor: summary, box, open: true, set: (open) => { box.open = open; } });
