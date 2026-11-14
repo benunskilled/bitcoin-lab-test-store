@@ -318,7 +318,7 @@ func TestClientsFoundOn24October(t *testing.T) {
 		"/Denovo:0.7.0/":                 "Denovo",
 		"/programmingbitcoin:0.1/":       "Code from Jimmy Song",
 		"/programmingblockchain:0.1/":    "Code from Jimmy Song",
-		"/bip324-ts:0.0.1/":              "bip324-ts",
+		"/bip324-ts:0.0.1/":              "Named like bip324-ts",
 		"/bread:2.1/":                    "BRD's wallet core",
 		"/breadwallet:0.6.7/":            "BRD (breadwallet)",
 		"/bitcoinj:0.16.3/Elastum:0.1z/": "Names Elastum",

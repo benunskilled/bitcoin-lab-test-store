@@ -102,9 +102,10 @@ func TestViaBitpeer(t *testing.T) {
 // Relay networks that send a name of their own get a line, not a guess.
 func TestRelayClients(t *testing.T) {
 	for ua, want := range map[string]string{
-		"bloXroute Gateway 2.108.2":      "bloXroute Gateway",
-		"/RelayNetworkClient:42/":        "Matt Corallo's old Relay Network",
-		"/Cornell-Falcon-Network:0.1.0/": "Falcon",
+		"bloXroute Gateway 2.108.2":           "bloXroute Gateway",
+		"/RelayNetworkClient:42/":             "Matt Corallo's old Relay Network",
+		"/RelayNetworkTerminator:42/0000000/": "Matt Corallo's old Relay Network",
+		"/Cornell-Falcon-Network:0.1.0/":      "Named like Falcon",
 	} {
 		if got := aboutOf(ua); !strings.HasPrefix(got, want) {
 			t.Errorf("%s: got %q", ua, got)

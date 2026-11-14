@@ -21,7 +21,7 @@ func TestOtherAbouts(t *testing.T) {
 		{"", 70016, "Introduced itself without a name"},
 		{"", 0, "Has not said what it is"},
 		{"/bitcoinj:0.17/", 70013, "bitcoinj, a Java library"},
-		{"/dsn.kastel.kit.edu/bitcoin:28.0.0/", 70016, "KIT Karlsruhe's Bitcoin network monitoring"},
+		{"/dsn.kastel.kit.edu/bitcoin:28.0.0/", 70016, "Probably KIT Karlsruhe's Bitcoin network monitoring"},
 		{"/btcwire:0.5.0/:/", 70016, "A program on btcd's Go library that left its own name empty"},
 		{"/GlobalNodeMap:2.1/", 70016, "Names itself a node map; nothing public says whose"},
 		{"/pycoinnet/", 70016, "Named like pycoinnet"},
@@ -376,10 +376,14 @@ func TestNodeSetupLabels(t *testing.T) {
 // bracket itself ("Labelled by ...", 13.11.2026).
 func TestAboutReadsTheBareName(t *testing.T) {
 	for ua, want := range map[string]string{
-		"/Satoshi:29.0.0(my-monitor)/":                  "",
-		"/Satoshi:28.0.0(neutrino)/":                    "",
-		"/Satoshi:28.1.0(FutureBit-Apollo-Node)/":       "Labelled by FutureBit Apollo",
-		"/Satoshi:29.1.0(PyBLOCK-POOL)/Knots:20250903/": "PyBLOCK",
+		"/Satoshi:29.0.0(my-monitor)/":                    "",
+		"/Satoshi:28.0.0(neutrino)/":                      "",
+		"/Satoshi:28.1.0(FutureBit-Apollo-Node)/":         "Labelled by FutureBit Apollo",
+		"/Satoshi:29.1.0(PyBLOCK-POOL)/Knots:20250903/":   "Labelled PyBLOCK-POOL",
+		"/Satoshi:29.4.2(PyBLOCK-BIP110)/Knots:20260508/": "PyBLOCK, a node dashboard",
+		// No name: no sentence, whatever the version says.
+		"/:monitor/": "",
+		"/:electrs/": "",
 	} {
 		got := aboutOf(ua)
 		if want == "" && got != "" || want != "" && !strings.HasPrefix(got, want) {

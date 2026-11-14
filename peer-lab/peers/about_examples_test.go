@@ -10,6 +10,7 @@ import "testing"
 // source named beside it in about.go.
 var aboutExamples = []struct{ ua, kind string }{
 	{"/bitcoin-seeder:0.01/", "Crawler"},
+	{"/btc-dnsseed:0.2/", "Crawler"},
 	{"/BTC-Nodes:2026-07-14/Sonar/", "Crawler"},
 	{"/21datalab-crawler:1.0/", "Crawler"},
 	{"/nebula:v3.0.0-\u2026/", "Crawler"},
@@ -60,7 +61,7 @@ var aboutExamples = []struct{ ua, kind string }{
 	{"/BitcoinKit:0.1.0/", "Wallet"},
 	{"/WalletKit:0.1.0/", "Wallet"},
 	{"/Ladybug:0.1.0/", "Wallet"},
-	{"/hodlwallet:0.1.0/", "Wallet"},
+	{"/Liviano:0.1.0/hodlwallet:2.0/", "Wallet"},
 	{"Yuki / 0.0.1", "Other light client"},
 	{"/VerifiedX:9.0.1/", "Other light client"},
 	{"/LionSeed:0.1.0/", "Crawler"},
@@ -114,10 +115,12 @@ var aboutExamples = []struct{ ua, kind string }{
 	{"/p2aburn:1.0/", "Other"},
 	{"/python-bitcoinlib:0.12.2/", "Other"},
 	{"/Satoshi:29.1.0(PyBLOCK-POOL)/Knots:20250903/", "Pool node"},
+	{"/Satoshi:29.4.2(PyBLOCK-BIP110)/Knots:20260508/", "Node (Knots)"},
 	{"urbit", "Other"},
 	{"/btcwire:0.5.0/Symbiosis Bitcoin Bridge:1.0/", "Other"},
 	{"/curl:8.5.0/", "Other"},
 	{"/dexcash-nodes:0.1.0/", "Other chain"},
+	{"/bitnodes.io:0.3/", "Crawler"},
 	{"/alt-bitnodes:0.1/", "Crawler"},
 	{"/Metrika-Bitnodes:0.1/", "Crawler"},
 	{"/GlobalNodeMap:2.1/", "Crawler"},
@@ -160,12 +163,15 @@ var aboutExamples = []struct{ ua, kind string }{
 	{"/cf-package-relay:0.3.0/", "Other"},
 	{"/Bitcoin ABC:0.14.5(EB8.0)/", "Other chain"},
 	{"/BCHUnlimited:1.0/", "Other chain"},
+	{"/BCH Unlimited:2.0.0.1(EB32; AD12)/", "Other chain"},
+	{"/BitcoinUnlimited:1.0.3(EB16; AD12)/", "Other chain"},
 	{"/Bitcoin SV:1.0.16/", "Other chain"},
 	{"/Bitcoin XT:0.11.0/", "Other chain"},
 	{"/SuperBitcoin:0.16.0.2/", "Other chain"},
 	{"/iriumd:1.0/", "Other chain"},
 	{"VDS 0.9.9.1", "Other chain"},
 	{"/Classic:1.3.8(EB8)/", "Other chain"},
+	{"/Satoshi:0.14.2(EB8; AD6)/", "Other chain"},
 }
 
 func TestEveryAboutRuleHasAnExample(t *testing.T) {

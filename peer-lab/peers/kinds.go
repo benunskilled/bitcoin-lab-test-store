@@ -59,8 +59,8 @@ var kindRules = []struct {
 	// Only the brackets count: outside them "pool" is also in "mempool".
 	// "mempool" inside the brackets does not count: "(mempool.guide)" is a
 	// node's own label, not a pool (seen on the node this was written for).
-	// /CKCoinD:/ is ckcoind, ckolivas' mining fork of Core (UA_NAME in its
-	// clientversion.cpp). /ckp2p:/ is ckpool's own block relay: ckp2p.c on
+	// /CKCoinD:/ is ckcoind, ckolivas' mining fork of Core (UA_NAME in
+	// src/clientversion.cpp in ckolivas/ckcoind). /ckp2p:/ is ckpool's own block relay: ckp2p.c on
 	// the p2pcrawler and nodrop branches of github.com/ckolivas/ckpool (not
 	// on master, which is why it was once taken for someone else's).
 	// P2Pool's bitcoind connection says /P2Pool:x/ (p2pool/bitcoin/p2p.py), and
@@ -74,7 +74,7 @@ var kindRules = []struct {
 	// it says "/Satoshi:29.4/Purity:1.1.0/" (FormatSubVersion in
 	// src/clientversion.cpp). On the node this was written for, 21. to
 	// 29.10.2026: 269 sessions, all offering its bit 25 and BIP110's bit 27.
-	{"Other chain", regexp.MustCompile(`(?i)Bitcoin ABC|BUCash|Bitcoin SV|BCHUnlimited|Bitcoin XT|Classic:|\(EB[0-9]|SuperBitcoin|iriumd|vds[_ ]|^/Aurum:|/Purity:|^/dexcash-nodes:`), false},
+	{"Other chain", regexp.MustCompile(`(?i)Bitcoin ABC|BUCash|Bitcoin SV|BCH ?Unlimited|BitcoinUnlimited|Bitcoin XT|Classic:|\(EB[0-9]|SuperBitcoin|iriumd|vds[_ ]|^/Aurum:|/Purity:|^/dexcash-nodes:`), false},
 	// Network scanners, in two flavours: the ones run as a service and the
 	// ones run by universities. Both announce themselves honestly.
 	// Pool Detective, MIT's Digital Currency Initiative watching what mining
@@ -102,7 +102,7 @@ var kindRules = []struct {
 	// user agents and services (app/crawler.py in decentralizedb/bip110-observer).
 	// nodes.mom.market and bitcoinstats.com listened to what was announced and
 	// asked for nothing in 0xB10C's list of 15.05.2023 (entities.toml on the
-	// 2023-05-inv-eaters branch of bitcoin-noc/banlist). bitcoin-peers, a
+	// 2023-05-inv-eaters branch of bitcoin-noc/banlist, now network-entities). bitcoin-peers, a
 	// toolkit with a crawler, says "/bitcoin-peers:<version>/"
 	// (connection/src/connection/configuration.rs in nyonson/bitcoin-peers);
 	// the Logos peer list checks onion peers for the Logos wallet
@@ -115,7 +115,7 @@ var kindRules = []struct {
 	// "/mempool" at the start of a part of the agent: "/mempool/" and
 	// "/mempool.space:1.0/" are the indexer, "(mempool.guide)" is a node label.
 	// NBXplorer, BTCPay Server's indexer, names itself "NBXplorer-" and a
-	// random number (Backend/Indexer.cs in dgarage/NBXplorer).
+	// random number (NBXplorer/Backend/Indexer.cs in btcpayserver/NBXplorer).
 	{"Indexer", regexp.MustCompile(`(?i)electrs|electrum|esplora|/mempool|^NBXplorer-|^/symphony:`), false},
 	// SPV and mobile wallets. bitcoinj is the Android wallet's library. Most
 	// of them ask a node for their transactions through a bloom filter
@@ -125,7 +125,7 @@ var kindRules = []struct {
 	// is Unstoppable Wallet on iPhone (Peer.swift in
 	// horizontalsystems/BitcoinCore.Swift), /BitcoinKit:/ the same wallet on
 	// Android (VersionMessage.kt in horizontalsystems/bitcoin-kit-android).
-	{"Wallet", regexp.MustCompile(`(?i)bitcoinj|breadwallet|/bread:|bither|multibit|wasabi|Bitcoin Wallet|^/blueberry:|^/winnow:|^/BitcoinKit:|^/WalletKit:|^/Ladybug:|^/hodlwallet:|/spvwallet:|^/btcwire:[^/]*/bitfyn:|^/twotbit:|^/bitc:|^MagicalBitcoinWallet$|^Wallet v0\.1$|^/BitcoinSPV:|^/enginecore:|^/BitcoinWallet:`), false},
+	{"Wallet", regexp.MustCompile(`(?i)bitcoinj|breadwallet|/bread:|bither|multibit|wasabi|Bitcoin Wallet|^/blueberry:|^/winnow:|^/BitcoinKit:|^/WalletKit:|^/Ladybug:|/hodlwallet:|/spvwallet:|^/btcwire:[^/]*/bitfyn:|^/twotbit:|^/bitc:|^MagicalBitcoinWallet$|^Wallet v0\.1$|^/BitcoinSPV:|^/enginecore:|^/BitcoinWallet:`), false},
 	// Lightning wallets on lnd that follow the chain through neutrino, its
 	// BIP157 client: Zeus and Blixt among them. Named apart from the other
 	// light clients so the wallets among the peers show as wallets. In
