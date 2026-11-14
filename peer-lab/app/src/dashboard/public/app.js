@@ -131,7 +131,7 @@ const KIND_RULES = [
   [/electrs|electrum|esplora|\/mempool|^NBXplorer-|^\/symphony:/i, 'an address indexer'],
   [/bitcoinj|breadwallet|\/bread:|bither|multibit|wasabi|Bitcoin Wallet|^\/blueberry:|^\/winnow:|^\/BitcoinKit:|^\/WalletKit:|\/hodlwallet:|\/spvwallet:|^\/btcwire:[^/]*\/bitfyn:|^\/twotbit:|^\/bitc:|^MagicalBitcoinWallet$|^Wallet v0\.1$|^\/BitcoinSPV:|^\/enginecore:|^\/BitcoinWallet:/i, 'a wallet'],
   // Lightning wallets on lnd, which follow the chain through neutrino.
-  [/neutrino|\/lit:v/i, 'a Lightning wallet'],
+  [/\/neutrino:|\/lit:v/i, 'a Lightning wallet'],
   // Other BIP157 light clients: Kyoto, which says "Rust BIP-157". VerifiedX
   // validators follow the chain the same way for a chain of their own: headers,
   // some blocks, no transactions.

@@ -256,7 +256,14 @@ var aboutRules = []aboutRule{
 	// name; lnd on a server in neutrino mode says the same, so an app is only an example.
 	{regexp.MustCompile(`(?i)/neutrino:0\.17\.`), "lnd 0.21 or newer, without a node of its own (neutrino), e.g. Zeus", "lnd 0.21+ (neutrino)", "lnd 0.21+"},
 	{regexp.MustCompile(`(?i)/neutrino:0\.12\.0-beta/`), "Older lnd, without a node of its own (neutrino), e.g. Blixt or an older Zeus", "Older lnd (neutrino)", "older lnd"},
-	{regexp.MustCompile(`(?i)neutrino`), "Neutrino: Lightning wallets on lnd, such as Blixt or Zeus", "lnd wallet (neutrino)", ""},
+	{regexp.MustCompile(`(?i)/neutrino:`), "Neutrino: Lightning wallets on lnd, such as Blixt or Zeus", "lnd wallet (neutrino)", ""},
+	// neutrino's own start and version under a name of its own
+	// ("/btcwire:0.5.0/btcpost-neutrino:0.17.1/", 14.11.2026): its code,
+	// renamed, by someone who has not published it.
+	{regexp.MustCompile(`(?i)^/btcwire:[^/]*/[^/]+-neutrino:`), "Probably neutrino, lnd's light client, under another name: its btcwire start and its version", "Probably renamed neutrino", ""},
+	// Only the word in the name ("/neutrino-checker:0.1/", 14.11.2026): no
+	// source, so no wallet.
+	{regexp.MustCompile(`(?i)neutrino`), "Named after Neutrino, lnd's light client", "Named after Neutrino", ""},
 	// "/Rust BIP-157:<version>/rust-bitcoin:<version>/" (src/network/outbound.rs
 	// in 2140-dev/kyoto).
 	{regexp.MustCompile(`(?i)BIP-157|kyoto`), "Kyoto, a light client for wallets built with BDK", "Kyoto light client (BDK)", ""},

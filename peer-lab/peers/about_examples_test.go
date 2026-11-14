@@ -98,6 +98,8 @@ var aboutExamples = []struct{ ua, kind string }{
 	{"/btcwire:0.5.0/neutrino:0.17.1/", "Lightning wallet"},
 	{"/btcwire:0.5.0/neutrino:0.12.0-beta/", "Lightning wallet"},
 	{"/btcwire:0.5.0/neutrino:0.11.0-beta/", "Lightning wallet"},
+	{"/btcwire:0.5.0/btcpost-neutrino:0.17.1/", "Other"},
+	{"/neutrino-checker:0.1/", "Other"},
 	{"/Rust BIP-157:0.6.0/rust-bitcoin:0.32.8/", "Other light client"},
 	{"/Bitflash:btc-light/", "Other light client"},
 	{"/Floresta:0.9.1/", "Node (Floresta)"},

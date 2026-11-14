@@ -140,7 +140,9 @@ var kindRules = []struct {
 	// lit, the Lightning node MIT's Digital Currency Initiative built with an
 	// SPV client of its own, says "/btcwire:0.4.1/lit:v0.1/" (uspv/init.go
 	// in mit-dci/lit, last changed in 2022).
-	{"Lightning wallet", regexp.MustCompile(`(?i)neutrino|/lit:v`), false},
+	// Only neutrino's own name: one that only has the word in it (a checker,
+	// a renamed copy) is no wallet anyone has shown (14.11.2026).
+	{"Lightning wallet", regexp.MustCompile(`(?i)/neutrino:|/lit:v`), false},
 	// Other BIP157 light clients: Kyoto, which announces itself as
 	// "Rust BIP-157". btcwire alone is only
 	// the Go p2p library, which says nothing about the program using it, so it
