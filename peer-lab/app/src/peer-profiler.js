@@ -471,7 +471,7 @@ async function main() {
     // Independent of the sync/adopt/offline-log work above - a rotation
     // failure must never block or mask that bookkeeping, and vice versa.
     // No-ops immediately unless the user has switched rotation on.
-    peerRotation.tick().catch((err) => logger.warn('peer rotation tick failed', { error: err.message }));
+    peerRotation.tick().catch((err) => logger.warn('slot fill pass failed', { error: err.message }));
   }, PEER_SYNC_INTERVAL_MS);
 
   // While a slot-fill candidate is on trial: look every minute, so it is judged
@@ -492,4 +492,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { upsertSessions, logOfflineTrustedPeers, pollOnce, startPolling, runMaintenance, main, coreRestarted, restoreAfterCoreRestart, _coreState: coreState };
+module.exports = { upsertSessions, pollOnce, startPolling, main, coreRestarted, restoreAfterCoreRestart, _coreState: coreState };

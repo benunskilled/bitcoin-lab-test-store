@@ -886,8 +886,8 @@ details.card.panel summary::before {
 details.card.panel summary:hover::before { border-color: var(--text); }
 details.card.panel[open] summary::before { transform: translateY(-2px) rotate(45deg); }
 details.card.panel > *:not(summary) { margin-top: 14px; }
-/* The panels that used to fold (Outbound, Manual, Rotation, Traffic) keep
-   the spacing they had then. */
+/* Slot Fill and Traffic do not fold, and keep the spacing of the panels
+   that do. */
 .card.panel.spaced > h2 { margin-bottom: 0; }
 .card.panel.spaced > *:not(h2) { margin-top: 14px; }
 .hero-card .stat-grid {

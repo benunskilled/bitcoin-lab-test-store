@@ -1913,7 +1913,7 @@ function startRefreshLoop() {
       // Traffic is written once an hour, so it rides on this slow round too.
       await Promise.all([refreshRotation(), refreshTraffic()]);
     } catch (err) {
-      console.warn('rotation or traffic refresh failed', err);
+      console.warn('Slot Fill or traffic refresh failed', err);
     } finally {
       clearTimeout(rotationTimer);
       if (!resting()) rotationTimer = setTimeout(runRotation, ROTATION_REFRESH_MS);

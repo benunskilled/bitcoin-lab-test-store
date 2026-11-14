@@ -445,12 +445,11 @@ async function handleHashBlock({ blockHash, detectedAtMs, t0 }) {
   try {
     raceId = recordRace({ blockHash, detectedAtMs, peers });
   } catch (err) {
-    // Before v1.12.0 this call sat outside any try/catch inside a
-    // fire-and-forget async function, so a SQLite write failing here (a lock
-    // held past busy_timeout, a full disk) became an unhandled rejection and
-    // terminated the process - the one process whose data cannot be
-    // reconstructed afterwards. Losing a single block's race is bad; losing
-    // every subsequent block until someone notices is far worse.
+    // A SQLite write failing here (a lock held past busy_timeout, a full
+    // disk) must not become an unhandled rejection and end the process - the
+    // one process whose data cannot be reconstructed afterwards. Losing a
+    // single block's race is bad; losing every subsequent block until someone
+    // notices is far worse.
     logger.error('failed to record block race', { blockHash, error: err.stack || err.message });
     return;
   }
@@ -544,5 +543,5 @@ function main() {
 if (require.main === module) main();
 
 module.exports = {
-  recordRace, handleHashBlock, main, reconstructionOf, takeStartSnapshot, attributePool, isFirstPeer, isCatchingUp, nearestLastBlockDeltaMs, firstPeerPingMs, firstPeerWasHb, FIRST_WINDOW_MS,
+  recordRace, handleHashBlock, main, reconstructionOf, takeStartSnapshot, attributePool, isCatchingUp, nearestLastBlockDeltaMs, firstPeerPingMs, firstPeerWasHb, FIRST_WINDOW_MS,
 };

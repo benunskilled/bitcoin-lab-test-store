@@ -3,10 +3,9 @@
 /**
  * A manual peer that went dark gives its slot back.
  *
- * Retiring used to park the peer, to be knocked on again and let back in. The
- * slot fill takes its candidates from Core's address book instead, which holds
- * thousands, the retired peer among them while Core still knows it - so
- * retiring is simply removing.
+ * Retiring is simply removing: the slot fill takes its candidates from Core's
+ * address book, which holds thousands, the retired peer among them while Core
+ * still knows it.
  */
 
 const config = require('../config');

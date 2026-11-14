@@ -621,7 +621,7 @@ function setKept(address, kept) {
     .prepare(`UPDATE trusted_peer SET kept = ? WHERE address = ?`)
     .run(kept ? 1 : 0, address);
   if (result.changes > 0) {
-    logger.info(kept ? 'peer protected from rotation' : 'protection removed, peer is rotatable again', { address });
+    logger.info(kept ? 'padlock set: Slot Fill leaves this peer alone' : 'padlock removed: Slot Fill may free its slot again', { address });
   }
   return result.changes > 0;
 }

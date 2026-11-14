@@ -136,11 +136,10 @@ function syncConnections() {
 
     // Second line of defence behind the API's own validation (lib/validate.js).
     // net.connect() throws SYNCHRONOUSLY for a port outside 1-65535, and this
-    // function runs on a timer - so before v1.12.0 a single malformed row
-    // (a mistyped port, or one written directly into the database) killed
-    // this process on every tick, including immediately after each restart.
-    // A bad row now disables just itself, loudly, and the race keeps running
-    // for every other pool.
+    // function runs on a timer - so a single malformed row (a mistyped port,
+    // or one written directly into the database) would kill this process on
+    // every tick. A bad row disables just itself, loudly, and the race keeps
+    // running for every other pool.
     if (!isValidHost(pool.host) || !isValidPort(pool.port)) {
       logger.error('pool has an invalid host/port and was disabled - fix it in the dashboard and re-enable', {
         id: pool.id,
@@ -171,9 +170,9 @@ function syncConnections() {
       conn.on('authorizeResult', ({ ok, error }) => {
         if (!ok) logger.warn('pool rejected mining.authorize - it will likely never send us a job', { label: pool.label, error });
       });
-      // Per-pool proof of life. Demoted from info to debug in v1.12.0: at
-      // one line per pool every 15 minutes this was ~32 lines an hour of
-      // "still fine", which buried the warnings worth reading. The same
+      // Per-pool proof of life, at debug: at one line per pool every 15
+      // minutes, info would be ~32 lines an hour of "still fine", burying the
+      // warnings worth reading. The same
       // information is available at a glance in the dashboard, and
       // LOG_LEVEL=debug brings it back when actually diagnosing a pool.
       conn.on('heartbeat', ({ connectedMs, notifyCount, authorized }) => {

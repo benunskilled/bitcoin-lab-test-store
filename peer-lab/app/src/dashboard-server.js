@@ -737,18 +737,11 @@ const routes = {
     });
   },
 
-  // Removed in v1.13.0, both unused by anything in this repo:
-  //   GET  /api/peers/live    - /api/status already carries liveSummary()
-  //
-  // /api/blocks/latest went the same way and came back above in 1.20.0: this
-  // page still gets its blocks over /api/events, but the peers service has no
-  // event stream and should not open one.
-  //   POST /api/peers/trust   - the dangerous one. It wrote whatever address
-  //     it was handed straight into trusted_peer, with no port probe and no
-  //     bracket normalisation, so an IPv6 address added through it could
-  //     never match Core's own formatting and an unreachable one would be
-  //     re-addnode'd every ten minutes forever. Everything in the UI goes
-  //     through /api/peers/add-manual, which probes first.
+  // There is deliberately no route that writes an address into trusted_peer
+  // as it comes: without the port probe and the bracket normalisation an IPv6
+  // address could never match Core's own formatting, and an unreachable one
+  // would be re-addnode'd every ten minutes forever. Every add goes through
+  // /api/peers/add-manual or /api/peers/manual-add, which probe first.
 
   // Its own endpoint rather than a field on /api/status: dbstat walks every
   // page of the database to get exact per-table sizes, which is fine on demand
@@ -783,8 +776,7 @@ const routes = {
     if (!readAddress(res, address)) return true;
     const wasManual = Boolean(db.instance.prepare('SELECT 1 FROM trusted_peer WHERE address = ?').get(address));
     await peerSync.removeTrustedPeer(address);
-    // In the log as the old rotation had it (10.11.2026): a slot freed by
-    // hand is what Slot Fill fills next, and the entry it writes then needs
+    // In the log: a slot freed by hand is what Slot Fill fills next, and the entry it writes then needs
     // this one before it to make sense.
     if (wasManual) {
       try {
@@ -792,7 +784,7 @@ const routes = {
         // spread, not for how often a peer was first.
         peerRotation.logAction({ action: 'unmanual', address, ...handRecord(address) });
       } catch (err) {
-        logger.warn('rotation log entry for a removal failed', { address, error: err.message });
+        logger.warn('Slot Fill log entry for a removal failed', { address, error: err.message });
       }
       // The freed slot is filled at the profiler's next poll, after the log
       // entry above, and the peer is not tried again for a week.
@@ -896,7 +888,7 @@ const routes = {
     try {
       peerRotation.logAction({ action: 'disconnect', address, ...handRecord(address, { way: true }) });
     } catch (err) {
-      logger.warn('rotation log entry for a disconnect failed', { address, error: err.message });
+      logger.warn('Slot Fill log entry for a disconnect failed', { address, error: err.message });
     }
     return sendJson(res, 200, { ok: true });
   },

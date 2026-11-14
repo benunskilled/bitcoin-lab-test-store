@@ -25,10 +25,10 @@ const zmq = require('zeromq');
  * so the payload is display order and this only hex-encodes it.
  *
  * It is a named function purely so that fact can be nailed down by a test:
- * until v1.15.7 this reversed the bytes a second time, and nothing anywhere
- * noticed, because a backwards hash still works perfectly well as a database
- * key. What it does not work as is a hash you hand back to Core, which is why
- * every getblockheader call failed and block_height was NULL on every race.
+ * reversing the bytes a second time goes unnoticed, because a backwards hash
+ * still works perfectly well as a database key. What it does not work as is a
+ * hash you hand back to Core: every getblockheader call fails and
+ * block_height is NULL on every race.
  */
 function blockHashFromZmq(payload) {
   return Buffer.from(payload).toString('hex');
@@ -75,9 +75,8 @@ function start({ url, logger, onBlock, reconnectDelayMs = 5000 }) {
           }
         }
         // Falling out of the loop without an error means the stream ended
-        // cleanly. Before v1.12.0 that path skipped the delay below (it only
-        // existed in the catch) and never closed the socket, so it span at
-        // full CPU while leaking a file descriptor per iteration.
+        // cleanly. It must take the delay and the close below like an error
+        // does, or it spins at full CPU and leaks a file descriptor per turn.
         if (!stopped) logger.warn('hashblock stream ended, reconnecting', { url });
       } catch (err) {
         if (!stopped) logger.error('zmq subscriber error, reconnecting', { url, error: err.message });

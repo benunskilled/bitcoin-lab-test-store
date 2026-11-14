@@ -150,7 +150,7 @@ async function manualAddPeer(rawInput, label, { kept = false } = {}) {
       note: result.evicted ? `replaced one in ${spread.REGION_NAMES[spread.placeOf(result.evicted).region] || 'an unknown region'}` : null,
     });
   } catch (err) {
-    logger.warn('rotation log entry for a manual add failed', { address: probed.address, error: err.message });
+    logger.warn('Slot Fill log entry for a manual add failed', { address: probed.address, error: err.message });
   }
   return { ok: true, address: probed.address, ...evictionNote(result) };
 }

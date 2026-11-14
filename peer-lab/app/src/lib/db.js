@@ -362,7 +362,7 @@ function openOnce() {
   // Four separate processes (dashboard, peer-profiler, relay-profiler,
   // stratum-race) each hold their OWN connection to this same file. WAL
   // mode lets them read concurrently, but a writer can still briefly block
-  // another writer - and since v1.9.0, peer-profiler's daily retention
+  // another writer - and peer-profiler's daily retention
   // prune (a multi-statement transaction) and its weekly VACUUM hold a
   // write lock far longer than the single-row inserts every other process
   // normally does. Without a busy_timeout, any OTHER connection's write

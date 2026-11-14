@@ -116,4 +116,4 @@ function lostBetween(since, now = Date.now()) {
   return lost;
 }
 
-module.exports = { coreDown, idle, passed, lostBetween, MAX_STEP_MS, MIN_OUTAGE_MS };
+module.exports = { coreDown, idle, passed, lostBetween };

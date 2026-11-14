@@ -164,6 +164,6 @@ function leastMissed(newcomer, evictable, trusted, ranking, weakest) {
 }
 
 module.exports = {
-  TARGET_PER_REGION, REGION_NAMES, placeOf, regionCounts, totalCounts, rankForGap, admit, describe, coreRegionsOf,
+  TARGET_PER_REGION, REGION_NAMES, placeOf, totalCounts, rankForGap, admit, describe, coreRegionsOf,
   coreOperatorsOf, leastMissed,
 };
