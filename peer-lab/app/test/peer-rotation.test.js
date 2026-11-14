@@ -1586,3 +1586,34 @@ test('slot fill: a trial starts over three times at most', async (t) => {
   assert.equal(fill.currentTrial().restarts, fill.MAX_RESTARTS);
   peerRotation.setEnabled(false);
 });
+
+test('slot fill: after three restarts a Core that keeps going away no longer holds the trial open', async (t) => {
+  // Each outage (Core missing the checks for three minutes) starts the trial
+  // over, three times; at the fourth the trial is judged as it stands, and a
+  // candidate Core never connected to is out.
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
+  peerRotation.setEnabled(true);
+  at(seedLivePeer({ eligible: 144, first: 90, trusted: true }), 'EU');
+  const asia = inBook('198.18.0.10', 'AS');
+  setPeers([coreOut()]);
+  await peerRotation.tick();
+  const outage = async () => {
+    rpc.getPeerInfo.mock.mockImplementation(async () => { throw new Error('connect ECONNREFUSED'); });
+    for (let i = 0; i < 4; i += 1) {
+      t.mock.timers.tick(MIN);
+      await peerRotation.tick();
+    }
+    t.mock.timers.tick(MIN);
+    setPeers([coreOut()]);
+    return peerRotation.tick();
+  };
+  for (let n = 1; n <= fill.MAX_RESTARTS; n += 1) {
+    const r = await outage();
+    assert.equal(r.reverted, 0, `outage ${n}: started over`);
+    assert.equal(fill.currentTrial().restarts, n);
+  }
+  const last = await outage();
+  assert.equal(last.reverted, 1, 'the fourth outage: judged, out');
+  assert.ok(!isManual(asia));
+  peerRotation.setEnabled(false);
+});

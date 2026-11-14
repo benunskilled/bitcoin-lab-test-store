@@ -89,7 +89,7 @@ function passed(now = Date.now()) {
   // ran on time too, so they are not the clock jumping.
   const prev = Math.max(last || 0, downLast || 0);
   const step = prev ? now - prev : 0;
-  const jump = Boolean(prev) && (step < 0 || step > MAX_STEP_MS || (last > 0 && now < last));
+  const jump = Boolean(prev) && (step < 0 || step > MAX_STEP_MS);
   if (!outage && !jump) return false;
   // What was missed: the whole step when the clock jumped (nothing else can
   // be told), else how long Core was gone. A clock that went back has
