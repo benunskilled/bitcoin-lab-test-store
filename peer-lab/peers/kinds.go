@@ -74,7 +74,11 @@ var kindRules = []struct {
 	// it says "/Satoshi:29.4/Purity:1.1.0/" (FormatSubVersion in
 	// src/clientversion.cpp). On the node this was written for, 21. to
 	// 29.10.2026: 269 sessions, all offering its bit 25 and BIP110's bit 27.
-	{"Other chain", regexp.MustCompile(`(?i)Bitcoin ABC|BUCash|Bitcoin SV|BCH ?Unlimited|BitcoinUnlimited|Bitcoin XT|Classic:|\(EB[0-9]|SuperBitcoin|iriumd|vds[_ ]|^/Aurum:|/Purity:|^/dexcash-nodes:`), false},
+	// Bitcoin Unlimited's Bitcoin edition (2015 to 2018) was a big-block
+	// client for Bitcoin itself, not another chain; it sends "(EB16)" too, so
+	// it comes first (see about.go).
+	{"Node (other)", regexp.MustCompile(`(?i)^/BitcoinUnlimited:`), true},
+	{"Other chain", regexp.MustCompile(`(?i)Bitcoin ABC|BUCash|Bitcoin SV|BCH ?Unlimited|Bitcoin XT|Classic:|\(EB[0-9]|SuperBitcoin|iriumd|vds[_ ]|^/Aurum:|^/Ladybug:|/Purity:|^/dexcash-nodes:`), false},
 	// Network scanners, in two flavours: the ones run as a service and the
 	// ones run by universities. Both announce themselves honestly.
 	// Pool Detective, MIT's Digital Currency Initiative watching what mining
@@ -125,7 +129,7 @@ var kindRules = []struct {
 	// is Unstoppable Wallet on iPhone (Peer.swift in
 	// horizontalsystems/BitcoinCore.Swift), /BitcoinKit:/ the same wallet on
 	// Android (VersionMessage.kt in horizontalsystems/bitcoin-kit-android).
-	{"Wallet", regexp.MustCompile(`(?i)bitcoinj|breadwallet|/bread:|bither|multibit|wasabi|Bitcoin Wallet|^/blueberry:|^/winnow:|^/BitcoinKit:|^/WalletKit:|^/Ladybug:|/hodlwallet:|/spvwallet:|^/btcwire:[^/]*/bitfyn:|^/twotbit:|^/bitc:|^MagicalBitcoinWallet$|^Wallet v0\.1$|^/BitcoinSPV:|^/enginecore:|^/BitcoinWallet:`), false},
+	{"Wallet", regexp.MustCompile(`(?i)bitcoinj|breadwallet|/bread:|bither|multibit|wasabi|Bitcoin Wallet|^/blueberry:|^/winnow:|^/BitcoinKit:|^/WalletKit:|/hodlwallet:|/spvwallet:|^/btcwire:[^/]*/bitfyn:|^/twotbit:|^/bitc:|^MagicalBitcoinWallet$|^Wallet v0\.1$|^/BitcoinSPV:|^/enginecore:|^/BitcoinWallet:`), false},
 	// Lightning wallets on lnd that follow the chain through neutrino, its
 	// BIP157 client: Zeus and Blixt among them. Named apart from the other
 	// light clients so the wallets among the peers show as wallets. In

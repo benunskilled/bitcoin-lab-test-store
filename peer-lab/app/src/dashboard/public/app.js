@@ -115,7 +115,10 @@ const KIND_RULES = [
   // Bitcoin Classic's "(EB8)" is Bitcoin Cash's block size; SuperBitcoin,
   // Irium and VDS are forks and altcoins of their own. Bitcoin Purity, a hard
   // fork of Knots, says "/Satoshi:29.4/Purity:1.1.0/".
-  [/Bitcoin ABC|BUCash|Bitcoin SV|BCH ?Unlimited|BitcoinUnlimited|Bitcoin XT|Classic:|\(EB[0-9]|SuperBitcoin|iriumd|vds[_ ]|^\/Aurum:|\/Purity:|^\/dexcash-nodes:/i, 'a client of another chain', 'whole'],
+  // Bitcoin Unlimited's old Bitcoin edition: a node of this chain, before
+  // its "(EB16)" reads as another one's.
+  [/^\/BitcoinUnlimited:/i, null, 'whole'],
+  [/Bitcoin ABC|BUCash|Bitcoin SV|BCH ?Unlimited|Bitcoin XT|Classic:|\(EB[0-9]|SuperBitcoin|iriumd|vds[_ ]|^\/Aurum:|^\/Ladybug:|\/Purity:|^\/dexcash-nodes:/i, 'a client of another chain', 'whole'],
   // Scanners run as a service and scanners run by universities - the second
   // kind announces itself with its department's domain.
   [/kit\.edu|dsn\.tm|dsn\.kastel|\.ac\.|uni-|^\/btcwire:[^/]*\/Satoshi:|^\/rske-research:|^\/acsrg-research:|^\/dataforge-observer:|^\/connector\/$/i, 'a research scanner'],
@@ -126,7 +129,7 @@ const KIND_RULES = [
   [/bitnodes|bluematt-tokio-client|metrika|nodemap|crawl|scan|seeder|census|monitor|observatory|sonar|scout|nebula|watch|listener|argus|readonly|bitdash|logosnaut|dnsseed|survey|lionseed|gnoban|^\/p2p-observer:|^\/p2p-extractor:|^\/bip324-probe:|^\/topology-probe:|^\/p2p-probe:|^\/probe:|^\/BTC-Nodes:[^/]*\/Probe\/|^\/btc-peers:|^\/bitcoin-peers:|^\/logos-peer-list:|^\/bip110-observer:|^\/nodes\.mom\.market:|^\/btcwire:[^/]*\/bitcoinstats\.com:/i, 'a network crawler'],
   // Address indexers for wallets: they follow the chain and relay nothing.
   [/electrs|electrum|esplora|\/mempool|^NBXplorer-|^\/symphony:/i, 'an address indexer'],
-  [/bitcoinj|breadwallet|\/bread:|bither|multibit|wasabi|Bitcoin Wallet|^\/blueberry:|^\/winnow:|^\/BitcoinKit:|^\/WalletKit:|^\/Ladybug:|\/hodlwallet:|\/spvwallet:|^\/btcwire:[^/]*\/bitfyn:|^\/twotbit:|^\/bitc:|^MagicalBitcoinWallet$|^Wallet v0\.1$|^\/BitcoinSPV:|^\/enginecore:|^\/BitcoinWallet:/i, 'a wallet'],
+  [/bitcoinj|breadwallet|\/bread:|bither|multibit|wasabi|Bitcoin Wallet|^\/blueberry:|^\/winnow:|^\/BitcoinKit:|^\/WalletKit:|\/hodlwallet:|\/spvwallet:|^\/btcwire:[^/]*\/bitfyn:|^\/twotbit:|^\/bitc:|^MagicalBitcoinWallet$|^Wallet v0\.1$|^\/BitcoinSPV:|^\/enginecore:|^\/BitcoinWallet:/i, 'a wallet'],
   // Lightning wallets on lnd, which follow the chain through neutrino.
   [/neutrino|\/lit:v/i, 'a Lightning wallet'],
   // Other BIP157 light clients: Kyoto, which says "Rust BIP-157". VerifiedX

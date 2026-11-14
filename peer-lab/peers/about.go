@@ -65,7 +65,8 @@ var aboutRules = []aboutRule{
 	{regexp.MustCompile(`^/P2Pool:`), "P2Pool, a peer-to-peer mining pool: miners share the work without a pool operator", "P2Pool mining pool", ""},
 	{regexp.MustCompile(`^/BitcoinRocks:`), "BitcoinRocks, an experimental fork of Core using RocksDB and compressed block storage", "BitcoinRocks, a Core fork", ""},
 	// alexar76/symmartys (formerly emporion): symmartys/bitcoin_headers.py
-	// sends "/SYMMARTYS:0.3/"; EMPORION is the older name.
+	// sends "/SYMMARTYS:0.3/"; EMPORION is the older name, still in
+	// emporion/bitcoin_headers.py at commit 922e4bc (17.10.2026).
 	{regexp.MustCompile(`(?i)^/EMPORION:`), "EMPORION, a Bitcoin header client for verifying OpenTimestamps proofs; later renamed SYMMARTYS", "EMPORION header client", ""},
 	{regexp.MustCompile(`(?i)^/SYMMARTYS:`), "SYMMARTYS, formerly EMPORION: follows Bitcoin headers to verify OpenTimestamps proofs", "SYMMARTYS header client", ""},
 	{regexp.MustCompile(`^/bitcoin-peers:`), "bitcoin-peers, a Rust toolkit to connect to and survey Bitcoin peers", "bitcoin-peers crawler", ""},
@@ -97,16 +98,21 @@ var aboutRules = []aboutRule{
 	{regexp.MustCompile(`(?i)^/bitcoinkernel-node:`), "bitcoinkernel-node, a small full node built on libbitcoinkernel, Core's validation engine as a library", "bitcoinkernel-node", ""},
 	{regexp.MustCompile(`(?i)^/satd:`), "satd, a Bitcoin full node written in Rust that works like Core", "satd node (Rust)", ""},
 	{regexp.MustCompile(`(?i)^/tbcd:`), "tbcd, the Bitcoin daemon of the Hemi network", "tbcd, Hemi's daemon", ""},
-	// "soak" is nowhere in Hemi's code (hemilabs/heminetwork).
-	{regexp.MustCompile(`(?i)hemi-soak`), "Named like a soak test of the Hemi network's Bitcoin code", "Named like Hemi soak test", ""},
+	// Not Hemi's own: "soak" is nowhere in hemilabs/heminetwork, and Hemi's
+	// developers describe a "/btcwire:0.5.0/hemi-soak:1.0/ fleet peer" that fed
+	// their node headers with no work (PR #1174 in hemilabs/heminetwork,
+	// September 2026; bnoc.xyz/t/170).
+	{regexp.MustCompile(`(?i)hemi-soak`), "Names a Hemi soak test; it is not in Hemi's code", "Names hemi-soak", ""},
 	// paulscode's release of 28.10.2026, Knots carried on after it hard-forked
 	// to BLAKE2b: src/clientversion.cpp at tag v31.1.knots-sha256.20261018 in
 	// paulscode/knots-sha256 (not on master).
 	{regexp.MustCompile(`/KnotsSHA256:`), "Knots (SHA256), paulscode's build of Knots that stays on the SHA256 chain", "Knots (SHA256), paulscode", ""},
 	// github.com/richardkiss/pycoinnet; where it sends this name was not found.
 	{regexp.MustCompile(`^/pycoinnet/`), "Named like pycoinnet, Richard Kiss's Python library for the Bitcoin protocol", "Named like pycoinnet", ""},
-	// No source found for this name (code search, 14.11.2026).
-	{regexp.MustCompile(`(?i)^/blueberry:`), "Named like Blueberry, BlueWallet's new wallet that talks to nodes directly", "Named like Blueberry", ""},
+	// APP_NAME "blueberry", APP_VERSION "2026.08.17" (peers/.../net/UserAgent.kt
+	// in BlueWallet/Blueberry.kmp), sent as "/${name}:${version}/"
+	// (session/VersionHandshake.kt in GladosBlueWallet/bip324.kmp).
+	{regexp.MustCompile(`(?i)^/blueberry:`), "Blueberry, BlueWallet's new wallet that talks to nodes directly", "Blueberry (BlueWallet)", ""},
 	// Labels a node's setup puts in brackets after Core's name. Apollo's own
 	// bitcoin.conf sets it (jstefanop/apolloapi-v2, backend/default-configs).
 	{regexp.MustCompile(`\(FutureBit-Apollo-Node\)`), "Labelled by FutureBit Apollo, a home Bitcoin miner with a built-in full node", "FutureBit Apollo node", ""},
@@ -121,19 +127,25 @@ var aboutRules = []aboutRule{
 	// A 2017 Docker image of Bitcore set uacomment=bitcore (m00re/bitcore-docker);
 	// these run newer Core, so the text goes by the name only.
 	{regexp.MustCompile(`\(bitcore\)`), "Labelled bitcore, named like BitPay's Bitcore, an index server that runs on a node", "Labelled bitcore", ""},
-	// No source found for winnow, Ladybug, Yuki, LionSeed, sashimi, Aurum,
-	// OpenBitcoin-crawler or bip324-ts (code search, 14.11.2026): only the name.
-	{regexp.MustCompile(`(?i)^/winnow:`), "Named like Winnow, an iPhone wallet that talks to nodes directly", "Named like Winnow", ""},
+	// userAgent = "/winnow:0.1/" (Sources/WalletCore/Network/Transport/
+	// PeerConnection.swift in winnowwallet/winnow).
+	{regexp.MustCompile(`(?i)^/winnow:`), "Winnow, an iPhone wallet that talks to nodes directly", "Winnow iPhone wallet", ""},
 	{regexp.MustCompile(`(?i)^/BitcoinKit:`), "BitcoinKit, a wallet library (Unstoppable Wallet on Android and others)", "BitcoinKit wallet library", ""},
 	{regexp.MustCompile(`^/WalletKit:`), "Unstoppable Wallet on iPhone", "Unstoppable Wallet iOS", ""},
-	{regexp.MustCompile(`(?i)^/Ladybug:`), "Named like Ladybug, a wallet built on bitcoinj", "Named like Ladybug", ""},
+	// CLIENT_NAME("Ladybug") (src/clientversion.cpp in rkarpuzov/Ladybug-pupa):
+	// the node of a coin of its own on Bitcoin Core, with Bitcoin's network
+	// magic. Its Android wallet says "Ladybug Wallet" on bitcoinj instead.
+	{regexp.MustCompile(`(?i)^/Ladybug:`), "Ladybug, an altcoin built on Bitcoin Core", "Ladybug altcoin", ""},
 	// HODL Wallet puts its library's name first: "/Liviano:<version>/hodlwallet:2.0/"
 	// (HodlWallet/Core/Services/WalletService.cs in hodlwallet/hodlwallet,
 	// Liviano/Version.cs in hodlwallet/liviano).
 	{regexp.MustCompile(`(?i)/hodlwallet:`), "HODL Wallet, a phone wallet", "HODL Wallet", ""},
-	{regexp.MustCompile(`^Yuki /`), "Named like Yuki, a light client by Impervious built on Kyoto", "Named like Yuki", ""},
+	// "Yuki / {YUKI_VERSION}" (src/network/outbound_messages.rs in imperviousinc/yuki).
+	{regexp.MustCompile(`^Yuki /`), "Yuki, a light client by Impervious built on Kyoto", "Yuki light client", ""},
 	{regexp.MustCompile(`^/VerifiedX:`), "A VerifiedX validator: a sidechain that holds bitcoin and follows Bitcoin's chain for it", "VerifiedX validator", ""},
-	{regexp.MustCompile(`(?i)^/LionSeed:`), "Names LionSeed, a DNS seeder", "Names LionSeed", ""},
+	// format!("/LionSeed:{}/", ...) (src/crawl.rs in LionThunderFingers/LionSeed),
+	// "serves only verified fork nodes" by its description.
+	{regexp.MustCompile(`(?i)^/LionSeed:`), "LionSeed, a DNS seeder that lists only the nodes of one fork", "LionSeed DNS seeder", ""},
 	// gnoban itself works over its own node's RPC and sends no name
 	// (gnoban.py in caesrcd/gnoban), so a peer saying it only borrows it.
 	{regexp.MustCompile(`(?i)^/gnoban:`), "Named like gnoban, a tool that scores nodes and bans the ones its operator does not want", "Named like gnoban", ""},
@@ -180,11 +192,15 @@ var aboutRules = []aboutRule{
 	{regexp.MustCompile(`^/BitcoinWallet:`), "BitcoinWallet, a Java desktop wallet by ScripterRon", "BitcoinWallet (Java)", ""},
 	{regexp.MustCompile(`^/rust-spv:`), "rust-bitcoin-spv, a Rust light client", "rust-bitcoin-spv", ""},
 	{regexp.MustCompile(`^/BitcoinSwift:`), "BitcoinSwift, a Swift library for the Bitcoin protocol", "BitcoinSwift library", ""},
+	// josibake/sashimi exists ("a Bitcoin node as Unix tools", Zig), but no
+	// "/sashimi:" is in its code (14.11.2026).
 	{regexp.MustCompile(`(?i)^/sashimi:`), "Named like sashimi, small Unix tools for Bitcoin by josibake", "Named like sashimi", ""},
 	// src/lib.rs in gnostr-org/gnostr-bitcoin: user_agent = "/rust-sha2-p2p-client/".
 	{regexp.MustCompile(`(?i)^/rust-sha2-p2p-client/`), "gnostr-bitcoin, a terminal monitor of the Bitcoin network from the gnostr project", "gnostr-bitcoin monitor", ""},
 	{regexp.MustCompile(`(?i)^/Gnostr:`), "Names gnostr, the git+nostr tools", "Names gnostr", ""},
-	{regexp.MustCompile(`(?i)^/Aurum:`), "Named like Aurumcoin, an altcoin built on Bitcoin Core 0.12", "Named like Aurumcoin", ""},
+	// CLIENT_NAME("Aurum") (src/clientversion.cpp in aurumcoin-au/Aurumcoin-AU),
+	// with Bitcoin's network magic.
+	{regexp.MustCompile(`(?i)^/Aurum:`), "Aurumcoin, an altcoin built on Bitcoin Core 0.12", "Aurumcoin altcoin", ""},
 	{regexp.MustCompile(`(?i)/Purity:`), "Bitcoin Purity, a fork of Knots that made BIP110 permanent in a hard fork at block 961637", "Bitcoin Purity hard fork", ""},
 	// USER_AGENT = "Bitcoin Wallet" (wallet/src/de/schildbach/wallet/Constants.java
 	// in bitcoin-wallet/bitcoin-wallet), on bitcoinj.
@@ -192,19 +208,25 @@ var aboutRules = []aboutRule{
 	// breadwallet-core sends "/bread:" with its own version, 2.1 since 2019
 	// (BRPeer.h), also in BRD's later WalletKit (blockset-corp/walletkit).
 	{regexp.MustCompile(`^/bread:`), "BRD's wallet core: the BRD app, shut down in 2022, or a wallet built on its code", "BRD wallet core", ""},
+	// "/breadwallet:%@/" (BreadWallet/BRPeer.h in breadwallet/breadwallet).
 	{regexp.MustCompile(`(?i)breadwallet`), "BRD (breadwallet), a phone wallet shut down in 2022", "BRD wallet, closed 2022", ""},
 	// peerGroup.setUserAgent("MultiBit", ...) (MultiBitService.java in
 	// Multibit-Legacy/multibit).
 	{regexp.MustCompile(`(?i)multibit`), "MultiBit, a desktop wallet discontinued in 2017", "MultiBit, ended 2017", ""},
+	// "/Bither" + version + "/", no colon (message/VersionMessage.java in
+	// Bither/bitherj).
 	{regexp.MustCompile(`(?i)bither`), "Bither, a wallet for phone and desktop", "Bither wallet", ""},
-	{regexp.MustCompile(`(?i)wasabi`), "Wasabi Wallet, a desktop wallet", "Wasabi Wallet", ""},
+	// Wasabi itself picks a Core name at random, "/Satoshi:30.2.0/" and others
+	// (UserAgents in WalletWasabi/Helpers/Constants.cs): a peer saying "wasabi"
+	// only borrows the name.
+	{regexp.MustCompile(`(?i)wasabi`), "Named like Wasabi Wallet; Wasabi itself introduces itself as Bitcoin Core", "Named like Wasabi", ""},
 	// The library alone, without a wallet app's name after it. After the
 	// wallet rules above, which also start with bitcoinj.
 	{regexp.MustCompile(`(?i)^/bitcoinj:`), "bitcoinj, a Java library that wallets and other tools use to talk to nodes", "bitcoinj Java library", ""},
 	// neutrino sends a version fixed in its own code, not lnd's: 0.12.0-beta
-	// from neutrino 0.12 to 0.16 (lnd 0.13 to 0.20), 0.17.1 since neutrino
-	// 0.17.1 (lnd 0.21, June 2026; UserAgentName and UserAgentVersion in
-	// neutrino.go in lightninglabs/neutrino).
+	// from neutrino v0.12.0 to v0.16.2 (lnd 0.13 to 0.20), then 0.17.0, and
+	// 0.17.1 from v0.17.1 on, v0.18.0 too (lnd 0.21, June 2026;
+	// UserAgentVersion in neutrino.go in lightninglabs/neutrino).
 	// Zeus 13.2 ships lnd 0.21.4, Blixt 0.9 lnd 0.20, and neither changes the
 	// name; lnd on a server in neutrino mode says the same, so an app is only an example.
 	{regexp.MustCompile(`(?i)/neutrino:0\.17\.`), "lnd 0.21 or newer, without a node of its own (neutrino), e.g. Zeus", "lnd 0.21+ (neutrino)", "lnd 0.21+"},
@@ -216,6 +238,8 @@ var aboutRules = []aboutRule{
 	{regexp.MustCompile(`^/Bitflash:btc-light/`), "Named like Bitflash's wallet, which follows the chain by headers and compact filters (docs.bitflash.network)", "Named like Bitflash", ""},
 	// "/Floresta:<version>/" (bin/florestad/build.rs in getfloresta/Floresta).
 	{regexp.MustCompile(`(?i)floresta`), "Floresta, a lightweight Utreexo node", "Floresta Utreexo node", ""},
+	// format!("/electrs:{}/", ELECTRS_VERSION) (src/p2p.rs in romanz/electrs,
+	// up to v0.10.10; later versions have no P2P code).
 	{regexp.MustCompile(`(?i)electrs`), "electrs, the address index behind Electrum-style wallets", "electrs address index", ""},
 	// UA_NAME("CKCoinD") (src/clientversion.cpp in ckolivas/ckcoind, branch ck29).
 	{regexp.MustCompile(`(?i)^/CKCoinD:`), "ckcoind, a mining fork of Bitcoin Core used with ckpool", "ckcoind (ckpool fork)", ""},
@@ -234,7 +258,8 @@ var aboutRules = []aboutRule{
 	{regexp.MustCompile(`^/RelayNetwork(Client|Server|Terminator):`), "Matt Corallo's old Relay Network, which ran until 2017", "Old Relay Network", ""},
 	{regexp.MustCompile(`^/Cornell-Falcon-Network:`), "Named like Falcon, Cornell's block relay network from 2016", "Named like Falcon", ""},
 	// Before NBitcoin, whose name is inside "OpenBitcoin".
-	{regexp.MustCompile(`^/OpenBitcoin-crawler:`), "Named like OpenBitcoin's crawler, a survey of reachable nodes for openbitcoin.com", "Named like OpenBitcoin", ""},
+	// USER_AGENT = '/OpenBitcoin-crawler:0.1/' (crawl.mjs in openbitcoincom/node-crawler).
+	{regexp.MustCompile(`^/OpenBitcoin-crawler:`), "OpenBitcoin's crawler, a survey of reachable nodes for openbitcoin.com", "OpenBitcoin crawler", ""},
 	{regexp.MustCompile(`(?i)NBitcoin`), "NBitcoin, a .NET Bitcoin library (behind BTCPay Server, among others)", "NBitcoin .NET library", ""},
 	// "/bitcore:<version>/" is bitcore-p2p's default, the version its own
 	// (lib/messages/commands/version.js in bitpay/bitcore-p2p), so any program on it says so: BitPay's node and
@@ -347,9 +372,12 @@ var aboutRules = []aboutRule{
 	// Autarkysoft's C# toolkit (Configuration.cs); it pushes transactions
 	// under "/Satoshi:0.22.0/" instead, so only its own name lands here.
 	{regexp.MustCompile(`^/Denovo:`), "Denovo, a Bitcoin toolkit in C#: pushes transactions, mines on testnet", "Denovo toolkit (C#)", ""},
-	// network.py in jimmysong/programmingbitcoin and the course exercises.
+	// network.py in jimmysong/programmingbitcoin, and session7/network.py in
+	// jimmysong/pb-exercises for the course.
 	{regexp.MustCompile(`^/programming(bitcoin|blockchain):`), "Code from Jimmy Song's book or course Programming Bitcoin", "Programming Bitcoin code", ""},
-	{regexp.MustCompile(`^/bip324-ts:`), "Named like bip324-ts, a TypeScript library for encrypted v2 connections", "Named like bip324-ts", ""},
+	// The example code of GladosBlueWallet/bip324 (examples/signet-getaddr.ts),
+	// the TypeScript library Blueberry's transport was ported from.
+	{regexp.MustCompile(`^/bip324-ts:`), "bip324-ts, a TypeScript library for encrypted v2 connections (its example code)", "bip324-ts library", ""},
 	// dsn.kastel.kit.edu/bitcoin, the DSN group at KIT: the page says it
 	// measures the network for research, but names no user agent. The domain
 	// in the name points there.
@@ -379,15 +407,21 @@ var aboutRules = []aboutRule{
 	// Bitcoin Cash clients carry its block size as "(EB8.0)" too, so they
 	// come before Classic.
 	{regexp.MustCompile(`(?i)Bitcoin ABC`), "Bitcoin ABC, a Bitcoin Cash client, eCash's node since 2020", "Bitcoin ABC (BCH)", ""},
-	// CLIENT_NAME("BCH Unlimited") today, with a space (src/clientversion.cpp in
-	// BitcoinUnlimited/BitcoinUnlimited); "BUCash" and "BitcoinUnlimited"
-	// before. 1.0.x predates Bitcoin Cash, hence "big-block".
-	{regexp.MustCompile(`(?i)BUCash|BCH ?Unlimited|BitcoinUnlimited`), "Bitcoin Unlimited, a big-block client, for Bitcoin Cash since 2017", "Bitcoin Unlimited (BCH)", ""},
+	// src/clientversion.cpp in BitcoinUnlimited/BitcoinUnlimited:
+	// "BitcoinUnlimited" from 2015 (b126b10), a big-block client for Bitcoin,
+	// whose Bitcoin edition ended in January 2018 (85f5bd6); "BUCash" for the
+	// Bitcoin Cash edition from 25.07.2017 (849199f), "BCH Unlimited" with a
+	// space from 02.04.2020 (4ce5b9e). Before the "(EB" rule: they send it too.
+	{regexp.MustCompile(`(?i)BitcoinUnlimited`), "Bitcoin Unlimited, a big-block client for Bitcoin; this edition ended in 2018", "Bitcoin Unlimited (old)", ""},
+	{regexp.MustCompile(`(?i)BUCash|BCH ?Unlimited`), "Bitcoin Unlimited's Bitcoin Cash edition (BUCash, now BCH Unlimited)", "Bitcoin Unlimited (BCH)", ""},
 	{regexp.MustCompile(`(?i)Bitcoin SV`), "Bitcoin SV, the node of BSV, which split from Bitcoin Cash in 2018", "Bitcoin SV (BSV)", ""},
 	{regexp.MustCompile(`(?i)Bitcoin XT`), "Bitcoin XT, a fork of Core for bigger blocks that went on to Bitcoin Cash", "Bitcoin XT", ""},
 	{regexp.MustCompile(`(?i)SuperBitcoin`), "Super Bitcoin, a fork of Bitcoin from December 2017 with a chain of its own", "Super Bitcoin fork", ""},
+	// USER_AGENT "/iriumd:1.9.66/" (src/p2p_wire.rs in iriumlabs/irium).
 	{regexp.MustCompile(`(?i)iriumd`), "Irium, an altcoin with a chain of its own", "Irium altcoin", ""},
-	{regexp.MustCompile(`(?i)vds[_ ]`), "VDS, an altcoin with a chain of its own", "VDS altcoin", ""},
+	// v-dimension/vds-core sends "/MagicBean:x/" (CLIENT_NAME in
+	// src/clientversion.cpp), so "VDS <version>" is only the name.
+	{regexp.MustCompile(`(?i)vds[_ ]`), "Names VDS, an altcoin with a chain of its own", "Names VDS", ""},
 	{regexp.MustCompile(`(?i)Classic:`), "Bitcoin Classic: a Bitcoin Cash client", "Bitcoin Classic (BCH)", ""},
 	// "(EB8)" is the block size a big-block client accepts: Classic, Unlimited
 	// and others all send it, so alone it says only that much.
