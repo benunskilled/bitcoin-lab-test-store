@@ -1219,7 +1219,7 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
   color: var(--bad);
 }
 /* The keep lock in the Manual Peers table. Both the state and the switch:
-   the padlock means the rotation leaves this peer alone. Open, it is only a
+   the padlock means Slot Fill leaves this peer alone. Open, it is only a
    faint shadow of the closed one - there to be found and tapped, not to be
    read as locked; on hover or keyboard focus it gets a little stronger. */
 :is(.panel, .pd-actions) .keep-star {
@@ -1320,7 +1320,7 @@ details.card.panel > *:not(summary) { margin-top: 14px; }
   content: attr(data-label); display: block; margin-bottom: 2px;
   color: var(--muted); font-size: 10px; letter-spacing: .05em; text-transform: uppercase;
 }
-/* The rotation log's note is a sentence: on its own line, wrapping. */
+/* The Slot Fill log's note is a sentence: on its own line, wrapping. */
 .panel .cards.cards table tr td.hint { grid-column: 1 / -1; white-space: normal; }
 /* The log on a phone: each entry a card like a peer's, two lines, the same
    height for every entry - the place in bold with its flag and the action on

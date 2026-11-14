@@ -120,7 +120,7 @@ async function adoptExternalManualPeers() {
   const justRemoved = recentRemovals();
   // Protected on the way in. An addnode this app did not issue is somebody's
   // choice - a bitcoin.conf line, a peer set in Umbrel's settings - and an
-  // unprotected row is one the rotation may later `addnode remove`, undoing
+  // unprotected row is one Slot Fill may later `addnode remove`, undoing
   // that choice behind the person's back.
   const insert = db.instance.prepare(
     `INSERT OR IGNORE INTO trusted_peer (address, label, kept, created_at) VALUES (?, NULL, 1, ?)`,
@@ -166,7 +166,7 @@ async function adoptExternalManualPeers() {
     insert.run(addednode, now);
     known.add(keyOf(addednode));
     // Same reason as in addTrustedPeer: a manual peer with no `peer` row is
-    // invisible to peerRanking(), so no rotation pass can ever see it while it
+    // invisible to peerRanking(), so no Slot Fill pass can ever see it while it
     // still occupies one of the eight slots. An addnode entry Core has never
     // managed to connect is precisely the case that produces one.
     db.getOrCreatePeer(addednode);
@@ -324,7 +324,7 @@ async function addTrustedPeer(address, label, options = {}) {
       if (!evictToFit) {
         return { ok: false, count, max: config.maxManualPeers, error: `all ${config.maxManualPeers} manual slots are taken` };
       }
-      // Only a peer the rotation itself could displace: not one with the
+      // Only a peer Slot Fill itself could displace: not one with the
       // padlock, not one still inside its new-slot grace. Typing an address in
       // used to take the weakest of all eight, a protected one included - the
       // one thing the padlock promises cannot happen. Of those, the one the
@@ -395,7 +395,7 @@ async function addTrustedPeer(address, label, options = {}) {
 
   // The count again, in the same write transaction as the row. The one above
   // was read before two RPCs; another add - from the dashboard, from the
-  // rotation in the other process - can have taken the last slot in the
+  // Slot Fill in the other process - can have taken the last slot in the
   // meantime, and both used to write their row. IMMEDIATE takes the write
   // lock first, so no other writer can slip between this count and the
   // insert.
@@ -424,7 +424,7 @@ async function addTrustedPeer(address, label, options = {}) {
         `INSERT INTO trusted_peer (address, label, kept, created_at) VALUES (?, ?, ?, ?)
          ON CONFLICT(address) DO UPDATE SET label = excluded.label,
          -- Re-adding by hand can set the star, but re-adding must never CLEAR
-         -- one: the rotation calls this too (adopting a peer Core already
+         -- one: Slot Fill calls this too (adopting a peer Core already
          -- knows), and those calls pass kept=false. Taking the
          -- star off is the star's own control, not a side effect of something
          -- else touching the row.
@@ -455,7 +455,7 @@ async function addTrustedPeer(address, label, options = {}) {
 
   // A manual peer must exist in `peer` too, even if Core has never reported a
   // session for it. peerRanking() is driven FROM peer, so without this row the
-  // peer is invisible to every rotation pass - it can never be retired, never
+  // peer is invisible to every Slot Fill pass - it can never be retired, never
   // be considered the weakest, and never be shown - while still consuming one
   // of the eight slots forever. That is exactly what happens when the TCP
   // probe answers but Core never establishes a connection (a non-Bitcoin
@@ -469,7 +469,6 @@ async function addTrustedPeer(address, label, options = {}) {
     evicted = toEvict;
     logger.info('freed a manual slot to stay within the cap', {
       removed: evicted.address,
-      removedFirstPct: evicted.firstPct,
       forAddress: address,
       max: config.maxManualPeers,
     });
@@ -479,7 +478,7 @@ async function addTrustedPeer(address, label, options = {}) {
     ok: true,
     count: countTrusted(),
     max: config.maxManualPeers,
-    evicted: evicted ? { address: evicted.address, firstPct: evicted.firstPct, live: Boolean(evicted.live) } : null,
+    evicted: evicted ? { address: evicted.address, live: Boolean(evicted.live) } : null,
   };
 }
 
@@ -610,7 +609,7 @@ async function removeTrustedPeer(address, { disconnect = true } = {}) {
 /**
  * Turns the star on or off for a manual peer. Nothing else changes: the peer
  * keeps its slot, its record and its connection either way. Off simply means
- * the rotation may consider it again from the next pass on - no fresh grace
+ * Slot Fill may consider it again from the next pass on - no fresh grace
  * period, no exception, exactly as if the star had never been set.
  *
  * Returns false for an address that is not a manual peer, so the caller can

@@ -84,7 +84,7 @@ function mapRankingRow(now, graceFrom = 0, liveTip = 0) {
     // Tor / I2P / CJDNS: a real peer that ranks normally and really does
     // deliver blocks, but that this app can never dial, so it can never be
     // promoted. Carried on the row so the dashboard can say so instead of
-    // offering an action that always fails, and so the rotation loop can skip
+    // offering an action that always fails, and so Slot Fill can skip
     // it rather than spending a probe on it every pass.
     //
     // Core's own answer first, the address only as a fallback for sessions
@@ -132,7 +132,7 @@ function mapRankingRow(now, graceFrom = 0, liveTip = 0) {
       localUmbrelPeer,
       privateNetwork,
       proxiedPrivatePeer,
-      // Where a peer is, for the dashboard: what the rotation spreads the
+      // Where a peer is, for the dashboard: what Slot Fill spreads the
       // slots by (peer-rotation/spread.js), and what a phone card shows beside
       // the address. Never for an address that is not the peer's own.
       where: !sourceObscured && !localUmbrelPeer && !proxiedPrivatePeer ? whereOf(r.address) : null,
@@ -144,7 +144,7 @@ function mapRankingRow(now, graceFrom = 0, liveTip = 0) {
       // a manual peer that has never once connected has no offlineSinceMs to
       // measure from, so its grace runs from when it was added instead.
       trustedSince: r.trustedSince ?? null,
-      // Protected by hand: the rotation must not displace or retire it. Only
+      // Protected by hand: Slot Fill must not displace or retire it. Only
       // meaningful on a manual peer; false everywhere else.
       kept: Boolean(r.kept),
       // Still inside the grace a new slot holder gets before it can be

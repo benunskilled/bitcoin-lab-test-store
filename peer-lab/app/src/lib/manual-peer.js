@@ -117,26 +117,17 @@ async function manualAddPeer(rawInput, label, { kept = false } = {}) {
   // told about. The response names what was dropped - a silent eviction of a
   // peer the user spent days earning would be far worse than a refusal.
   //
-  // The star is NOT part of that, and is off unless the caller asks. Typing an
-  // address into the box is a choice about a peer this node may never have
-  // seen, so it is protected until you look at it. Clicking the button beside
-  // a peer already in the ranking is a different act: that peer is there
-  // because the app measured it, and picking one out of the list is the same
-  // judgement the rotation makes, only by hand. Starring it would take that
-  // peer out of the pool the rotation draws from - which matters most for the
-  // ordinary outbound peers, since they ARE the pool. Eight stars and the loop
-  // has nothing left to promote.
-  //
-  // This used to be hardcoded true with a comment claiming every path here was
-  // someone typing an address. It was not: the button on each row comes
-  // through the same function.
+  // The padlock is NOT part of that, and is off unless the caller asks. Both
+  // ways to add by hand ask for it - the typed-in box and a row's "Add as
+  // Manual" (dashboard-server.js): a peer added by hand is a choice, and stays
+  // until it is removed or unlocked. What Slot Fill adds comes without one.
   const result = await peerSync.addTrustedPeer(probed.address, label, { evictToFit: true, kept });
   if (!result.ok) {
     return { ok: false, address: probed.address, error: result.error };
   }
   logger.info('manually added peer', { address: probed.address, evicted: result.evicted?.address || null });
-  // In the rotation log too, every time: a hand-made choice belongs next to
-  // the rotation's own, and a peer that lost its slot to one should not
+  // In the Slot Fill log too, every time: a hand-made choice belongs next to
+  // Slot Fill's own, and a peer that lost its slot to one should not
   // vanish without a trace.
   // The peer is in by now: a busy database must not turn that into an error
   // the user would retry, displacing a second peer.
@@ -147,7 +138,7 @@ async function manualAddPeer(rawInput, label, { kept = false } = {}) {
       replacedAddress: result.evicted?.address,
       // Where the slot came from: the spread decides which peer goes
       // (spread.leastMissed), so the region says more than "the weakest".
-      note: result.evicted ? `replaced one in ${spread.REGION_NAMES[spread.placeOf(result.evicted).region] || 'an unknown region'}` : null,
+      note: result.evicted ? `replaced one in ${regionOf(result.evicted) || 'an unknown region'}` : null,
     });
   } catch (err) {
     logger.warn('Slot Fill log entry for a manual add failed', { address: probed.address, error: err.message });
@@ -253,7 +244,7 @@ async function directRefusal(addr) {
  * Given a bare host, returns the first configured P2P port where a Bitcoin
  * node answers - already in Core's own address format - or null if none does.
  *
- * Shared on purpose: the automatic rotation loop has to answer exactly this
+ * Shared on purpose: Slot Fill has to answer exactly this
  * question for an inbound candidate (whose observed port is its ephemeral
  * source port, not what it listens on). A second private copy of this loop
  * over there was one more place for the port list, the bracket format, or the
@@ -267,16 +258,22 @@ async function findListeningAddress(host) {
   return null;
 }
 
+// The region a peer is in, by name, or null: what the spread goes by.
+function regionOf(peer) {
+  return spread.REGION_NAMES[spread.placeOf(peer).region] || null;
+}
+
 // Bitcoin Core holds MAX_ADDNODE_CONNECTIONS (8) manual connections at once,
 // so the 9th add is not a queue, it is a swap - and the user has to be told
-// which peer paid for it, by name and by record, or a good peer can vanish
-// from the list without anyone ever seeing why.
+// which peer paid for it, by name and by region (what the spread chose it
+// by, as the log says), or a good peer can vanish from the list without
+// anyone ever seeing why.
 function evictionNote(result) {
   if (!result.evicted) return {};
-  const pct = result.evicted.firstPct == null ? 'no record yet' : `${result.evicted.firstPct.toFixed(1)}% first`;
+  const region = regionOf(result.evicted);
   return {
     warning:
-      `all ${result.max} manual slots were taken, so ${result.evicted.address} (${pct}) ` +
+      `all ${result.max} manual slots were taken, so ${result.evicted.address} (${region ? `in ${region}` : 'region unknown'}) ` +
       (result.evicted.live
         ? 'was disconnected to make room. It keeps its record.'
         : 'was removed to make room.'),

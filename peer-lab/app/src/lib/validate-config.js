@@ -7,7 +7,7 @@
  * Every value there arrives as `Number(process.env.X)`, which turns a typo
  * into `NaN` rather than into an error. `NaN` does not throw anywhere: it
  * makes `setInterval` fire as fast as the event loop allows, makes every
- * comparison in the rotation false, and makes a division produce another
+ * comparison in Slot Fill false, and makes a division produce another
  * `NaN` that is stored as NULL. The app keeps running and quietly does
  * nothing correct, which is the worst of the available failure modes - worse
  * than a crash, because a crash is visible in the app's logs on the first

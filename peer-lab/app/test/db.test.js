@@ -1003,3 +1003,13 @@ test('pruneNeverFirstPeers removes only peers that never delivered first and are
   assert.equal(db.instance.prepare("SELECT COUNT(*) AS n FROM relay_race WHERE block_hash LIKE 'nf-race-%'").get().n, 3);
   assert.equal(queries.pruneNeverFirstPeers({ days: 30 }), 0, 'a second run finds nothing');
 });
+
+// What a reset empties is what the reset dialog counts: a table cleared
+// without being in its group frees bytes the dialog never mentioned.
+test('every table "Reset peer data" empties is counted in the peer-data group', () => {
+  const emptied = [...db.resetPeerData.toString().matchAll(/DELETE FROM (\w+)/g)].map((m) => m[1]);
+  assert.ok(emptied.length > 0);
+  for (const table of new Set(emptied)) {
+    assert.ok(db.PEER_DATA_TABLES.includes(table), `${table} is emptied but not counted`);
+  }
+});

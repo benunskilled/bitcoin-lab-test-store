@@ -573,18 +573,15 @@ function fmtBytesShort(bytes) {
   return `${v >= 100 || i === 0 ? v.toFixed(0) : v.toFixed(v < 1 ? 2 : 1)} ${units[i]}`;
 }
 
-// What the log says about a peer let go by hand: for a disconnect, which way
-// the connection went, from its newest session - dropping a stranger that
-// dialled in is a different decision from dropping one of Core's own outbound
-// picks.
-function handRecord(address, { way = false } = {}) {
-  if (!way) return {};
+// The note on a disconnect: which way the connection went, from its newest
+// session - dropping a stranger that dialled in is a different decision from
+// dropping one of Core's own outbound picks.
+function directionOf(address) {
   const session = db.instance
     .prepare(`SELECT s.direction FROM peer_session s JOIN peer p ON p.id = s.peer_id
                WHERE p.address = ? ORDER BY s.started_at DESC LIMIT 1`)
     .get(address);
-  const dir = session && /^(inbound|outbound)$/.test(session.direction) ? session.direction : null;
-  return { note: dir };
+  return session && /^(inbound|outbound)$/.test(session.direction) ? session.direction : null;
 }
 
 // Every API route, "METHOD /path" -> handler. A route's handler answers on
@@ -740,8 +737,8 @@ const routes = {
   // There is deliberately no route that writes an address into trusted_peer
   // as it comes: without the port probe and the bracket normalisation an IPv6
   // address could never match Core's own formatting, and an unreachable one
-  // would be re-addnode'd every ten minutes forever. Every add goes through
-  // /api/peers/add-manual or /api/peers/manual-add, which probe first.
+  // would be re-addnode'd every ten minutes forever. Every add by hand goes
+  // through /api/peers/add-manual or /api/peers/manual-add, which probe first.
 
   // Its own endpoint rather than a field on /api/status: dbstat walks every
   // page of the database to get exact per-table sizes, which is fine on demand
@@ -780,9 +777,8 @@ const routes = {
     // entry it writes then needs this one before it to make sense.
     if (wasManual) {
       try {
-        // No note: where it was is under its address, and Slot Fill goes for
-        // spread, not for how often a peer was first.
-        peerRotation.logAction({ action: 'unmanual', address, ...handRecord(address) });
+        // No note: where it was is under its address.
+        peerRotation.logAction({ action: 'unmanual', address });
       } catch (err) {
         logger.warn('Slot Fill log entry for a removal failed', { address, error: err.message });
       }
@@ -798,9 +794,8 @@ const routes = {
   },
 
   'POST /api/peers/manual-add': async (req, res, url) => {
-    // The typed-in box, and the only path that stars what it adds: an address
-    // entered by hand names a peer this node may have no record of, so the
-    // Slot Fill must not take it away before its owner has seen it work.
+    // The typed-in box. Padlocked, like a row's "Add as Manual" below: an
+    // address entered by hand is a choice, so Slot Fill must not take it away.
     const { host } = await readBody(req);
     const result = await manualAddPeer(host, undefined, { kept: true });
     return sendJson(res, result.ok ? 200 : 422, result);
@@ -886,7 +881,7 @@ const routes = {
     // The peer is gone by now; a busy database must not turn that into an
     // error the user would retry.
     try {
-      peerRotation.logAction({ action: 'disconnect', address, ...handRecord(address, { way: true }) });
+      peerRotation.logAction({ action: 'disconnect', address, note: directionOf(address) });
     } catch (err) {
       logger.warn('Slot Fill log entry for a disconnect failed', { address, error: err.message });
     }

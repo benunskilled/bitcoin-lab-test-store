@@ -14,7 +14,7 @@
  * healthcheck would restart it in a loop (see health.js). What it costs while
  * switched off is one idle Node process.
  *
- * Absent means off, like the rotation: a fresh install opens no connection to
+ * Absent means off, like Slot Fill: a fresh install opens no connection to
  * any pool before someone has switched it on.
  */
 

@@ -20,7 +20,7 @@
  * A directory rather than a single module so that every existing
  * require('./queries') keeps resolving unchanged - the split is invisible from
  * the outside, and the ten names below are exactly the ones the dashboard, the
- * profilers, the rotation and the tests already use.
+ * profilers, Slot Fill and the tests already use.
  */
 
 const { peerRanking } = require('./peer-ranking');

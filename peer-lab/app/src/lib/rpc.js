@@ -18,7 +18,7 @@ let idCounter = 0;
 
 // One connection pool for the whole process instead of a fresh TCP handshake
 // per call. The peer profiler alone asks for getpeerinfo every fifteen
-// seconds, and the dashboard, the rotation and the sync add to that; none of
+// seconds, and the dashboard, Slot Fill and the sync add to that; none of
 // it is heavy over a Docker bridge, but there is no reason to open and close a
 // socket several thousand times a day to the same host.
 //

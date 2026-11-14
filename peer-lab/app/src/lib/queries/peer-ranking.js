@@ -5,7 +5,7 @@
  * order the rest of the app reads peers in.
  *
  * Both caches here exist for the same reason - this is asked for several times
- * a minute, by the dashboard and by the rotation, and it is the only query in
+ * a minute, by the dashboard and by Slot Fill, and it is the only query in
  * the app whose cost would otherwise grow with the node's own lifetime.
  */
 
@@ -98,7 +98,7 @@ function peerRanking() {
  * connected when a block landed (see config.js) - it only grows. This query
  * therefore has to say what it wants: peers that are connected right now, or
  * that are manual. Nothing else is displayed by the dashboard or acted on by
- * the rotation loop, and without the filter every request materialised, sorted
+ * Slot Fill, and without the filter every request materialised, sorted
  * and serialised every peer the node had ever seen in order to render ten rows.
  *
  * The two aggregate joins are correlated subqueries rather than derived tables

@@ -3,7 +3,7 @@
 /**
  * Where the manual peers are, and whether a peer would make that spread better.
  *
- * The rotation used to fill the eight manual slots with whoever delivered
+ * The rotation before it filled the eight manual slots with whoever delivered
  * blocks first most often. On a real node that was 7 of 8 in Europe, and its
  * own data showed no gain in time for it: from 7 October to 9 November 2026,
  * blocks a manual peer delivered first reached the node 119 ms (median) after

@@ -63,7 +63,7 @@ module.exports = {
   // slot ten minutes later on a real node. It had 900 blocks of history, so by
   // the lifetime reading its grace had elapsed before it ever held the slot.
   //
-  // Without any grace the rotation eats itself: a peer that has just taken a
+  // Without any grace Slot Fill eats itself: a peer that has just taken a
   // slot has almost no recent record yet, so it reads as the weakest of the
   // eight and is evicted by anyone with a longer history - which puts it back
   // in the candidate pool, where that history counts again and wins the slot

@@ -4,14 +4,14 @@
  * Whose network an address is in, and where: the operator (AS number and
  * name), the country and the region - the continent that country is on.
  *
- * The rotation spreads the manual peers over operators and regions, so it has
+ * Slot Fill spreads the manual peers over operators and regions, so it has
  * to answer this for any peer, offline and without asking a service. The
  * table is src/data/network.bin, built by scripts/gennet.py from DB-IP's Lite
  * databases (CC BY 4.0); see src/data/NETWORK.md. It is read once and searched
  * in place: two binary searches per lookup, nothing decoded but the names.
  *
  * Only clearnet addresses have an answer. Tor, I2P and CJDNS peers, local
- * addresses and anything unparseable come back as unknown; the rotation gives
+ * addresses and anything unparseable come back as unknown; Slot Fill gives
  * Tor and I2P regions of their own (peer-rotation/spread.js).
  */
 

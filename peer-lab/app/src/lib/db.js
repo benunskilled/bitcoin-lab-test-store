@@ -80,11 +80,11 @@ CREATE INDEX IF NOT EXISTS idx_peer_session_live
 CREATE TABLE IF NOT EXISTS trusted_peer (
   address TEXT PRIMARY KEY,
   label TEXT,
-  -- Set by hand: this peer stays, whatever the measurement says. The rotation
+  -- Set by hand: this peer stays, whatever the measurement says. Slot Fill
   -- neither displaces it for a better candidate nor retires it when it goes
   -- offline - the two ways a manual peer can otherwise lose its slot. It is
   -- the default for anything added by hand, because typing an address in is
-  -- already the decision; a promotion by the rotation itself is not, and
+  -- already the decision; a promotion by Slot Fill itself is not, and
   -- arrives unset, or the loop would freeze itself out of every slot it filled.
   kept INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL
@@ -256,6 +256,9 @@ CREATE TABLE IF NOT EXISTS meta (
   key TEXT PRIMARY KEY,
   value TEXT
 );
+
+-- Kept by test builds before 14.11.2026, written and never read.
+DROP TABLE IF EXISTS promoted_peer;
 
 -- Audit trail for the manual slots (src/lib/peer-rotation/log.js): a peer
 -- the slot fill added or retired, and one added or disconnected by hand, so
@@ -504,7 +507,7 @@ function rebuildRelayStats() {
  *
  *   - its manual sessions, which say Core has really held it (everManual).
  *     Without them a protected peer reads as an address that never stood up,
- *     the one kind of protected peer the rotation does retire.
+ *     the one kind of protected peer Slot Fill does retire.
  *   - trusted_peer.created_at, the clock an offline peer with no closed
  *     session is timed from. Left at the day it was added, a peer reset while
  *     offline was already past its grace on the next tick.
@@ -604,7 +607,7 @@ function sizeBytes() {
 // and is never touched by a reset.
 const PEER_DATA_TABLES = [
   'relay_race', 'relay_observation', 'peer_relay_stats',
-  'peer', 'peer_session', 'rotation_log',
+  'peer', 'peer_session', 'rotation_log', 'slot_fill_tried',
 ];
 const POOL_HISTORY_TABLES = ['stratum_race', 'stratum_observation'];
 

@@ -76,7 +76,7 @@ function pruneOldData({
 
 // Inbound peers that were around for blocks but never delivered one first,
 // and have not been seen for neverFirstPeerRetentionDays (see config.js).
-// Only inbound: an outbound peer was Core's or the rotation's choice, and the
+// Only inbound: an outbound peer was Core's or Slot Fill's choice, and the
 // outbound funnel counts every one it ever tried. Each step is its own
 // transaction with the choice inside it - the relay profiler writes from
 // another process - and a step holds at most about 20,000 observation rows,

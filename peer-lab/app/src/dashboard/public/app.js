@@ -8,7 +8,7 @@
 // stale the tables are allowed to get from someone else's activity (Core
 // itself connecting/dropping peers) between clicks.
 const REFRESH_MS = 20000;
-// The rotation loop acts at most once every ten minutes, so its panel has no
+// Slot Fill acts at most once every ten minutes, so its panel has no
 // reason to be on the same schedule as the peer list.
 const ROTATION_REFRESH_MS = 2 * 60 * 1000;
 // Which pool apps are installed: asked when the page opens, then every five
@@ -480,7 +480,7 @@ function actionsCell(p, { lock = '' } = {}) {
   const remove = `<button class="secondary danger action-slot" data-action="untrust" data-address="${escapeHtml(p.address)}">Remove</button>`;
   if (p.trusted) return (lock ? `<span class="action-slot lock-slot">${lock}</span>` : placeholder) + remove;
   // A peer that can never deliver a block first ("never first") would only
-  // hold a manual slot the rotation then has to free again; a disguised one
+  // hold a manual slot Slot Fill then has to free again; a disguised one
   // is not to be trusted with it.
   // The peers service's word where it has one, the name rules otherwise.
   const disguised = p.lion || (p.kind ? p.kind === 'Disguised' : kindRuleIndex(p.client) === MISSPELT_RULE);
@@ -714,7 +714,7 @@ function countryName(cc) {
 }
 
 // Where a manual peer is, as one more line under its address: flag and
-// provider, or Tor / I2P. The rotation spreads the slots by exactly this, so
+// provider, or Tor / I2P. Slot Fill spreads the slots by exactly this, so
 // it is shown where the slots are. Country and region are in the tooltip.
 function placeHtml(w) {
   const flag = HIDDEN_FLAG[w.region] || flagOf(w.country);
@@ -896,7 +896,7 @@ const recheckGone = () => setTimeout(() => refreshPeers().catch(() => {}), GONE_
 // A counter, not a flag. A boolean only covered the time the POST was in
 // flight, which left the real race wide open: a GET /api/rotation issued
 // *before* the click comes back *after* the POST, carrying the pre-click
-// value, and puts the checkbox back. The viewer then sees a green "rotation
+// value, and puts the checkbox back. The viewer then sees a green "Slot Fill
 // turned on" toast next to an unchecked box, while the server has it on - and
 // the obvious reaction, clicking again, genuinely turns it off. Comparing the
 // counter across the await discards any response that was already in flight
@@ -1281,7 +1281,7 @@ window.addEventListener('resize', () => {
 
 async function refreshAll() {
   // Block updates are not in here: they arrive on their own via the
-  // /api/events stream, not by polling. Rotation is not in here either - it
+  // /api/events stream, not by polling. Slot Fill is not in here either - it
   // only ever changes on its own ten-minute tick, so it has its own, much
   // slower schedule (see startRefreshLoop).
   const results = await Promise.allSettled([
@@ -1903,7 +1903,7 @@ function startRefreshLoop() {
     }
   };
 
-  // The rotation panel changes at most once per rotation tick - ten minutes -
+  // The Slot Fill panel changes at most once per Slot Fill pass - ten minutes -
   // so it does not belong in the 20-second round with the live tables. It was
   // fetching and re-rendering fifty log rows thirty times per possible change,
   // into a panel that starts collapsed.
