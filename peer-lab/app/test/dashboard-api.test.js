@@ -675,3 +675,18 @@ test('Add as Manual keeps the port of a peer this node dialled, and only then', 
     db.instance.prepare('DELETE FROM rotation_log').run();
   }
 });
+
+test('GET /api/storage answers from a cache for a minute, and a reset clears it', async (t) => {
+  let scans = 0;
+  t.mock.method(db, 'storageBreakdown', () => { scans += 1; return { tables: [], scans }; });
+  t.mock.timers.enable({ apis: ['Date'], now: Date.now() });
+  await api('/api/storage');
+  await api('/api/storage');
+  assert.equal(scans, 1, 'the second look within a minute reads nothing');
+  t.mock.timers.tick(60 * 1000);
+  await api('/api/storage');
+  assert.equal(scans, 2, 'a minute later it reads again');
+  await api('/api/reset', { method: 'POST', body: JSON.stringify({ scope: 'pools' }) });
+  await api('/api/storage');
+  assert.equal(scans, 3, 'after a reset it reads again at once');
+});

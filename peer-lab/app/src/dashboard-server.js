@@ -38,6 +38,10 @@ const stratumRace = require('./lib/stratum-race-toggle');
 const logger = require('./lib/logger').make('dashboard');
 const { makeWriteSource } = require('./lib/write-source');
 
+// /api/storage, below.
+const STORAGE_CACHE_MS = 60 * 1000;
+let storageCache = null;
+
 // let, not const: a test swaps in its own check, because every request in a
 // test comes from loopback, which the real one always lets through.
 let writeAllowedFrom = makeWriteSource({ host: config.trustedProxyHost });
@@ -756,8 +760,15 @@ const routes = {
   // Its own endpoint rather than a field on /api/status: dbstat walks every
   // page of the database to get exact per-table sizes, which is fine on demand
   // and wrong in a twenty-second poll.
+  // The split per table reads every page of the database, synchronously.
+  // Opening the card again within a minute gets the same answer, so a page
+  // left open, or anyone else on the node's network, cannot keep the
+  // dashboard busy with it. A reset clears it: the numbers have just moved.
   'GET /api/storage': async (req, res, url) => {
-    return sendJson(res, 200, db.storageBreakdown());
+    if (!storageCache || Date.now() - storageCache.at >= STORAGE_CACHE_MS) {
+      storageCache = { at: Date.now(), body: db.storageBreakdown() };
+    }
+    return sendJson(res, 200, storageCache.body);
   },
 
   // Irreversible, so it takes an explicit scope rather than defaulting to
@@ -765,6 +776,7 @@ const routes = {
   // decisions, and the manual peers are never part of either.
   'POST /api/reset': async (req, res, url) => {
     const { scope } = await readBody(req);
+    storageCache = null;
     if (scope === 'peers') return sendJson(res, 200, { ok: true, scope, ...db.resetPeerData() });
     if (scope === 'pools') return sendJson(res, 200, { ok: true, scope, ...db.resetPoolHistory() });
     return sendJson(res, 400, { error: 'scope must be "peers" or "pools"' });
