@@ -4,7 +4,7 @@ services:
       APP_HOST: bltest-peerlab_dashboard_1
       APP_PORT: 8788
   dashboard:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.68.1@sha256:92e5d7240b55fcbb002d9a8f830fda71f35e8f0d2b3ad7fdcc73b7744cf4bcca
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.69.1@sha256:835d512efffa54e78f10a2bbf1de8ac5bc06d8b97e29a7579388df66f521168f
     user: 1000:1000
     init: true
     restart: on-failure
@@ -44,7 +44,7 @@ services:
       retries: 3
       start_period: 30s
   peer-profiler:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.68.1@sha256:92e5d7240b55fcbb002d9a8f830fda71f35e8f0d2b3ad7fdcc73b7744cf4bcca
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.69.1@sha256:835d512efffa54e78f10a2bbf1de8ac5bc06d8b97e29a7579388df66f521168f
     user: 1000:1000
     init: true
     restart: on-failure
@@ -80,7 +80,7 @@ services:
       retries: 2
       start_period: 60s
   relay-profiler:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.68.1@sha256:92e5d7240b55fcbb002d9a8f830fda71f35e8f0d2b3ad7fdcc73b7744cf4bcca
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.69.1@sha256:835d512efffa54e78f10a2bbf1de8ac5bc06d8b97e29a7579388df66f521168f
     user: 1000:1000
     init: true
     restart: on-failure
@@ -115,7 +115,7 @@ services:
       retries: 2
       start_period: 60s
   stratum-race:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.68.1@sha256:92e5d7240b55fcbb002d9a8f830fda71f35e8f0d2b3ad7fdcc73b7744cf4bcca
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.69.1@sha256:835d512efffa54e78f10a2bbf1de8ac5bc06d8b97e29a7579388df66f521168f
     user: 1000:1000
     init: true
     restart: on-failure
@@ -150,7 +150,7 @@ services:
       retries: 2
       start_period: 60s
   peers:
-    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.68.1@sha256:92e5d7240b55fcbb002d9a8f830fda71f35e8f0d2b3ad7fdcc73b7744cf4bcca
+    image: ghcr.io/benunskilled/peer-lab:0.1.0-test.69.1@sha256:835d512efffa54e78f10a2bbf1de8ac5bc06d8b97e29a7579388df66f521168f
     user: 1000:1000
     restart: on-failure
     read_only: true
